@@ -29,3 +29,6 @@ htmlcov/
 Thumbs.db
 .idea/
 .vscode/
+
+# Aider
+.aider*
