@@ -1,7 +1,12 @@
 import sqlite3
 
+
 def criar_esquema(conexao):
-    "Executa o DDL do paragrafo 2 de specs/01_spec_parser_modelo.md"
+    """Executa o DDL do paragrafo 2 de specs/01_spec_parser_modelo.md.
+
+    Idempotente: todo CREATE tem IF NOT EXISTS, entao rodar de novo num banco
+    ja populado nao apaga nem duplica nada.
+    """
 
     ddl = """
     CREATE TABLE IF NOT EXISTS importacoes (
@@ -55,7 +60,12 @@ def criar_esquema(conexao):
 
 
 def abrir_banco(caminho):
-    "Abre a conexao sqlite3 para esse caminho, executa PRAGMA foreign_keys = ON, chama criar_esquema e devolve a conexao"
+    """Abre (criando se preciso) o banco em `caminho` e devolve a conexao pronta.
+
+    O `PRAGMA foreign_keys = ON` nao e detalhe: no SQLite ele vem DESLIGADO por
+    padrao e vale POR CONEXAO, nao pelo arquivo. Sem ele, os REFERENCES do DDL
+    sao decorativos e um item orfao entra em silencio.
+    """
 
     conexao = sqlite3.connect(caminho)
     conexao.execute("PRAGMA foreign_keys = ON")

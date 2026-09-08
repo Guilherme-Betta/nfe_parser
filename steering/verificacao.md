@@ -7,12 +7,11 @@
 
 ## O que o `verify` roda
 
-Em ordem, abortando no primeiro que falhar:
-
 | # | Comando | Para que |
 | - | ------- | -------- |
 | 1 | `{sys.executable} -m pytest -q` | a suite. E o contrato das invariantes do §5 da spec 01 |
-| 2 | `{sys.executable} -m ruff check .` | lint, `line-length = 100` |
+
+**So isso.** O `ruff` esteve aqui e **saiu em 2026-09-08**, na primeira story.
 
 **Por que `sys.executable` e nao a string `"python"`.** `"python"` seria
 resolvido pelo PATH. Com a `.venv` nao ativada, isso e o Python global da
@@ -20,18 +19,37 @@ juicey — que **nao tem pytest**. O oraculo reprovaria todo diff com
 "No module named pytest", e a culpa pareceria ser do modelo local. Foi um
 defeito real do kit, encontrado neste shakedown e corrigido na fonte.
 
-**Por que testes ANTES do lint.** O verify aborta no primeiro passo vermelho, e
-o Aider so tem **3 reflexoes**. Nesta ordem, as 3 tentativas sao gastas em
-corretude; na ordem inversa, uma virgula fora do lugar bloquearia o modelo de
-sequer ver o resultado dos testes.
+### Por que o `ruff` saiu do oraculo (medido, nao teorizado)
+
+A versao original deste arquivo defendia que o verify devia **espelhar o CI**
+(`ruff` + `pytest`), com os testes ANTES do lint para que as 3 reflexoes do
+Aider fossem gastas em corretude. **A story 001 mostrou que o argumento tinha um
+buraco.**
+
+O que aconteceu, na integra:
+
+1. O modelo local acertou a implementacao **no primeiro turno** — 8 testes
+   verdes, incluindo os tres do caminho de erro.
+2. O `ruff` reprovou com **I001**: faltava uma linha em branco no bloco de
+   import.
+3. O modelo gastou as **tres** reflexoes tentando consertar isso, e nas tres
+   emitiu blocos `SEARCH/REPLACE` com o texto **identico dos dois lados**.
+   `Only 3 reflections allowed, stopping.`
+
+**A ordem nao protegeu nada.** Ela so decide qual falha o modelo ve primeiro;
+quando os testes passam de primeira, o lint herda o orcamento de reflexoes
+inteiro. O raciocinio "testes antes do lint" estava certo e era irrelevante.
+
+**E o modelo nao estava sendo teimoso — ele nao conseguia expressar o conserto.**
+Uma mudanca so de espaco em branco e praticamente inexprimivel no formato
+`diff`: `SEARCH` e `REPLACE` ficam com a mesma aparencia. Isso e novo em relacao
+a tabela de `edit-format` da Fase 0, que so cobria reorganizacao de linhas.
+
+**A regra que fica:** o oraculo do modelo local julga **corretude**. Estilo e do
+passo 4 — `ruff check --fix` resolveu este caso em **um segundo**, contra tres
+reflexoes desperdicadas.
 
 ## Por que isso e suficiente aqui
-
-O `verify` **espelha o CI** (`.github/workflows/ci.yml`, que roda `ruff check .`
-e `pytest`). Essa igualdade e a propriedade que importa: um oraculo mais fraco
-que o CI deixaria o modelo local produzir codigo aprovado localmente e
-reprovado no CI — e a reprovacao chegaria **depois** de o diff ja ter sido
-aceito no passo 4 do loop.
 
 E o nucleo `parser` e um componente onde teste basta: entrada = XML, saida =
 linhas no SQLite e um JSON de contadores. Nao ha UI, nao ha rede, nao ha
@@ -45,6 +63,7 @@ A pergunta honesta: **o que poderia estar quebrado e mesmo assim passar?**
 | ----------------------- | ------------------------------- |
 | **Comportamento sem teste.** `pytest` so verifica o que alguem escreveu | E o passo 2 do loop que fecha isso: os testes vem da spec e sao **commitados antes** da implementacao. O buraco vira "spec incompleta", que e visivel |
 | **Dado pessoal real numa fixture.** Nenhum comando distingue um CNPJ real de um fake | Repo publico: risco alto. Defesa = `.gitignore` (`*.xml` fora de `tests/fixtures/`) + revisao humana no passo 4. **Nao delegar ao modelo local** |
+| **Lint.** O `ruff` nao roda mais aqui | ⭐ **O buraco mais importante desta tabela.** Codigo pode passar no verify e reprovar no CI. Quem fecha e o **passo 4**: a revisao roda `ruff check --fix` antes de aceitar o diff. Se isso for esquecido, o CI pega — tarde, mas pega |
 | **Erros de tipo.** Sem `mypy`/`pyright` | O projeto nao adotou type checker; adicionar um agora mudaria o CI, que esta fora do escopo do shakedown |
 | **Cobertura.** Um teste vazio passa | Sem `--cov` nem minimo exigido; a rubrica de qualidade do passo 4 e quem olha |
 | **Python 3.14 local × 3.11 no CI** | A juicey so tem 3.14. Codigo que dependa de detalhe de 3.14 passa aqui e quebra no CI. Aceito: o shakedown mede o modelo local, nao a matriz de versoes |
@@ -59,4 +78,4 @@ A pergunta honesta: **o que poderia estar quebrado e mesmo assim passar?**
 
 - [x] `python scripts/verify.py` roda e **PASSA** num checkout limpo
       *(invariante 2 do kit: o bootstrap nao termina sem isso)*
-      — verde em 2026-09-08: `verify: OK -- 2 passo(s), tudo verde.`
+      — verde em 2026-09-08: `verify: OK -- 1 passo(s), tudo verde.` (8 testes)

@@ -69,14 +69,26 @@ import sys
 PY = sys.executable
 
 # ---------------------------------------------------------------------------
-# NESTE PROJETO (nfe_parser): espelha o CI (.github/workflows/ci.yml), que roda
-# ruff + pytest. Um verify mais fraco que o CI deixaria o modelo local produzir
-# codigo que passa no oraculo e reprova no CI -- e a reprovacao chegaria tarde,
-# depois de o diff ja ter sido aceito. Ver steering/verificacao.md.
+# NESTE PROJETO (nfe_parser): SO pytest. O ruff saiu do oraculo em 2026-09-08,
+# depois de a story 001 ser reprovada por uma linha em branco.
+#
+# O que aconteceu, medido: o modelo local acertou a implementacao no PRIMEIRO
+# turno (8 testes verdes). O ruff entao reprovou com I001 -- formatacao do bloco
+# de import -- e o modelo gastou as TRES reflexoes tentando consertar, emitindo
+# blocos SEARCH/REPLACE com o texto IDENTICO dos dois lados. Nao e teimosia: uma
+# mudanca so de espaco em branco e praticamente inexprimivel no formato `diff`,
+# porque SEARCH e REPLACE ficam visualmente iguais.
+#
+# A licao NAO e "ponha o lint depois dos testes" -- estava depois. Quando os
+# testes passam de primeira, o lint herda o orcamento inteiro de reflexoes. A
+# licao e: o oraculo do modelo local julga CORRETUDE. Estilo e do passo 4, onde
+# um `ruff check --fix` resolve em um segundo.
+#
+# O buraco (codigo que passa aqui e reprova no CI) esta registrado em
+# steering/verificacao.md, e quem o fecha e a revisao do passo 4.
 # ---------------------------------------------------------------------------
 COMANDOS = [
     [PY, "-m", "pytest", "-q"],
-    [PY, "-m", "ruff", "check", "."],
 ]
 
 # Exemplo de projeto SEM testes (descomente e adapte):
