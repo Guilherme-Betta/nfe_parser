@@ -37,6 +37,18 @@ Nenhum pacote fora desta tabela. Ela e copia fiel do `pyproject.toml`.
 **Da biblioteca padrao**, e o que o nucleo `parser` de fato usa: `sqlite3`,
 `zipfile`, `hashlib`, `pathlib`, `datetime`, `decimal`, `dataclasses`, `json`.
 
+### O modelo de arquivo do SQLite — tres fatos que confundem quem vem de outro banco
+
+1. **O banco inteiro e UM arquivo.** Tabelas, indices e dados vivem todos dentro dele. Nao ha
+   servidor, nao ha "banco" em outro lugar recebendo arquivos. Quando uma funcao recebe um
+   `caminho`, esse caminho **e** o banco.
+2. **Conexao e o canal aberto com esse arquivo**, e ela carrega configuracao propria. `PRAGMA
+   foreign_keys` e o exemplo que morde: vem **DESLIGADO** por padrao, vale **por conexao** e
+   **nao fica gravado no arquivo** — quem abrir o banco sem ligar de novo perde a checagem.
+3. **Nao confundir com os XMLs.** O app vai importar arquivos de nota fiscal *para dentro* do
+   banco — mas isso e a story 004. No `banco.py` nao entra arquivo nenhum: ele so abre o banco e
+   garante o formato das tabelas.
+
 > ⚠️ **O nucleo `parser` (spec 01) usa APENAS `nfelib` + stdlib.** FastAPI,
 > Jinja2 e `python-multipart` existem no projeto para os componentes 03 em
 > diante. Um diff do nucleo que importe FastAPI esta fora de escopo — e a
