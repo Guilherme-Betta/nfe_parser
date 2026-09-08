@@ -32,3 +32,6 @@ Thumbs.db
 
 # Aider
 .aider*
+# ...mas a config do Aider E versionada: ela faz parte do projeto
+!.aider.conf.yml
+!.aider.model.settings.yml
