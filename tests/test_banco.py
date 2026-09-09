@@ -11,6 +11,7 @@ Criterios em `specs/001-esquema-do-banco/spec.md` §4.
 import sqlite3
 
 import pytest
+
 from nfe_parser.banco import abrir_banco
 
 TABELAS_ESPERADAS = {"importacoes", "notas", "itens", "importacao_arquivos"}

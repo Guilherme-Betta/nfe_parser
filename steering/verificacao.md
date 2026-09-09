@@ -49,6 +49,36 @@ a tabela de `edit-format` da Fase 0, que so cobria reorganizacao de linhas.
 passo 4 — `ruff check --fix` resolveu este caso em **um segundo**, contra tres
 reflexoes desperdicadas.
 
+### ⛔ Ao rodar o lint no passo 4, use `--no-cache`
+
+Descoberto em 2026-09-08, logo depois da story 001. **O `ruff` deu verde local e vermelho no CI,
+com o arquivo identico.** Dois mecanismos empilhados:
+
+**1. A classificacao de import depende de o modulo EXISTIR no disco.** O `ruff` decide se
+`nfe_parser` e "primeira parte" (bloco separado) ou "terceiro" (junto com o `pytest`) resolvendo o
+import contra os arquivos. Provado:
+
+| Situacao | `ruff check --no-cache tests/test_banco.py` |
+| -------- | ------------------------------------------- |
+| `src/nfe_parser/banco.py` **ausente** | `All checks passed` |
+| `src/nfe_parser/banco.py` **presente** | `I001` |
+
+**Isto morde exatamente o loop do kit.** O passo 2 escreve e commita os testes **antes** de a
+implementacao existir. O lint que passa naquele momento pode reprovar depois, **sem ninguem tocar
+no arquivo de teste** — foi o que aconteceu aqui.
+
+**2. O cache do `ruff` nao sabe disso.** Ele e indexado pelo arquivo analisado; um arquivo NOVO
+aparecendo em outro lugar muda a resposta certa para um arquivo INALTERADO, e o cache continua
+servindo a resposta velha. Provado no mesmo arquivo, no mesmo commit:
+
+| Comando | Resultado |
+| ------- | --------- |
+| `ruff check tests/test_banco.py` (com cache) | `All checks passed` |
+| `ruff check --no-cache tests/test_banco.py` | `Found 1 error` |
+
+**A regra:** no passo 4, sempre `ruff check --fix --no-cache .`. O CI nunca tem cache — se voce
+confiar no cache local, ele descobre por voce, tarde.
+
 ## Por que isso e suficiente aqui
 
 E o nucleo `parser` e um componente onde teste basta: entrada = XML, saida =
@@ -63,7 +93,7 @@ A pergunta honesta: **o que poderia estar quebrado e mesmo assim passar?**
 | ----------------------- | ------------------------------- |
 | **Comportamento sem teste.** `pytest` so verifica o que alguem escreveu | E o passo 2 do loop que fecha isso: os testes vem da spec e sao **commitados antes** da implementacao. O buraco vira "spec incompleta", que e visivel |
 | **Dado pessoal real numa fixture.** Nenhum comando distingue um CNPJ real de um fake | Repo publico: risco alto. Defesa = `.gitignore` (`*.xml` fora de `tests/fixtures/`) + revisao humana no passo 4. **Nao delegar ao modelo local** |
-| **Lint.** O `ruff` nao roda mais aqui | ⭐ **O buraco mais importante desta tabela.** Codigo pode passar no verify e reprovar no CI. Quem fecha e o **passo 4**: a revisao roda `ruff check --fix` antes de aceitar o diff. Se isso for esquecido, o CI pega — tarde, mas pega |
+| **Lint.** O `ruff` nao roda mais aqui | ⭐ **O buraco mais importante desta tabela.** Codigo pode passar no verify e reprovar no CI. Quem fecha e o **passo 4**: a revisao roda `ruff check --fix --no-cache` antes de aceitar o diff. ⚠️ O `--no-cache` nao e opcional — ver a secao acima |
 | **Erros de tipo.** Sem `mypy`/`pyright` | O projeto nao adotou type checker; adicionar um agora mudaria o CI, que esta fora do escopo do shakedown |
 | **Cobertura.** Um teste vazio passa | Sem `--cov` nem minimo exigido; a rubrica de qualidade do passo 4 e quem olha |
 | **Python 3.14 local × 3.11 no CI** | A juicey so tem 3.14. Codigo que dependa de detalhe de 3.14 passa aqui e quebra no CI. Aceito: o shakedown mede o modelo local, nao a matriz de versoes |
