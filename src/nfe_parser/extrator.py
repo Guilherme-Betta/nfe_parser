@@ -48,7 +48,7 @@ def extrair_nota(xml_texto):
 
     nota = {
         "chave": inf.Id[3:],  # Remove the prefix "NFe"
-        "modelo": inf.ide.mod.value,
+        "modelo": int(inf.ide.mod.value),
         "serie": int(inf.ide.serie),
         "numero": int(inf.ide.nNF),
         "dh_emi": inf.ide.dhEmi,
