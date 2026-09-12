@@ -1,18 +1,23 @@
-"""Testes do extrator de NF-e 55 — contrato da story 002-extrair-nfe-55.
+"""Testes do bloco "nota" de `extrair_nota` — tarefa 2a da story 002.
 
 Escritos ANTES da implementacao (passo 2 do loop) e congelados por commit. O
 modelo local recebe este arquivo como LEITURA (`--read`), nunca como arquivo
-editavel: se ele puder editar o teste, ele edita o teste para faze-lo passar,
-que e o caminho mais curto para o objetivo dado.
+editavel.
 
-Criterios em `specs/002-extrair-nfe-55/spec.md` §5 e §6. A numeracao dos
-nomes de teste segue as tabelas de la -- por isso ela comeca em 01 aqui e
-em 17 no `test_para_centavos.py`.
+⭐ POR QUE ESTE ARQUIVO E SEPARADO
 
-⭐ `para_centavos` e testado em `tests/test_para_centavos.py`, num modulo
-separado de proposito: a story e fatiada em duas invocacoes do Aider, e um
-import de funcao que ainda nao existe quebraria a COLETA do modulo inteiro,
-impedindo a tarefa 1 de ficar verde. Ver o cabecalho daquele arquivo.
+A tarefa 2 original mandou **8,9k tokens** contra um `num_ctx` de 8192: o
+contexto foi truncado em silencio, o modelo nao chegou a ver a tabela da API do
+`nfelib` e inventou nomes que nao existem. Medido em 2026-09-12.
+
+O conserto foi fatiar de novo. Mas fatiar a tarefa obriga a fatiar o modulo de
+teste, porque um `import` de funcao inexistente quebra a COLETA do modulo
+inteiro e impede a sub-tarefa de ficar verde. Ver `test_para_centavos.py`.
+
+Aqui: so o bloco `"nota"` e o caminho de erro. Os itens estao em
+`test_extrator_itens.py`.
+
+Criterios em `specs/002-extrair-nfe-55/spec.md` §5 (1-9) e §6 (24-26).
 """
 
 from pathlib import Path
@@ -34,23 +39,8 @@ def xml_texto():
 
 
 @pytest.fixture
-def resultado(xml_texto):
-    return extrair_nota(xml_texto)
-
-
-@pytest.fixture
-def nota(resultado):
-    return resultado["nota"]
-
-
-@pytest.fixture
-def item(resultado):
-    return resultado["itens"][0]
-
-
-# ---------------------------------------------------------------------------
-# extrair_nota — identificacao da nota
-# ---------------------------------------------------------------------------
+def nota(xml_texto):
+    return extrair_nota(xml_texto)["nota"]
 
 
 def test_extrair_nota_01_chave_sem_prefixo_e_com_44_digitos(nota):
@@ -103,53 +93,6 @@ def test_extrair_nota_08_forma_pagamento_vem_do_tpag(nota):
 
 def test_extrair_nota_09_xml_raw_e_o_texto_recebido_intacto(nota, xml_texto):
     assert nota["xml_raw"] == xml_texto
-
-
-# ---------------------------------------------------------------------------
-# extrair_nota — o item
-# ---------------------------------------------------------------------------
-
-
-def test_extrair_nota_10_um_item(resultado):
-    assert len(resultado["itens"]) == 1
-
-
-def test_extrair_nota_11_quantidade_e_valor_unitario_sao_strings_exatas(item):
-    """Passar por float/Decimal e voltar para string transforma "1.5000" em "1.5".
-
-    O jeito de acertar este teste e NAO converter: o nfelib ja devolve o texto
-    exato do XML.
-    """
-    assert item["quantidade"] == "1.5000"
-    assert item["valor_unitario"] == "5.3600000000"
-    assert type(item["quantidade"]) is str
-    assert type(item["valor_unitario"]) is str
-
-
-def test_extrair_nota_12_valor_linha_e_804_nao_803(item):
-    """vProd = "8.04". Mesma armadilha do criterio 7."""
-    assert item["valor_linha"] == 804
-    assert type(item["valor_linha"]) is int
-
-
-def test_extrair_nota_13_descricao_e_o_xprod_cru(item):
-    assert item["descricao"] == "TOMATE ITALIANO KG"
-
-
-def test_extrair_nota_14_ncm_e_cprod_como_strings(item):
-    """NCM tem zero a esquerda: 07020000. Como int viraria 7020000."""
-    assert item["ncm"] == "07020000"
-    assert item["cprod"] == "SKU-0001"
-
-
-def test_extrair_nota_15_sem_gtin_vira_none(item):
-    """cEAN = "SEM GTIN". String vazia nao serve: a coluna e NULL."""
-    assert item["gtin"] is None
-
-
-def test_extrair_nota_16_n_item_e_inteiro(item):
-    assert item["n_item"] == 1
-    assert type(item["n_item"]) is int
 
 
 # ---------------------------------------------------------------------------

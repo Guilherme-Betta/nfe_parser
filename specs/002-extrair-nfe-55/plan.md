@@ -18,10 +18,14 @@
 
 ## Tarefas
 
-| # | Tarefa | Arquivos | `edit-format` | Status |
-| - | ------ | -------- | ------------- | ------ |
-| 1 | `para_centavos(texto) -> int`: exato ao centavo, **rejeita** mais de 2 casas em vez de truncar | `src/nfe_parser/extrator.py` (novo) · oraculo: `tests/test_para_centavos.py` | `diff` | ⬜ |
-| 2 | `extrair_nota(xml_texto) -> dict`: le o `nfeProc` com `nfelib` e devolve `{"nota": ..., "itens": [...]}` | `src/nfe_parser/extrator.py` · oraculo: `verify` completo | `diff` | ⬜ |
+| # | Tarefa | Oraculo da tarefa | `edit-format` | Turno 1 | Status |
+| - | ------ | ----------------- | ------------- | ------- | ------ |
+| 1 | `para_centavos(texto) -> int`: exato ao centavo, **rejeita** mais de 2 casas em vez de truncar | `tests/test_para_centavos.py` (7) | `diff` | **4,5k** ✅ | ✅ **aceita** — 1 turno, 0 reflexoes |
+| 2 | ~~`extrair_nota` inteira~~ | ~~`tests/test_extrator.py` (19)~~ | `diff` | **8,9k** ⛔ | ❌ **abortada** — ver abaixo |
+| 2a | `extrair_nota`: so o bloco `"nota"` e o caminho de erro | `tests/test_extrator_nota.py` (12) | `diff` | | ⬜ |
+| 2b | `extrair_nota`: preencher a lista `"itens"` | `tests/test_extrator_itens.py` (8) | `diff` | | ⬜ |
+
+Todas em `src/nfe_parser/extrator.py`.
 
 **Status:** ⬜ nao iniciada · 🔄 no modelo local · 👀 aguardando revisao · ✅ aceita
 
@@ -68,6 +72,40 @@ como ficar verde por mais certa que estivesse.
 > saida". Entao o oraculo estreito da tarefa 1 entra por `--test-cmd` na linha de comando, que
 > sobrescreve o do `.aider.conf.yml`. O `verify` completo volta a valer na tarefa 2 e no passo 4.
 
+### ❌ A tarefa 2 estourou o orcamento — medido em 2026-09-12
+
+**Turno 1: 8,9k tokens enviados, contra um `num_ctx` de 8192.** O contexto foi truncado em
+silencio, como manda o Achado B. O que o modelo produziu prova que ele nao chegou a ver a tabela
+da API:
+
+| O que ele escreveu | O que existe de verdade |
+| ------------------ | ----------------------- |
+| `from nfelib.nfe_v4_00 import NFe` | `from nfelib.nfe.bindings.v4_0.proc_nfe_v4_00 import NfeProc` |
+| `NFe.parse(xml)` | `NfeProc.from_xml(xml)` |
+| `nfe.infNFe.ide.chNFe` | `inf.Id`, com o prefixo `NFe` a remover |
+| `emit.endERemit` | `emit.enderEmit` |
+| chaves `"data_emissao"`, `"uf_emissao"`, `"numero_item"` | as colunas do DDL, listadas no §2 da spec |
+
+E ainda emitiu o bloco no **formato errado** (cercas ```` no lugar de `SEARCH/REPLACE`), entao
+**nenhuma edicao foi aplicada** e o `--auto-test` nem chegou a rodar. Nada quebrou no repo: o
+arquivo ficou como estava.
+
+**De onde vinham os 8,9k:** o prompt do Aider em `diff` (~2,3k) + mapa do repo (1,0k) +
+`spec.md` inteira (~2,5k) + `test_extrator.py` (~1,4k) + o arquivo + a mensagem.
+
+**Os dois cortes, e por que nesta ordem:**
+
+1. **A tabela da API saiu da spec para [`api-nfelib.md`](api-nfelib.md)** (~0,63k contra ~2,5k da
+   spec inteira). Isso **nao joga informacao fora** — e a mesma tabela, num arquivo que cabe no
+   `--read`. E as stories 003+ vao querer ela do mesmo jeito.
+2. **`extrair_nota` virou duas tarefas**, e por consequencia `test_extrator.py` virou dois
+   modulos. Pela regra ja estabelecida: story fatiada em N tarefas = testes em N modulos.
+
+> ⭐ **A licao generalizavel:** o orcamento nao e do *codigo* a escrever, e do **contexto a
+> mandar**. A tarefa 2 pedia ~45 linhas de codigo — folgadissimo nas ~300 da regra 1 — e mesmo
+> assim estourou, porque o que pesa e a documentacao que a torna executavel. **A regra 1 do
+> fatiamento mede a coisa errada.** O que vale e a regra 5.
+
 ### Como invocar
 
 O modelo **le** os testes e nao os edita (`--read`). Isso nao e estilo: se ele puder editar o
@@ -76,28 +114,36 @@ teste, ele edita o teste para faze-lo passar — e o caminho mais curto para o o
 ```powershell
 # de dentro de nfe_parser-shakedown, com a .venv ATIVADA
 
-# --- tarefa 1: para_centavos ----------------------------------------------
-# Sem --read na spec de proposito: para_centavos nao precisa do nfelib nem do
-# §4, e a spec inteira custaria ~2,6k do orcamento de 8k a toa.
+# --- tarefa 1: para_centavos ------------------------------------- FEITA (4,5k)
 aider --model ollama_chat/qwen2.5-coder:14b `
       --read tests/test_para_centavos.py `
       --file src/nfe_parser/extrator.py `
       --test-cmd "python -m pytest tests/test_para_centavos.py -q" `
-      --yes-always `
-      --message "..."
+      --yes-always --message "..."
 
-# /clear entre as duas   <- regra 4
-
-# --- tarefa 2: extrair_nota -----------------------------------------------
-# Aqui a spec E obrigatoria: o §4 tem a tabela do que o nfelib devolve, que o
-# modelo nao tem orcamento para descobrir sozinho.
+# --- tarefa 2a: o bloco "nota" ---------------------------------------------
+# --map-tokens 0 economiza 1,0k: o mapa do repo nao ajuda numa tarefa que ja
+# recebe o arquivo alvo e a referencia da API.
 aider --model ollama_chat/qwen2.5-coder:14b `
-      --read tests/test_extrator.py `
-      --read specs/002-extrair-nfe-55/spec.md `
+      --read tests/test_extrator_nota.py `
+      --read specs/002-extrair-nfe-55/api-nfelib.md `
       --file src/nfe_parser/extrator.py `
-      --yes-always `
-      --message "..."
+      --map-tokens 0 `
+      --test-cmd "python -m pytest tests/test_extrator_nota.py -q" `
+      --yes-always --message "..."
+
+# --- tarefa 2b: a lista "itens" --------------------------------------------
+aider --model ollama_chat/qwen2.5-coder:14b `
+      --read tests/test_extrator_itens.py `
+      --read specs/002-extrair-nfe-55/api-nfelib.md `
+      --file src/nfe_parser/extrator.py `
+      --map-tokens 0 `
+      --test-cmd "python -m pytest tests/test_extrator_itens.py -q" `
+      --yes-always --message "..."
 ```
+
+⛔ **A spec.md inteira nao vai mais no `--read` de tarefa nenhuma.** Foi o que estourou o
+orcamento. O que o modelo precisa esta em `api-nfelib.md` e no proprio modulo de teste.
 
 > ⚠️ A `.venv` **precisa** estar ativada. O `verify` usa `sys.executable`, entao ele herda o
 > interpretador de quem o chamou — e quem o chama e o Aider.

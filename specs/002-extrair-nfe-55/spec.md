@@ -86,44 +86,22 @@ Recebe o **texto** de um XML `nfeProc` e devolve um dicionario com duas chaves,
 
 ## 4. O que o `nfelib` realmente devolve — medido, nao suposto
 
-⚠️ **Leia esta secao antes de implementar.** Ela existe porque a API nao e adivinhavel, e o
-orcamento de contexto nao permite explorar a lib durante a tarefa. Tudo abaixo foi medido em
-2026-09-12 contra `nfelib 2.5.2` e a fixture desta story.
+⭐ **A tabela completa mora em [`api-nfelib.md`](api-nfelib.md)**, neste mesmo diretorio.
 
-```python
-from nfelib.nfe.bindings.v4_0.proc_nfe_v4_00 import NfeProc
-proc = NfeProc.from_xml(xml_texto)      # texto -> objeto
-inf = proc.NFe.infNFe                   # os nomes preservam a caixa do XML
-```
+Ela e um arquivo separado por uma razao pratica, nao por organizacao: e ela que vai no `--read`
+das tarefas do modelo local, e a spec inteira nao cabe no orcamento de 8192 tokens junto com os
+testes. Medido em 2026-09-12: mandar a spec completa custou **8,9k** e o contexto foi truncado em
+silencio.
 
-| Caminho | Devolve | Tipo | ⚠️ Atencao |
-| ------- | ------- | ---- | --------- |
-| `inf.Id` | `"NFe3526...0017"` | `str` | **tem o prefixo `NFe`** — a chave sao os 44 digitos depois dele |
-| `inf.ide.mod` | `Tmod.VALUE_55` | **enum** | precisa de `.value` -> `"55"`, e a coluna e INTEGER |
-| `inf.ide.serie` | `"1"` | `str` | coluna INTEGER |
-| `inf.ide.nNF` | `"1"` | `str` | coluna INTEGER |
-| `inf.ide.dhEmi` | `"2026-04-15T10:30:00-03:00"` | `str` | ja e ISO-8601 com offset; **nao converter** |
-| `inf.emit.CNPJ` | `"99999999000199"` | `str` | manter string |
-| `inf.emit.enderEmit.xMun` | `"SAO PAULO"` | `str` | |
-| `inf.emit.enderEmit.UF` | `TufEmi.SP` | **enum** | precisa de `.value` |
-| `inf.det` | lista de `Det` | `list` | 1 elemento nesta story |
-| `det.nItem` | `"1"` | `str` | coluna INTEGER |
-| `det.prod.qCom` | `"1.5000"` | `str` | **guardar a string como veio** |
-| `det.prod.vUnCom` | `"5.3600000000"` | `str` | **guardar a string como veio** |
-| `det.prod.vProd` | `"8.04"` | `str` | passa por `para_centavos` |
-| `det.prod.cEAN` | `"SEM GTIN"` | `str` | vira `None` |
-| `inf.total.ICMSTot.vNF` | `"8.04"` | `str` | passa por `para_centavos` |
-| `inf.pag.detPag[0].tPag` | `"01"` | `str` | `inf.pag` e **objeto**, nao lista |
+As tres coisas que enganam, em resumo (o detalhe esta la):
 
-> ⭐ **A boa noticia: os numeros ja chegam como `str`, com o texto exato do XML.** Entao
-> "quantidade como string decimal exata" se cumpre **nao convertendo**. Qualquer passagem por
-> `float` ou `Decimal` e volta para string quebra: `"1.5000"` vira `"1.5"`.
+1. **`inf.Id` tem o prefixo `NFe`** — a chave sao os 44 digitos depois dele.
+2. **`inf.ide.mod` e `enderEmit.UF` sao ENUMS**, nao strings. Precisam de `.value`.
+3. **Os numeros ja chegam como `str`, com o texto exato do XML** — entao "string decimal exata"
+   se cumpre **nao convertendo**. Dinheiro e a excecao: passa por `para_centavos`.
 
-> ⛔ **Os dois enums sao a pegadinha.** `inf.ide.mod` e `UF` **nao** sao strings. `str(inf.ide.mod)`
-> devolve `"Tmod.VALUE_55"`, nao `"55"`. Use `.value`.
-
-**Erro:** qualquer XML que o `nfelib` nao consiga ler levanta `xsdata.exceptions.ParserError` —
-tanto XML corrompido quanto XML valido que nao e NF-e quanto string vazia.
+**Erro:** qualquer XML ilegivel levanta `xsdata.exceptions.ParserError` — corrompido, valido mas
+nao-NF-e, e string vazia, os tres.
 
 ## 5. Criterios de aceitacao (TESTAVEIS)
 
@@ -150,6 +128,7 @@ Cada linha vira pelo menos uma assercao no passo 2. A fixture e
 | 14 | `ncm` e `cprod` como strings | `== "07020000"`, `== "SKU-0001"` |
 | 15 | `gtin` de `"SEM GTIN"` vira **`None`** | `itens[0]["gtin"] is None` |
 | 16 | `n_item` e inteiro | `itens[0]["n_item"] == 1` |
+| 16b | `unidade` vem do `uCom` | `itens[0]["unidade"] == "KG"` |
 
 ### `para_centavos`
 
