@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 verify.py -- O ORACULO do projeto. Nome fixo; o kit sempre chama isto.
 

@@ -79,6 +79,42 @@ servindo a resposta velha. Provado no mesmo arquivo, no mesmo commit:
 **A regra:** no passo 4, sempre `ruff check --fix --no-cache .`. O CI nunca tem cache — se voce
 confiar no cache local, ele descobre por voce, tarde.
 
+### ⛔ Lint do CI roda em Linux; o Windows nao ve tudo
+
+Descoberto em 2026-09-12. O CI continuou **vermelho** depois do conserto do `I001`, e a causa era
+um segundo erro que **nunca apareceu na maquina local**:
+
+```
+EXE001 Shebang is present but file is not executable
+ --> scripts/verify.py:1:1
+```
+
+**Por que nao aparece no Windows.** O `EXE001` le o **bit de execucao** do arquivo. Isso e metadado
+de sistema de arquivos POSIX; no Windows ele nao existe, entao o `ruff` pula a regra em silencio.
+Mesmo commit, mesma versao do `ruff` (0.16.7), mesmo `--no-cache`:
+
+| Onde | `ruff check .` |
+| ---- | -------------- |
+| Windows (juicey), checkout limpo | `All checks passed` |
+| Linux (CI), mesmo commit | `EXE001`, exit 1 |
+
+**Esta e uma classe nova, pior que a do cache.** O `--no-cache` conserta um verde velho; aqui nao
+existe comando local que revele o problema. O unico detector e o proprio CI.
+
+**O conserto escolhido: tirar o shebang, nao marcar o bit.** Marcar (`git update-index --chmod=+x`)
+tambem fecha o `EXE001`, mas exige lembrar do comando em **todo script novo** — passo manual,
+invisivel no Windows, e que o modelo local **nao consegue expressar** num `SEARCH/REPLACE` (ele
+edita conteudo, nao permissao). Tirar o shebang faz os dois ambientes concordarem sempre.
+
+**A regra:** neste projeto, **script `.py` nao leva shebang**. Nada e executado direto — o kit, o
+`test-cmd` do Aider e a documentacao chamam todos `python scripts/verify.py`. Se algum dia um
+arquivo precisar mesmo ser executavel, marque o bit no git **e** anote aqui, porque o lint local
+nunca vai cobrar.
+
+**Corolario para ler o CI:** um email do GitHub Actions dizendo *"N annotations"* pode ser N erros
+de lint de verdade. Em 2026-09-08 foram lidos como "erro + resumo"; eram **dois erros** (`EXE001` e
+`I001`), e so um foi consertado. Va no log do job antes de concluir.
+
 ## Por que isso e suficiente aqui
 
 E o nucleo `parser` e um componente onde teste basta: entrada = XML, saida =
@@ -97,6 +133,7 @@ A pergunta honesta: **o que poderia estar quebrado e mesmo assim passar?**
 | **Erros de tipo.** Sem `mypy`/`pyright` | O projeto nao adotou type checker; adicionar um agora mudaria o CI, que esta fora do escopo do shakedown |
 | **Cobertura.** Um teste vazio passa | Sem `--cov` nem minimo exigido; a rubrica de qualidade do passo 4 e quem olha |
 | **Python 3.14 local × 3.11 no CI** | A juicey so tem 3.14. Codigo que dependa de detalhe de 3.14 passa aqui e quebra no CI. Aceito: o shakedown mede o modelo local, nao a matriz de versoes |
+| **Regras de lint que dependem de POSIX** | O `EXE001` le o bit de execucao, que nao existe no Windows. O `ruff` pula em silencio aqui e reprova no CI. Nao ha comando local que detecte; so o CI |
 | **Performance.** Lote grande pode ficar lento | Fora do §5 da spec. Nenhum criterio de aceitacao fala de tempo |
 
 > ⚠️ **Um teste fraco nao falha ruidosamente — ele aprova codigo errado em
