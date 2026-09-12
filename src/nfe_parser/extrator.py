@@ -61,4 +61,15 @@ def extrair_nota(xml_texto):
         "xml_raw": xml_texto,
     }
 
-    return {"nota": nota, "itens": []}
+    itens = []
+    for det in inf.det:
+        item = {
+            "n_item": int(det.nItem),
+            "descricao": det.prod.xProd,
+            "cprod": det.prod.cProd,
+            "ncm": det.prod.NCM,
+            "gtin": det.prod.cEAN if det.prod.cEAN != "SEM GTIN" else None,
+        }
+        itens.append(item)
+
+    return {"nota": nota, "itens": itens}
