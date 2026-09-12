@@ -69,6 +69,10 @@ def extrair_nota(xml_texto):
             "cprod": det.prod.cProd,
             "ncm": det.prod.NCM,
             "gtin": det.prod.cEAN if det.prod.cEAN != "SEM GTIN" else None,
+            "quantidade": det.prod.qCom,
+            "valor_unitario": det.prod.vUnCom,
+            "valor_linha": para_centavos(det.prod.vProd),
+            "unidade": det.prod.uCom,
         }
         itens.append(item)
 
