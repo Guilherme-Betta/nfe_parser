@@ -4,7 +4,7 @@ from nfelib.nfe.bindings.v4_0.proc_nfe_v4_00 import NfeProc
 from xsdata.exceptions import ParserError
 
 
-def para_centavos(texto):
+def para_centavos(texto: str) -> int:
     "Converte uma string de valor monetario vinda do XML da NF-e no inteiro de centavos"
 
     try:
@@ -25,7 +25,7 @@ def para_centavos(texto):
         return int(valor * 100)
 
 
-def extrair_nota(xml_texto):
+def extrair_nota(xml_texto: str) -> dict:
     try:
         proc = NfeProc.from_xml(xml_texto)
     except ParserError:
