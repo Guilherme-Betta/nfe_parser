@@ -66,12 +66,14 @@ def nota(resultado):
 
 # --- C1.1 --------------------------------------------------------------------
 
+
 def test_1_1_devolve_dicionario_com_nota_e_itens(resultado):
     assert isinstance(resultado, dict)
     assert set(resultado.keys()) == {"nota", "itens"}
 
 
 # --- C1.2 e C1.3 -------------------------------------------------------------
+
 
 def test_1_2_nota_tem_exatamente_as_chaves_do_ddl(nota):
     assert set(nota.keys()) == CHAVES_NOTA
@@ -84,6 +86,7 @@ def test_1_3_item_tem_exatamente_as_chaves_do_ddl(resultado):
 
 # --- C1.4 --------------------------------------------------------------------
 
+
 def test_1_4_modelo_e_o_int_65(nota):
     # `inf.ide.mod` chega como enum Tmod.VALUE_65. str() dele devolveria
     # "Tmod.VALUE_65"; so `.value` da "65".
@@ -93,6 +96,7 @@ def test_1_4_modelo_e_o_int_65(nota):
 
 
 # --- C1.5 e C1.6 -------------------------------------------------------------
+
 
 def test_1_5_chave_tem_44_digitos_sem_o_prefixo_nfe(nota):
     chave = nota["chave"]
@@ -111,6 +115,7 @@ def test_1_6_a_chave_carrega_o_modelo_65(nota):
 
 # --- C1.7 --------------------------------------------------------------------
 
+
 def test_1_7_valor_total_e_int_em_centavos(nota):
     # 12.34 e armadilha de float: int(float("12.34") * 100) == 1233.
     assert nota["valor_total"] == 1234
@@ -126,6 +131,7 @@ def test_1_7_dh_emi_e_a_string_exata_do_xml(nota):
 
 # --- C1.8 --------------------------------------------------------------------
 
+
 def test_1_8_uf_e_string_nao_enum(nota):
     # `enderEmit.UF` chega como TufEmi.SP.
     assert nota["emit_uf"] == "SP"
@@ -133,6 +139,7 @@ def test_1_8_uf_e_string_nao_enum(nota):
 
 
 # --- os demais campos da 65, para "mesmos campos" nao ficar so no conjunto ----
+
 
 def test_demais_campos_da_nota_65(nota):
     assert nota["serie"] == 1
@@ -166,6 +173,7 @@ def test_xml_raw_e_o_texto_que_entrou(nota):
 
 
 # --- C1.9 --------------------------------------------------------------------
+
 
 def test_1_9_suportar_a_65_nao_custa_a_55():
     """Regressao. O oraculo completo da 55 sao os modulos da story 002, que

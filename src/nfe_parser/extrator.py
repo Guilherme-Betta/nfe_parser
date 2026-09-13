@@ -15,7 +15,7 @@ def para_centavos(texto: str) -> int:
     if valor < 0:
         raise ValueError("Valor não pode ser negativo")
 
-    partes = str(valor).split('.')
+    partes = str(valor).split(".")
     if len(partes) > 1 and len(partes[1]) > 2:
         raise ValueError("Valor tem mais de duas casas decimais")
 

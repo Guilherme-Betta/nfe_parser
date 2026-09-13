@@ -41,33 +41,33 @@ Recebe o **texto** de um XML `nfeProc` e devolve um dicionario com duas chaves,
 
 ```python
 {
-  "nota": {
-    "chave": "35260499999999000199550010000000011000000017",  # 44 digitos, sem o prefixo "NFe"
-    "modelo": 55,                    # int
-    "serie": 1,                      # int
-    "numero": 1,                     # int  (nNF)
-    "dh_emi": "2026-04-15T10:30:00-03:00",
-    "emit_nome": "MERCEARIA EXEMPLO LTDA",
-    "emit_cnpj": "99999999000199",   # TEXT: pode ter zero a esquerda
-    "emit_municipio": "SAO PAULO",
-    "emit_uf": "SP",
-    "valor_total": 804,              # centavos, de vNF
-    "forma_pagamento": "01",         # tPag do primeiro detPag
-    "xml_raw": "<?xml ...",          # o texto recebido, sem alteracao
-  },
-  "itens": [
-    {
-      "n_item": 1,                   # int
-      "descricao": "TOMATE ITALIANO KG",   # xProd cru
-      "cprod": "SKU-0001",
-      "ncm": "07020000",             # TEXT
-      "gtin": None,                  # "SEM GTIN" vira None
-      "quantidade": "1.5000",        # STRING, exata como no XML
-      "unidade": "KG",
-      "valor_unitario": "5.3600000000",    # STRING, exata como no XML
-      "valor_linha": 804,            # centavos, de vProd
-    }
-  ],
+    "nota": {
+        "chave": "35260499999999000199550010000000011000000017",  # 44 digitos, sem o prefixo "NFe"
+        "modelo": 55,  # int
+        "serie": 1,  # int
+        "numero": 1,  # int  (nNF)
+        "dh_emi": "2026-04-15T10:30:00-03:00",
+        "emit_nome": "MERCEARIA EXEMPLO LTDA",
+        "emit_cnpj": "99999999000199",  # TEXT: pode ter zero a esquerda
+        "emit_municipio": "SAO PAULO",
+        "emit_uf": "SP",
+        "valor_total": 804,  # centavos, de vNF
+        "forma_pagamento": "01",  # tPag do primeiro detPag
+        "xml_raw": "<?xml ...",  # o texto recebido, sem alteracao
+    },
+    "itens": [
+        {
+            "n_item": 1,  # int
+            "descricao": "TOMATE ITALIANO KG",  # xProd cru
+            "cprod": "SKU-0001",
+            "ncm": "07020000",  # TEXT
+            "gtin": None,  # "SEM GTIN" vira None
+            "quantidade": "1.5000",  # STRING, exata como no XML
+            "unidade": "KG",
+            "valor_unitario": "5.3600000000",  # STRING, exata como no XML
+            "valor_linha": 804,  # centavos, de vProd
+        }
+    ],
 }
 ```
 

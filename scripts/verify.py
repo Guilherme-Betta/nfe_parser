@@ -128,8 +128,9 @@ def main():
             return 1
 
         if resultado.returncode != 0:
-            print(f"verify: FALHOU no passo {numero} (codigo {resultado.returncode})",
-                  file=sys.stderr)
+            print(
+                f"verify: FALHOU no passo {numero} (codigo {resultado.returncode})", file=sys.stderr
+            )
             return 1
 
     print(f"verify: OK -- {len(COMANDOS)} passo(s), tudo verde.")

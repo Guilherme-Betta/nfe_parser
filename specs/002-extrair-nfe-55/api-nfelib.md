@@ -6,8 +6,9 @@
 
 ```python
 from nfelib.nfe.bindings.v4_0.proc_nfe_v4_00 import NfeProc
-proc = NfeProc.from_xml(xml_texto)      # texto -> objeto
-inf = proc.NFe.infNFe                   # os nomes preservam a caixa do XML
+
+proc = NfeProc.from_xml(xml_texto)  # texto -> objeto
+inf = proc.NFe.infNFe  # os nomes preservam a caixa do XML
 ```
 
 | Caminho | Valor na fixture | Tipo |

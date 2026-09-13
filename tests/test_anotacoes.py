@@ -74,6 +74,7 @@ def test_4_0_o_modulo_expoe_as_funcoes_publicas_conhecidas():
 
 # --- C4.1 --------------------------------------------------------------------
 
+
 @pytest.mark.parametrize("nome", NOMES)
 def test_4_1_toda_funcao_publica_anota_o_retorno(nome):
     funcao = getattr(extrator, nome)
@@ -85,6 +86,7 @@ def test_4_1_toda_funcao_publica_anota_o_retorno(nome):
 
 
 # --- C4.2 --------------------------------------------------------------------
+
 
 def _tipo_de_retorno(nome):
     funcao = getattr(extrator, nome)
@@ -107,6 +109,7 @@ def test_4_2_extrair_nota_declara_dict():
 
 # --- C4.3 --------------------------------------------------------------------
 
+
 @pytest.mark.parametrize("nome", NOMES)
 def test_4_3_a_anotacao_bate_com_o_retorno_real(nome):
     """Sozinha, a 4.1 passaria com uma anotacao ERRADA.
@@ -128,6 +131,7 @@ def test_4_3_a_anotacao_bate_com_o_retorno_real(nome):
 
 # --- C4.4 --------------------------------------------------------------------
 
+
 @pytest.mark.parametrize("nome", NOMES)
 def test_4_4_os_parametros_tambem_sao_anotados(nome):
     """Nao e o criterio pre-registrado, que fala do retorno.
@@ -138,10 +142,6 @@ def test_4_4_os_parametros_tambem_sao_anotados(nome):
     """
     assinatura = inspect.signature(getattr(extrator, nome))
     sem_anotacao = [
-        p.name
-        for p in assinatura.parameters.values()
-        if p.annotation is inspect.Parameter.empty
+        p.name for p in assinatura.parameters.values() if p.annotation is inspect.Parameter.empty
     ]
-    assert not sem_anotacao, (
-        f"Parametros sem anotacao em '{nome}': {', '.join(sem_anotacao)}"
-    )
+    assert not sem_anotacao, f"Parametros sem anotacao em '{nome}': {', '.join(sem_anotacao)}"

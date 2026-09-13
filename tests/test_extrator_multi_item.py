@@ -30,6 +30,7 @@ def itens():
 
 # --- C2.1 e C2.2 -------------------------------------------------------------
 
+
 def test_2_1_tres_det_produzem_tres_itens(itens):
     # Nao 1 (parou no primeiro <det>), nao 4 (contou algo que nao e item).
     assert len(itens) == 3
@@ -41,6 +42,7 @@ def test_2_2_n_item_sai_1_2_3_na_ordem(itens):
 
 
 # --- C2.3 --------------------------------------------------------------------
+
 
 def test_2_3_as_descricoes_sao_distintas_e_batem_com_o_xml(itens):
     """Esta e a assercao que pega "extraiu o item 1 tres vezes".
@@ -73,6 +75,7 @@ def test_2_3_os_demais_campos_tambem_variam_por_item(itens):
 
 # --- C2.4 --------------------------------------------------------------------
 
+
 def test_2_4_valor_linha_de_cada_item_em_centavos(itens):
     # Os tres sao armadilha de float por conta propria:
     #   int(float("6.66") * 100) == 665 | ("8.04") == 803 | ("2.85") == 284
@@ -95,6 +98,7 @@ def test_2_4_a_soma_das_linhas_fecha_com_o_total():
 
 # --- C2.5 --------------------------------------------------------------------
 
+
 def test_2_5_uma_nota_de_um_item_continua_dando_um_item():
     # Multi-item nao pode virar "sempre >= 2". A fixture de 1 item nao e tocada.
     r = extrair_nota(FIXTURE_1.read_text(encoding="utf-8"))
@@ -103,6 +107,7 @@ def test_2_5_uma_nota_de_um_item_continua_dando_um_item():
 
 
 # --- C3.3 --------------------------------------------------------------------
+
 
 def test_3_3_gtin_e_resolvido_por_item_e_nao_globalmente(itens):
     """O item 2 tem "SEM GTIN"; os itens 1 e 3 tem GTIN de verdade.
