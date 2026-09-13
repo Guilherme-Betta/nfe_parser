@@ -24,9 +24,32 @@ Todas em `src/nfe_parser/extrator.py`. Nenhum modulo novo.
 | - | ------ | ----------------- | ------------- | -------------- | ------ |
 | 1 | **NFC-e 65**: `extrair_nota` aceita `mod=65` com os mesmos campos da 55, sem quebrar diante do bloco `<infNFeSupl>` | `tests/test_extrator_nfce65.py` (11) | `diff` | ~4,2k | 🟩 **verde de nascenca** |
 | 2 | **Multi-item**: N blocos `det` viram N itens, com `gtin` resolvido **por item** | `tests/test_extrator_multi_item.py` (8) | `diff` | ~4,3k | 🟩 **verde de nascenca** |
-| 3 | **Anotacao de tipo**: retorno e parametros de toda funcao publica do modulo | `tests/test_anotacoes.py` (9) | `diff` | ~4,0k | ⬜ |
+| 3 | **Anotacao de tipo**: retorno e parametros de toda funcao publica do modulo | `tests/test_anotacoes.py` (9) | `diff` | **4,7k** ✅ | ✅ **aceita** — 1 turno, 0 reflexoes |
 
 **Status:** ⬜ nao iniciada · 🔄 no modelo local · 👀 aguardando revisao · ✅ aceita
+
+### Revisao do passo 4 — o que foi lido, e o que o oraculo nao vê
+
+Commit do modelo local: **`90154bc`**, autoria `Aider (qwen2.5-coder:14b)`.
+
+| Conferido | Resultado |
+| --------- | --------- |
+| Diff linha a linha | **2 linhas**, as duas `def`. Nada mais tocado |
+| Arquivo inteiro relido (66 linhas) | Sem corpo duplicado, sem codigo depois do `return` — o modo de falha do Achado H, que **nenhuma** regra do `ruff` pega e nenhuma assercao alcanca |
+| Comportamento | Inalterado. Anotacao de tipo nao roda em tempo de execucao no CPython |
+| `scripts/verify.py` | **66 passed**, verde |
+| `python -m ruff check .` | `All checks passed!` |
+
+⚠️ **Fora de escopo, anotado e NAO consertado (regra da §6 do protocolo):**
+`python -m ruff format --check .` reprova **7 arquivos**, dos quais quatro sao anteriores a esta
+story: `scripts/verify.py`, `specs/002-extrair-nfe-55/spec.md`, `.../api-nfelib.md` e o
+`split('.')` que a story 002 escreveu no `extrator.py`. Ou seja, **`ruff format` nunca foi padrao
+deste projeto** — o oraculo roda `ruff check`, que e outra coisa. Rodar `ruff format` agora
+reescreveria a entrega da story 002, que a §4 da spec poe explicitamente fora de escopo.
+
+> Candidata a decisao futura, fora de qualquer janela medida: adotar `ruff format` no projeto
+> inteiro de uma vez, ou nunca. O estado atual — nem adotado, nem recusado por escrito — e o unico
+> que garante que a pergunta volte toda story.
 
 ### Por que esta ordem, e nao outra
 
