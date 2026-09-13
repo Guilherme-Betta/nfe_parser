@@ -115,6 +115,42 @@ nunca vai cobrar.
 de lint de verdade. Em 2026-09-08 foram lidos como "erro + resumo"; eram **dois erros** (`EXE001` e
 `I001`), e so um foi consertado. Va no log do job antes de concluir.
 
+### O `ruff format` foi ADOTADO em 2026-09-13 (Achado K)
+
+Ate esta data o projeto usava `ruff check` e **nunca tinha decidido** sobre o
+`ruff format`. O estado "nem adotado, nem recusado" garantia que a pergunta
+voltasse em toda story e que a resposta dependesse de quem revisava naquele dia.
+
+**A decisao: adotado.** Aplicado de uma vez no commit isolado `157ce83`
+(7 arquivos reformatados, 26 ja conformes; `ruff check` e os 66 testes verdes
+antes e depois). O commit e puro de formatacao **de proposito**, para poder ser
+excluido por hash da contagem de autoria (criterio 3 da Fase 2) e do `git blame`.
+
+**A razao e a mesma que tirou o `ruff` do oraculo** (secao acima): o modelo local
+nao consegue expressar um conserto de espaco em branco num `SEARCH/REPLACE` — a
+story 001 provou isso queimando as tres reflexoes. Se estilo nao pode ser
+negociado com o modelo, entao ele tem de ser **imposto por comando**, e um
+formatador deterministico e a forma mais barata disso. Ninguem mais julga layout
+em revisao nenhuma.
+
+**A regra do passo 4, na integra:**
+
+```bash
+ruff format --no-cache .            # impoe o layout
+ruff check --fix --no-cache .       # so entao procura problemas
+```
+
+**Onde ele NAO entra, e por que:**
+
+| Lugar | Decisao |
+| ----- | ------- |
+| `scripts/verify.py` (o oraculo) | **Nao.** Mesma razao do `ruff check`: o modelo local queimaria reflexoes num conserto que ele nao consegue escrever |
+| CI (GitHub Actions) | **Nao, por enquanto.** Mexer no CI durante o shakedown adiciona uma classe nova de vermelho para revisar — foi o mesmo motivo que manteve o `mypy` fora. Com o passo 4 rodando o formatador sempre, a cobranca do CI seria redundante num projeto de um dono so |
+
+⚠️ **Efeito colateral que surpreende:** o `ruff format` tambem reescreve blocos
+de codigo Python **dentro de arquivos `.md`**. Dois dos 7 arquivos reformatados
+eram specs da story 002. Toda spec nova ja nasce sujeita a isso.
+
 ## Por que isso e suficiente aqui
 
 E o nucleo `parser` e um componente onde teste basta: entrada = XML, saida =
@@ -129,7 +165,7 @@ A pergunta honesta: **o que poderia estar quebrado e mesmo assim passar?**
 | ----------------------- | ------------------------------- |
 | **Comportamento sem teste.** `pytest` so verifica o que alguem escreveu | E o passo 2 do loop que fecha isso: os testes vem da spec e sao **commitados antes** da implementacao. O buraco vira "spec incompleta", que e visivel |
 | **Dado pessoal real numa fixture.** Nenhum comando distingue um CNPJ real de um fake | Repo publico: risco alto. Defesa = `.gitignore` (`*.xml` fora de `tests/fixtures/`) + revisao humana no passo 4. **Nao delegar ao modelo local** |
-| **Lint.** O `ruff` nao roda mais aqui | ⭐ **O buraco mais importante desta tabela.** Codigo pode passar no verify e reprovar no CI. Quem fecha e o **passo 4**: a revisao roda `ruff check --fix --no-cache` antes de aceitar o diff. ⚠️ O `--no-cache` nao e opcional — ver a secao acima |
+| **Lint.** O `ruff` nao roda mais aqui | ⭐ **O buraco mais importante desta tabela.** Codigo pode passar no verify e reprovar no CI. Quem fecha e o **passo 4**: a revisao roda `ruff format --no-cache .` e depois `ruff check --fix --no-cache .` antes de aceitar o diff. ⚠️ O `--no-cache` nao e opcional — ver a secao acima |
 | **Erros de tipo.** Sem `mypy`/`pyright` | O projeto nao adotou type checker; adicionar um agora mudaria o CI, que esta fora do escopo do shakedown |
 | **Cobertura.** Um teste vazio passa | Sem `--cov` nem minimo exigido; a rubrica de qualidade do passo 4 e quem olha |
 | **Python 3.14 local × 3.11 no CI** | A juicey so tem 3.14. Codigo que dependa de detalhe de 3.14 passa aqui e quebra no CI. Aceito: o shakedown mede o modelo local, nao a matriz de versoes |
