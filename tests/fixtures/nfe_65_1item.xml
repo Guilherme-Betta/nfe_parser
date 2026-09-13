@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  FIXTURE SINTETICA - escrita a mao, NAO derivada de nota real.
+  Nenhum CNPJ, CPF, nome, endereco ou chave aqui corresponde a entidade existente.
+  Ver tests/fixtures/README.md e steering/convencoes.md (secao Privacidade).
+
+  NFC-e (modelo 65) de 1 item. Story 003, criterio C1.
+
+  O cDV (ultimo digito da chave) foi calculado pelo modulo 11, como na
+  nfe_55_1item.xml. O algoritmo foi conferido reproduzindo o cDV=7 daquela.
+
+  ------------------------------------------------------------------------------
+  O QUE ESTA FIXTURE TESTA, E QUE A 55 NAO TESTA
+
+  1. <mod>65</mod>            O campo vira o int 65. `inf.ide.mod` e um ENUM
+                              (Tmod.VALUE_65), entao str() dele devolveria
+                              "Tmod.VALUE_65". So `.value` funciona.
+
+  2. <infNFeSupl>             ⚠️ A DIFERENCA ESTRUTURAL PRINCIPAL. Este bloco
+                              (QR code e urlChave) e OBRIGATORIO na NFC-e e NAO
+                              EXISTE na 55. O extrator nao le nenhum campo dele
+                              -- e exatamente por isso ele esta aqui: se a
+                              extracao quebrar diante de um elemento que ela nem
+                              consulta, o codigo esta acoplado ao formato exato
+                              da 55, e esse e o defeito que a C1 caca.
+
+  3. SEM bloco <dest>         Na NFC-e o consumidor normalmente nao se
+                              identifica, e o <dest> e opcional. Se o extrator
+                              tentar ler <dest>, quebra aqui.
+
+  4. chave[20:22] == "65"     As posicoes 21-22 da chave de 44 digitos carregam
+                              o modelo. Se o campo disser 65 e a chave disser
+                              55, a fixture estaria incoerente consigo mesma.
+
+  5. vProd = vNF = 12.34      A armadilha do float, de novo:
+                                int(float("12.34") * 100)   == 1233  (ERRADO)
+                                int(Decimal("12.34") * 100) == 1234  (certo)
+                              qCom 2.0000 x vUnCom 6.1700000000 = 12.34 exato.
+
+    cEAN = 7891000100103      GTIN-13 presente (digito verificador valido). E o
+                              contraste com a nfe_55_1item.xml, que tem
+                              "SEM GTIN": aqui o campo gtin NAO pode virar None.
+  ------------------------------------------------------------------------------
+-->
+<nfeProc versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">
+  <NFe>
+    <infNFe versao="4.00" Id="NFe35260499999999000199650010000000021000000025">
+      <ide>
+        <cUF>35</cUF>
+        <cNF>00000002</cNF>
+        <natOp>VENDA AO CONSUMIDOR</natOp>
+        <mod>65</mod>
+        <serie>1</serie>
+        <nNF>2</nNF>
+        <dhEmi>2026-05-20T19:05:00-03:00</dhEmi>
+        <tpNF>1</tpNF>
+        <idDest>1</idDest>
+        <cMunFG>3550308</cMunFG>
+        <tpImp>4</tpImp>
+        <tpEmis>1</tpEmis>
+        <cDV>5</cDV>
+        <tpAmb>2</tpAmb>
+        <finNFe>1</finNFe>
+        <indFinal>1</indFinal>
+        <indPres>1</indPres>
+        <procEmi>0</procEmi>
+        <verProc>fixture-sintetica-1.0</verProc>
+      </ide>
+      <emit>
+        <CNPJ>99999999000199</CNPJ>
+        <xNome>MERCEARIA EXEMPLO LTDA</xNome>
+        <xFant>MERCEARIA EXEMPLO</xFant>
+        <enderEmit>
+          <xLgr>RUA DE TESTE</xLgr>
+          <nro>100</nro>
+          <xBairro>BAIRRO EXEMPLO</xBairro>
+          <cMun>3550308</cMun>
+          <xMun>SAO PAULO</xMun>
+          <UF>SP</UF>
+          <CEP>01001000</CEP>
+          <cPais>1058</cPais>
+          <xPais>BRASIL</xPais>
+        </enderEmit>
+        <IE>111111111111</IE>
+        <CRT>3</CRT>
+      </emit>
+      <det nItem="1">
+        <prod>
+          <cProd>SKU-0002</cProd>
+          <cEAN>7891000100103</cEAN>
+          <xProd>ACHOCOLATADO EM PO 400G</xProd>
+          <NCM>18069000</NCM>
+          <CFOP>5102</CFOP>
+          <uCom>UN</uCom>
+          <qCom>2.0000</qCom>
+          <vUnCom>6.1700000000</vUnCom>
+          <vProd>12.34</vProd>
+          <cEANTrib>7891000100103</cEANTrib>
+          <uTrib>UN</uTrib>
+          <qTrib>2.0000</qTrib>
+          <vUnTrib>6.1700000000</vUnTrib>
+          <indTot>1</indTot>
+        </prod>
+        <imposto>
+          <ICMS>
+            <ICMS40>
+              <orig>0</orig>
+              <CST>40</CST>
+            </ICMS40>
+          </ICMS>
+        </imposto>
+      </det>
+      <total>
+        <ICMSTot>
+          <vBC>0.00</vBC>
+          <vICMS>0.00</vICMS>
+          <vICMSDeson>0.00</vICMSDeson>
+          <vFCP>0.00</vFCP>
+          <vBCST>0.00</vBCST>
+          <vST>0.00</vST>
+          <vFCPST>0.00</vFCPST>
+          <vFCPSTRet>0.00</vFCPSTRet>
+          <vProd>12.34</vProd>
+          <vFrete>0.00</vFrete>
+          <vSeg>0.00</vSeg>
+          <vDesc>0.00</vDesc>
+          <vII>0.00</vII>
+          <vIPI>0.00</vIPI>
+          <vIPIDevol>0.00</vIPIDevol>
+          <vPIS>0.00</vPIS>
+          <vCOFINS>0.00</vCOFINS>
+          <vOutro>0.00</vOutro>
+          <vNF>12.34</vNF>
+        </ICMSTot>
+      </total>
+      <transp>
+        <modFrete>9</modFrete>
+      </transp>
+      <pag>
+        <detPag>
+          <tPag>01</tPag>
+          <vPag>12.34</vPag>
+        </detPag>
+      </pag>
+    </infNFe>
+    <infNFeSupl>
+      <qrCode>https://www.homologacao.nfce.fazenda.sp.gov.br/qrcode?p=35260499999999000199650010000000021000000025|2|2|1|fake</qrCode>
+      <urlChave>https://www.homologacao.nfce.fazenda.sp.gov.br/consulta</urlChave>
+    </infNFeSupl>
+  </NFe>
+  <protNFe versao="4.00">
+    <infProt>
+      <tpAmb>2</tpAmb>
+      <verAplic>fixture</verAplic>
+      <chNFe>35260499999999000199650010000000021000000025</chNFe>
+      <dhRecbto>2026-05-20T19:05:30-03:00</dhRecbto>
+      <nProt>135260000000002</nProt>
+      <digVal>ZmFrZS1kaWdlc3Q=</digVal>
+      <cStat>100</cStat>
+      <xMotivo>Autorizado o uso da NF-e</xMotivo>
+    </infProt>
+  </protNFe>
+</nfeProc>

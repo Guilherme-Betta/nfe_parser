@@ -22,9 +22,9 @@ Todas em `src/nfe_parser/extrator.py`. Nenhum modulo novo.
 
 | # | Tarefa | Oraculo da tarefa | `edit-format` | Turno 1 (est.) | Status |
 | - | ------ | ----------------- | ------------- | -------------- | ------ |
-| 1 | **NFC-e 65**: `extrair_nota` aceita `mod=65` com os mesmos campos da 55, sem quebrar diante do bloco `<infNFeSupl>` | `tests/test_extrator_nfce65.py` | `diff` | ~4,2k | ⬜ |
-| 2 | **Multi-item**: N blocos `det` viram N itens, com `gtin` resolvido **por item** | `tests/test_extrator_multi_item.py` | `diff` | ~4,3k | ⬜ |
-| 3 | **Anotacao de tipo**: retorno e parametros de toda funcao publica do modulo | `tests/test_anotacoes.py` | `diff` | ~4,0k | ⬜ |
+| 1 | **NFC-e 65**: `extrair_nota` aceita `mod=65` com os mesmos campos da 55, sem quebrar diante do bloco `<infNFeSupl>` | `tests/test_extrator_nfce65.py` (11) | `diff` | ~4,2k | 🟩 **verde de nascenca** |
+| 2 | **Multi-item**: N blocos `det` viram N itens, com `gtin` resolvido **por item** | `tests/test_extrator_multi_item.py` (8) | `diff` | ~4,3k | 🟩 **verde de nascenca** |
+| 3 | **Anotacao de tipo**: retorno e parametros de toda funcao publica do modulo | `tests/test_anotacoes.py` (9) | `diff` | ~4,0k | ⬜ |
 
 **Status:** ⬜ nao iniciada · 🔄 no modelo local · 👀 aguardando revisao · ✅ aceita
 
@@ -54,9 +54,39 @@ orcamento.
 
 ---
 
-## ⚠️ Decisao pendente — o oraculo de cada tarefa vs. o `verify.py`
+## ✅ Resultado do passo 2 — duas das tres tarefas nasceram verdes
 
-**Levantada no passo 1 da medicao 4. Precisa de decisao do Gui antes do passo 3.**
+**Medido as 12h do dia 2026-09-13**, rodando `scripts/verify.py` com os testes novos commitados e
+nenhuma linha de implementacao escrita:
+
+```
+8 failed, 58 passed
+```
+
+**As 8 falhas sao todas de `test_anotacoes.py`** (tarefa 3). Os 11 testes da NFC-e 65 e os 8 de
+multi-item passaram **sem uma linha de codigo nova**.
+
+Nao e sorte, e sim o `extrator.py` da story 002 ja ter sido escrito generico onde ninguem exigiu
+que fosse: o laco `for det in inf.det` ja cobria N itens, e `int(inf.ide.mod.value)` ja devolvia 65
+para uma NFC-e. O que a story 002 nao cobria era a **prova** disso — e agora cobre, com 19 testes.
+
+> **Isso muda o que as tarefas 1 e 2 sao.** Elas nao sao mais implementacao: sao **testes de
+> caracterizacao**, que travam por contrato um comportamento que existia por acidente. O valor
+> delas e real e e de regressao — mas nenhuma delas vai ao modelo local, porque nao ha o que
+> implementar.
+
+**Consequencia para a medicao 4, e esta e a parte que dói:** o passo 3 encolheu para **uma** tarefa,
+e uma tarefa pequena. O Δ% da L3 vai sair baixo — mas um Δ baixo **por falta de trabalho** e
+indistinguivel, no numero, de um Δ baixo **porque o offload funcionou**. A previsao da §1 do
+protocolo (`P3 ≅ 0,09 %/min`) sai desta medicao com n=1 tarefa trivial. **Registre a L3 com essa
+ressalva colada nela**, senao a previsao se confirma de graca e nao prova nada.
+
+---
+
+## ✅ Decisao tomada: A — e ela virou inofensiva
+
+**Decidida pelo Gui as 11h48 do dia 2026-09-13: opcao A.** Registro abaixo o problema e por que ele
+deixou de existir na pratica.
 
 O `scripts/verify.py` roda `pytest -q` sobre a **suite inteira**. O passo 2 do protocolo manda
 **commitar todos os testes antes** de a implementacao comecar — e essa ordem e certa, porque testes
@@ -74,10 +104,18 @@ Duas saidas, e a escolha e do Gui:
 | **A** | Passar `--test-cmd "python -m pytest -q tests/test_<modulo>.py"` na linha de comando de cada tarefa, e deixar a **tarefa 3** rodar com o `verify.py` cheio | ⚠️ Contraria a letra do §5 do protocolo, que lista `test-cmd` entre os campos a **nao** repassar na linha de comando |
 | **B** | Nao mexer em nada; aceitar que as tarefas 1 e 2 rodem com a suite inteira vermelha | ⚠️ Aceita a violacao da regra 2 de fatiamento, com risco documentado de corromper o arquivo |
 
-Recomendacao: **A**. O motivo do §5 para nao repassar esses campos e nao repetir a toa o que a
-config ja diz; aqui o `--test-cmd` nao esta sendo repetido, esta sendo **estreitado de proposito**,
-para fazer valer a regra de fatiamento que o proprio kit escreveu. A tarefa 3, que roda por ultimo,
-fecha com o oraculo completo — entao nada e aceito sem a suite inteira verde.
+Recomendacao aceita: **A**. O motivo do §5 para nao repassar esses campos e nao repetir a toa o que
+a config ja diz; ali o `--test-cmd` nao estaria sendo repetido, estaria sendo **estreitado de
+proposito**, para fazer valer a regra de fatiamento que o proprio kit escreveu.
+
+> ✅ **Mas o passo 2 dissolveu o problema.** Como as tarefas 1 e 2 nasceram verdes, sobrou **uma**
+> invocacao do Aider — a tarefa 3, que e a ultima e que ja rodaria com o `verify.py` cheio de
+> qualquer forma. **Nao ha nenhum teste vermelho fora da tarefa dela**, entao nao existe o vazamento
+> que a opcao A ia conter. O passo 3 roda com a config como esta, sem `--test-cmd` na linha de
+> comando, e **sem desvio nenhum do §5 do protocolo**.
+>
+> A decisao fica registrada assim mesmo: ela volta a valer na proxima story que fatiar em duas ou
+> mais tarefas de verdade.
 
 ⛔ **O que NAO e saida:** marcar os testes das outras tarefas com `skip` ou `xfail`. Isso e mexer
 no oraculo durante a implementacao, que e a coisa que o passo 2 existe para impedir.
