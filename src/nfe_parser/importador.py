@@ -66,8 +66,29 @@ def importar(conexao, caminho, origem: str | None = None) -> int:
     # 3. UPDATE em `importacoes`
     finalizado_em = datetime.now(timezone.utc).isoformat()
     conexao.execute(
-        "UPDATE importacoes SET finalizado_em = ? WHERE id = ?",
-        (finalizado_em, importacao_id)
+        """
+        UPDATE importacoes
+        SET
+            finalizado_em = ?,
+            total_arquivos = (
+                SELECT COUNT(*) FROM importacao_arquivos WHERE importacao_id = ?
+            ),
+            notas_novas = (
+                SELECT COUNT(*) FROM importacao_arquivos WHERE importacao_id = ? AND resultado = 'nova'
+            ),
+            duplicadas = (
+                SELECT COUNT(*) FROM importacao_arquivos WHERE importacao_id = ? AND resultado = 'duplicada'
+            ),
+            invalidas = (
+                SELECT COUNT(*) FROM importacao_arquivos WHERE importacao_id = ? AND resultado = 'invalida'
+            ),
+            nao_suportadas = (
+                SELECT COUNT(*) FROM importacao_arquivos WHERE importacao_id = ? AND resultado = 'nao_suportado_sat'
+            ),
+            cancelamentos_aplicados = 0
+        WHERE id = ?
+        """,
+        (finalizado_em, importacao_id, importacao_id, importacao_id, importacao_id, importacao_id, importacao_id)
     )
 
     # 4. Devolve o importacao_id
