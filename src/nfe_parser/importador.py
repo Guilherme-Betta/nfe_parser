@@ -134,11 +134,15 @@ def importar(conexao, caminho, origem: str | None = None) -> int:
             nao_suportadas = (
                 SELECT COUNT(*) FROM importacao_arquivos WHERE importacao_id = ? AND resultado = 'nao_suportado_sat'
             ),
-            cancelamentos_aplicados = 0
+            cancelamentos_aplicados = (
+                SELECT COUNT(*) FROM importacao_arquivos
+                WHERE importacao_id = ? AND resultado = 'cancelamento_aplicado'
+            ),
         WHERE id = ?
         """,
         (
             finalizado_em,
+            importacao_id,
             importacao_id,
             importacao_id,
             importacao_id,
