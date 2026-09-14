@@ -11,7 +11,7 @@
   A chave tem 44 digitos e o cDV (ultimo) foi calculado de verdade pelo modulo 11,
   para que ela continue valida quando a story 004 conferir chave.
 
-  ------------------------------------------------------------------------------
+  ==============================================================================
   Os numeros NAO sao arbitrarios. Cada um existe para virar assercao:
 
     qCom   = 1.5000          quantidade fracionaria COM zeros a direita. Se o
@@ -31,7 +31,7 @@
                              (1.5000 x 5.3600000000 = 8.04 exato).
 
     cEAN   = SEM GTIN        tem que virar NULL no banco, nao string vazia.
-  ------------------------------------------------------------------------------
+  ==============================================================================
 -->
 <nfeProc versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">
   <NFe>

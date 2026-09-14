@@ -9,7 +9,7 @@
   O cDV (ultimo digito da chave) foi calculado pelo modulo 11, como na
   nfe_55_1item.xml. O algoritmo foi conferido reproduzindo o cDV=7 daquela.
 
-  ------------------------------------------------------------------------------
+  ==============================================================================
   O QUE ESTA FIXTURE TESTA, E QUE A 55 NAO TESTA
 
   1. <mod>65</mod>            O campo vira o int 65. `inf.ide.mod` e um ENUM
@@ -19,7 +19,7 @@
   2. <infNFeSupl>             ⚠️ A DIFERENCA ESTRUTURAL PRINCIPAL. Este bloco
                               (QR code e urlChave) e OBRIGATORIO na NFC-e e NAO
                               EXISTE na 55. O extrator nao le nenhum campo dele
-                              -- e exatamente por isso ele esta aqui: se a
+                              == e exatamente por isso ele esta aqui: se a
                               extracao quebrar diante de um elemento que ela nem
                               consulta, o codigo esta acoplado ao formato exato
                               da 55, e esse e o defeito que a C1 caca.
@@ -40,7 +40,7 @@
     cEAN = 7891000100103      GTIN-13 presente (digito verificador valido). E o
                               contraste com a nfe_55_1item.xml, que tem
                               "SEM GTIN": aqui o campo gtin NAO pode virar None.
-  ------------------------------------------------------------------------------
+  ==============================================================================
 -->
 <nfeProc versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">
   <NFe>

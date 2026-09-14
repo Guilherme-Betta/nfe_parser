@@ -9,14 +9,14 @@
   O cDV (ultimo digito da chave) foi calculado pelo modulo 11, como na
   nfe_55_1item.xml. O algoritmo foi conferido reproduzindo o cDV=7 daquela.
 
-  ------------------------------------------------------------------------------
+  ==============================================================================
   O QUE ESTA FIXTURE TESTA
 
   1. TRES blocos <det>, nItem 1, 2 e 3. O criterio C2 exige N itens -> N linhas:
      nao 1 (parou no primeiro), nao N+1 (contou o cabecalho junto).
 
   2. As tres <xProd> sao DISTINTAS entre si. Isso e o que separa "extraiu os 3
-     itens" de "extraiu o item 1 tres vezes" -- o segundo caso passaria numa
+     itens" de "extraiu o item 1 tres vezes" == o segundo caso passaria numa
      assercao que so conta len() e numa que so olha nItem.
 
   3. GTIN por item, nao global:
@@ -43,7 +43,7 @@
         2.0000 x 3.3300000000 = 6.66
         1.5000 x 5.3600000000 = 8.04
         3.0000 x 0.9500000000 = 2.85
-  ------------------------------------------------------------------------------
+  ==============================================================================
 -->
 <nfeProc versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">
   <NFe>
