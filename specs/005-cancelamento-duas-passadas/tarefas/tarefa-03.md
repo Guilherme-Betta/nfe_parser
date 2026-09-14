@@ -1,46 +1,19 @@
-Altere `src/nfe_parser/importador.py` para processar o lote em DUAS PASSADAS.
+O arquivo `src/nfe_parser/importador.py` esta quase pronto. Falta UMA coisa, e e so isso que voce
+vai fazer.
 
-O PROBLEMA: hoje `importar` varre o `.zip` uma vez so. Quando o arquivo do evento de cancelamento
-aparece ANTES da nota que ele cancela, a nota ainda nao esta no banco, e o evento nao tem como ser
-aplicado. Por isso o codigo atual registra todo evento como `"cancelamento_orfao"`.
+A funcao `importar` ja chama `_processar_evento` na linha da segunda passada, mas essa funcao NAO
+EXISTE no arquivo. O teste falha com:
 
-A REGRA MAIS IMPORTANTE DESTA TAREFA, E A UNICA QUE PRECISA DE ATENCAO:
+    NameError: name '_processar_evento' is not defined
 
-    CADA ARQUIVO E PROCESSADO UMA VEZ SO, E GERA UMA UNICA LINHA DE LOG.
+SUA TAREFA: acrescentar a funcao `_processar_evento` ao arquivo.
 
-As duas passadas percorrem DUAS LISTAS DIFERENTES. Elas NAO percorrem a mesma lista duas vezes.
-A primeira lista tem as notas e o resto; a segunda lista tem SO os eventos. Um arquivo esta numa
-lista ou na outra, nunca nas duas.
+⛔ NAO altere a funcao `importar`. Ela ja esta correta.
+⛔ NAO altere a funcao `_processar_arquivo`. Ela ja esta correta.
+⛔ NAO altere nenhum outro arquivo.
 
-Se voce percorrer a mesma lista nas duas passadas, cada arquivo vira DUAS linhas em
-`importacao_arquivos` e as notas passam pelo tratamento de evento. O banco recusa isso com um erro
-de `CHECK constraint failed` ou `NOT NULL constraint failed` na coluna `resultado`.
-
-ESCREVA `importar` COM ESTA ESTRUTURA:
-
-```python
-    notas = []
-    eventos = []
-
-    # colete os membros (o .zip e o .xml avulso desembocam aqui do mesmo jeito),
-    # e ja separe cada um na sua lista:
-    for nome, conteudo_bytes in <os membros do lote>:
-        texto = conteudo_bytes.decode("utf-8", errors="replace")
-        if classificar_xml(texto) == "evento":
-            eventos.append((nome, conteudo_bytes))
-        else:
-            notas.append((nome, conteudo_bytes))
-
-    # PRIMEIRA passada -- so a lista `notas`
-    for nome, conteudo_bytes in notas:
-        _processar_arquivo(conexao, importacao_id, nome, conteudo_bytes)
-
-    # SEGUNDA passada -- so a lista `eventos`, depois de todas as notas estarem no banco
-    for nome, conteudo_bytes in eventos:
-        _processar_evento(conexao, importacao_id, nome, conteudo_bytes)
-```
-
-A FUNCAO `_processar_evento`, QUE VOCE VAI CRIAR:
+Insira a funcao abaixo ENTRE o fim de `_processar_arquivo` e o comeco de `def importar(`, exatamente
+como esta escrita aqui:
 
 ```python
 def _processar_evento(conexao, importacao_id, nome, conteudo_bytes) -> None:
@@ -62,39 +35,17 @@ def _processar_evento(conexao, importacao_id, nome, conteudo_bytes) -> None:
     )
 ```
 
-ATENCAO: `chave` e `detalhe` sao inicializados como `None` ANTES do `try`. Se voce so atribuir
-`detalhe` dentro do `except`, o caminho de sucesso estoura
-`UnboundLocalError: cannot access local variable 'detalhe'`.
+O import de que ela precisa JA ESTA no topo do arquivo, na linha
+`from nfe_parser.cancelamento import aplicar_cancelamento, extrair_evento`. Nao repita esse import.
 
-O IMPORT QUE FALTA, no topo do arquivo:
+OBSERVACAO SOBRE A EDICAO: o bloco SEARCH da sua ultima tentativa nao casou com o arquivo, e por
+isso a funcao nunca chegou a ser criada. Para acrescentar uma funcao nova, ancore o SEARCH em
+linhas CONTIGUAS que existam de verdade no arquivo — por exemplo as duas ultimas linhas de
+`_processar_arquivo`:
 
-```python
-from nfe_parser.cancelamento import aplicar_cancelamento, extrair_evento
+```
+        (importacao_id, nome, arquivo_hash, chave, resultado, detalhe),
+    )
 ```
 
-Essas duas funcoes ja existem e ja estao testadas. NAO as altere e NAO altere
-`src/nfe_parser/cancelamento.py`. Os contratos delas:
-
-    extrair_evento(xml_texto) -> {"ch_nfe": str|None, "tp_evento": str|None, "dh_evento": str|None}
-                                 levanta ValueError quando o XML nao abre
-    aplicar_cancelamento(conexao, evento) -> "cancelamento_aplicado" ou "cancelamento_orfao"
-                                 ja cuida de chave ausente, nota inexistente e tipo de evento errado
-
-EM `_processar_arquivo`, APAGUE ESTAS DUAS LINHAS:
-
-```python
-    elif classificacao == "evento":
-        resultado = "cancelamento_orfao"
-```
-
-Elas ficaram inalcancaveis: nenhum evento chega mais a essa funcao.
-
-⛔ NAO acrescente um ramo `else` com `resultado = "desconhecido"`, e NAO acrescente nenhuma lista
-de valores permitidos antes do INSERT. Esses valores nao existem no banco e o CHECK vai recusa-los.
-Se algum `resultado` estiver saindo vazio, a causa e a separacao das listas acima, nao a falta de
-uma validacao.
-
-⛔ NAO mexa no `UPDATE importacoes` no fim da funcao. O `cancelamentos_aplicados = 0` continua como
-esta — ajustar esse contador e a proxima tarefa, nao esta.
-
-A funcao continua devolvendo o `importacao_id`. NAO altere nenhum outro arquivo.
+e repita essas mesmas linhas no inicio do REPLACE, seguidas da funcao nova.
