@@ -35,3 +35,6 @@ Thumbs.db
 # ...mas a config do Aider E versionada: ela faz parte do projeto
 !.aider.conf.yml
 !.aider.model.settings.yml
+
+# Saida bruta do scripts/rodar_passo3.py (o registro.md commitado basta)
+passo3-logs/
