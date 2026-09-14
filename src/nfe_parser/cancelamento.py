@@ -1,5 +1,7 @@
 from nfelib.nfe_evento_cancel.bindings.v1_0.proc_evento_canc_nfe_v1_00 import ProcEventoNfe
 from xsdata.formats.dataclass.parsers import XmlParser
+from xsdata.exceptions import ParserError
+
 def extrair_evento(xml_texto: str) -> dict:
     try:
         proc = XmlParser().from_string(xml_texto, ProcEventoNfe)
