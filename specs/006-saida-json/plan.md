@@ -34,17 +34,34 @@ Formula do kit, **com a constante corrigida da medicao 6** (3,0k, nao 1,5k):
 
     turno 1 ≈ 3,0k (Aider) + bytes(alvo)/4 + bytes(teste)/4 + bytes(mensagem)/4
 
+### Estimativa do P1 *(provisoria — substituida pela tabela abaixo)*
+
 | # | alvo | teste | mensagem | **turno 1 estimado** | teto 6k |
 | - | ---- | ----- | -------- | -------------------- | ------- |
 | 1 | 0 b (arquivo novo) | ~1,4 kB | ~1,8 kB | **~3,8k** | ✅ |
 | 2 | ~0,7 kB | ~3,0 kB | ~3,2 kB | **~4,7k** | ✅ |
 | 3 | ~2,4 kB | ~2,8 kB | ~2,4 kB | **~4,9k** | ✅ |
 
-⭐ **Estes numeros sao provisorios de proposito.** Estimar o tamanho de um arquivo que ainda nao
-existe nao funciona (*Achado E*). O orcamento e **remedido no fim do P2**, com os testes ja escritos
-e os bytes reais na mao. Se alguma linha passar de 6k la, a tarefa e partida antes de invocar.
+### ⭐ Remeco do fim do P2 — bytes reais, testes ja escritos
 
-⚠️ **Nenhum modulo de teste desta story pode passar de 8 testes.** Contagem alvo: 6 · 7 · 6.
+Estimar o tamanho de um arquivo que ainda nao existe nao funciona (*Achado E*), entao a tabela
+acima ficou so como registro do erro de estimativa. Esta e a que vale:
+
+| # | alvo | teste | mensagem | **turno 1 medido** | teto 6k |
+| - | ---- | ----- | -------- | ------------------ | ------- |
+| 1 | **0 b** (arquivo novo) | **2.450 b** | **1.690 b** | **~4,0k** | ✅ folga de 2,0k |
+| 2 | ~900 b (estimado: `serializacao.py` depois da 1) | **6.230 b** | **2.532 b** | **~5,4k** | ✅ folga de 0,6k |
+| 3 | ~2.800 b (estimado: depois da 2) | **5.584 b** | **1.866 b** | **~5,6k** | ⚠️ folga de 0,4k |
+
+⚠️ **A tarefa 3 e a apertada, e o que sobrou de incerteza e o `alvo`** — quanto o modelo local vai
+escrever de docstring na tarefa 2. Se ele for verboso e `serializacao.py` chegar a 4 kB, a tarefa 3
+sobe para ~5,9k: ainda dentro, sem folga.
+
+📋 **Se a tarefa 3 estourar, o remedio e encolher, nao detalhar** (a licao cara da 005). O corte
+disponivel e a mensagem `tarefa-03.md`: os dois SELECTs prontos podem virar um so, e o bloco "o que
+nao pode mudar" pode virar uma linha. ⛔ Nao re-especificar com MAIS texto.
+
+⚠️ **Nenhum modulo de teste desta story passa de 8 testes.** Contagem real: **6 · 7 · 7**.
 
 ---
 
