@@ -6,6 +6,7 @@ from pathlib import Path
 from nfe_parser.classificador import classificar_xml
 from nfe_parser.extrator import extrair_nota
 from nfe_parser.persistencia import persistir_nota
+from nfe_parser.cancelamento import extrair_evento, aplicar_cancelamento  # Adicionado importação
 
 
 def _processar_arquivo(conexao, importacao_id, nome, conteudo_bytes) -> None:
