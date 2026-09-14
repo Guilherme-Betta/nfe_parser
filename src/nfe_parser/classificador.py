@@ -8,8 +8,8 @@ def classificar_xml(xml_texto: str) -> str:
 
     namespace = "{http://www.portalfiscal.inf.br/nfe}"
     if root.tag == namespace + "nfeProc" or root.tag == "nfeProc":
-        for ide in root.findall(".//ide", namespaces={'nfe': namespace}):
-            mod = ide.find("nfe:mod", namespaces={'nfe': namespace})
+        for ide in root.findall(".//{0}ide".format(namespace)):
+            mod = ide.find("{0}mod".format(namespace))
             if mod is not None and mod.text in ["55", "65"]:
                 return "nfe"
         return "invalida"
