@@ -137,7 +137,7 @@ def importar(conexao, caminho, origem: str | None = None) -> int:
             cancelamentos_aplicados = (
                 SELECT COUNT(*) FROM importacao_arquivos
                 WHERE importacao_id = ? AND resultado = 'cancelamento_aplicado'
-            ),
+            )
         WHERE id = ?
         """,
         (
