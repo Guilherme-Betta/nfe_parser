@@ -68,12 +68,35 @@ refactor das passadas e produzir um diff que ninguem consegue revisar.
 ⛔ **As fixtures XML NAO entram no `--read`.** Os stubs de evento vivem **dentro** de cada modulo de
 teste, como constantes — que e como a 004 ja faz.
 
-| Tarefa | Sistema do Aider | Alvo | `--read` (o teste) | `--message-file` | **Total estimado** |
-| ------ | ---------------- | ---- | ------------------ | ---------------- | ------------------ |
-| 1 | ~2,0k | `cancelamento.py` (novo, ~0,0k) | ~1,6k | ~0,7k | **~4,3k** |
-| 2 | ~2,0k | `cancelamento.py` (~0,4k) | ~1,7k | ~0,5k | **~4,6k** |
-| 3 | ~2,0k | `importador.py` (~1,2k) | ~1,5k | ~0,5k | **~5,2k** |
-| 4 | ~2,0k | `importador.py` (~1,4k) | ~1,1k | ~0,3k | **~4,8k** |
+🔴 **Remedido no fim do passo 2**, com os quatro modulos de teste escritos: `bytes ÷ 4`. Os
+numeros da primeira versao desta tabela eram estimativa e ficam abaixo, para comparacao.
+
+| Tarefa | Sistema do Aider | Alvo | `--read` (o teste) | `--message-file` | **Total medido** | Estimado no P1 |
+| ------ | ---------------- | ---- | ------------------ | ---------------- | ---------------- | -------------- |
+| 1 | ~2,0k | `cancelamento.py` (novo, 0,0k) | **1,17k** | **0,61k** | **~3,8k** ✅ | ~4,3k |
+| 2 | ~2,0k | `cancelamento.py` (~0,4k) | **1,19k** | **0,61k** | **~4,2k** ✅ | ~4,6k |
+| 3 | ~2,0k | `importador.py` (**0,92k**) | **1,85k** | **0,75k** | **~5,5k** ⚠️ | ~5,2k |
+| 4 | ~2,0k | `importador.py` (~1,3k) | **1,38k** | **0,32k** | **~5,0k** ✅ | ~4,8k |
+
+⚠️ **A tarefa 3 e a de risco: 5,5k contra o teto de 6k da regra 5.** Ela nao foi partida porque
+"varrer duas vezes" e **um** defeito — parti-la seria inventar uma fronteira que a spec nao tem, e
+a regra 2 corta nos dois sentidos. O que sustenta a decisao e a regra 6: o modulo tem **7 testes**,
+dos quais 6 nascem vermelhos. E menos da metade dos 16 que levaram o laco da tarefa 4 da 004 a 24k.
+
+> Se ela nao convergir, o remedio nao e repetir o pedido — e partir por criterio (C3.1–C3.4 numa
+> tarefa, C3.5–C3.7 noutra) e retomar com `--a-partir-de 3`. Escrito antes de correr, para nao ser
+> decidido no susto.
+
+### Tamanho dos modulos de teste, contra a regra 6
+
+| Modulo | Funcoes `def test_` | Vermelhos no passo 2 |
+| ------ | ------------------- | -------------------- |
+| `test_extrair_evento.py` | 6 | 6 (falha na coleta) |
+| `test_aplicar_cancelamento.py` | 7 | 7 (falha na coleta) |
+| `test_duas_passadas.py` | 7 | **6** — um ja nasce verde |
+| `test_contador_cancelamentos.py` | 5 | 5 |
+
+Nenhum passa de 8, que e o teto que a regra 6 impos a esta story.
 
 ### A manobra da story 004 continua valendo
 
@@ -109,3 +132,34 @@ duas que sao minhas:
 
 1. Os quatro modulos de teste estao **commitados** antes de a implementacao comecar.
 2. O vermelho e o **vermelho certo** (§5 da spec), nao `No module named pytest`.
+
+---
+
+## ✅ Passo 2 — resultado: o vermelho certo, e um teste que ja nasceu verde
+
+**Medido em 2026-09-14**, com os quatro modulos escritos e nenhuma linha de implementacao.
+
+```
+ERROR tests/test_extrair_evento.py        ModuleNotFoundError: No module named 'nfe_parser.cancelamento'
+ERROR tests/test_aplicar_cancelamento.py  ModuleNotFoundError: No module named 'nfe_parser.cancelamento'
+Interrupted: 2 errors during collection
+```
+
+✅ **E o vermelho certo.** `ModuleNotFoundError` do modulo a criar — nao `No module named pytest`,
+que significaria `.venv` desativada e faria todo diff do modelo local parecer errado.
+
+✅ **Os modulos 3 e 4 falham por ASSERCAO, nao por coleta** — rodados a parte, porque a interrupcao
+da coleta acima os esconde: `6 failed, 1 passed` e `5 failed`. Isso e a diferenca desta story para
+a 004: metade do alvo (`importador.py`) ja existe.
+
+✅ **Os 133 testes anteriores continuam verdes**, rodados ignorando os quatro modulos novos.
+
+### ⚠️ Um teste nasceu verde, e o registro precisa dizer qual
+
+`test_duas_passadas.py::test_evento_orfao_registra_e_nao_cria_nota_fantasma` **passa sem uma linha
+nova**. Nao e defeito do teste: a story 004 ja registra **todo** evento como `cancelamento_orfao` e
+ja nao cria nota a partir de evento, entao o caso orfao ela satisfaz por construcao.
+
+⭐ Anotado aqui porque a story 003 perdeu essa informacao e ela distorce o placar: sem esta linha,
+a tarefa 3 pareceria ter 7 testes resolvidos pelo modelo local quando sao **6**. E o mesmo erro de
+leitura que o Achado M descreve, uma casa antes.
