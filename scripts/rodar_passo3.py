@@ -568,11 +568,36 @@ def main() -> int:
     acumulado.write_text(json.dumps(registros, indent=2, ensure_ascii=False), encoding="utf-8")
 
     verdes = sum(1 for r in registros if r["verde"])
+
+    # ⭐ A SUITE INTEIRA, DEPOIS DAS TAREFAS. Sem isto, "N/N verdes" significa
+    # apenas "cada tarefa passou no SEU modulo de teste" -- e uma tarefa
+    # posterior pode ter quebrado o modulo de uma anterior sem que nada
+    # reexecutasse aquele modulo.
+    #
+    # Nao e hipotese: aconteceu na story 006. A tarefa 3 acrescentou a chave
+    # `itens` a saida e quebrou um teste do modulo da tarefa 2, e este script
+    # reportou "3/3 verdes" com a suite vermelha. A falha so apareceu no passo
+    # 4, e a story so nao seguiu quebrada porque o modulo da tarefa 3 tinha um
+    # teste de regressao escrito a mao contra esse risco.
+    suite_verde = None
+    if not interrompeu:
+        print("\nconferindo o verde na suite COMPLETA...", flush=True)
+        suite = subprocess.run([PY, "-m", "pytest", "-q"], cwd=raiz, check=False)
+        suite_verde = suite.returncode == 0
+
     print(f"\n{'=' * 70}")
     print(f"passo 3: {verdes}/{len(registros)} tarefa(s) verdes. Registro em {destino}")
+    if suite_verde is False:
+        print(
+            "🔴 FALSO VERDE: cada tarefa passou no seu proprio modulo, mas a SUITE\n"
+            "   COMPLETA esta vermelha -- uma tarefa quebrou o oraculo de outra.\n"
+            "   ⛔ NAO siga para o passo 4 sem resolver isto."
+        )
+    elif suite_verde:
+        print("✅ suite completa verde.")
     print(f"{'=' * 70}")
 
-    return 1 if interrompeu else 0
+    return 1 if (interrompeu or suite_verde is False) else 0
 
 
 if __name__ == "__main__":
