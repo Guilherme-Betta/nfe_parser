@@ -4,59 +4,97 @@ O PROBLEMA: hoje `importar` varre o `.zip` uma vez so. Quando o arquivo do event
 aparece ANTES da nota que ele cancela, a nota ainda nao esta no banco, e o evento nao tem como ser
 aplicado. Por isso o codigo atual registra todo evento como `"cancelamento_orfao"`.
 
-A CORRECAO: varrer duas vezes. A primeira passada persiste as notas. A segunda aplica os eventos,
-quando todas as notas do lote ja estao no banco.
+A REGRA MAIS IMPORTANTE DESTA TAREFA, E A UNICA QUE PRECISA DE ATENCAO:
 
-O CONTRATO DO MODULO QUE VOCE VAI CHAMAR — ja existe, ja esta testado, nao mexa nele:
+    CADA ARQUIVO E PROCESSADO UMA VEZ SO, E GERA UMA UNICA LINHA DE LOG.
+
+As duas passadas percorrem DUAS LISTAS DIFERENTES. Elas NAO percorrem a mesma lista duas vezes.
+A primeira lista tem as notas e o resto; a segunda lista tem SO os eventos. Um arquivo esta numa
+lista ou na outra, nunca nas duas.
+
+Se voce percorrer a mesma lista nas duas passadas, cada arquivo vira DUAS linhas em
+`importacao_arquivos` e as notas passam pelo tratamento de evento. O banco recusa isso com um erro
+de `CHECK constraint failed` ou `NOT NULL constraint failed` na coluna `resultado`.
+
+ESCREVA `importar` COM ESTA ESTRUTURA:
+
+```python
+    notas = []
+    eventos = []
+
+    # colete os membros (o .zip e o .xml avulso desembocam aqui do mesmo jeito),
+    # e ja separe cada um na sua lista:
+    for nome, conteudo_bytes in <os membros do lote>:
+        texto = conteudo_bytes.decode("utf-8", errors="replace")
+        if classificar_xml(texto) == "evento":
+            eventos.append((nome, conteudo_bytes))
+        else:
+            notas.append((nome, conteudo_bytes))
+
+    # PRIMEIRA passada -- so a lista `notas`
+    for nome, conteudo_bytes in notas:
+        _processar_arquivo(conexao, importacao_id, nome, conteudo_bytes)
+
+    # SEGUNDA passada -- so a lista `eventos`, depois de todas as notas estarem no banco
+    for nome, conteudo_bytes in eventos:
+        _processar_evento(conexao, importacao_id, nome, conteudo_bytes)
+```
+
+A FUNCAO `_processar_evento`, QUE VOCE VAI CRIAR:
+
+```python
+def _processar_evento(conexao, importacao_id, nome, conteudo_bytes) -> None:
+    arquivo_hash = hashlib.sha256(conteudo_bytes).hexdigest()
+    texto = conteudo_bytes.decode("utf-8", errors="replace")
+    chave = None
+    detalhe = None
+    try:
+        evento = extrair_evento(texto)
+        resultado = aplicar_cancelamento(conexao, evento)
+        chave = evento["ch_nfe"]
+    except ValueError as e:
+        resultado = "invalida"
+        detalhe = str(e)
+
+    conexao.execute(
+        "INSERT INTO importacao_arquivos (importacao_id, arquivo, arquivo_hash, chave, resultado, detalhe) VALUES (?, ?, ?, ?, ?, ?)",
+        (importacao_id, nome, arquivo_hash, chave, resultado, detalhe),
+    )
+```
+
+ATENCAO: `chave` e `detalhe` sao inicializados como `None` ANTES do `try`. Se voce so atribuir
+`detalhe` dentro do `except`, o caminho de sucesso estoura
+`UnboundLocalError: cannot access local variable 'detalhe'`.
+
+O IMPORT QUE FALTA, no topo do arquivo:
 
 ```python
 from nfe_parser.cancelamento import aplicar_cancelamento, extrair_evento
-
-extrair_evento(xml_texto) -> dict
-    # devolve {"ch_nfe": str|None, "tp_evento": str|None, "dh_evento": str|None}
-    # levanta ValueError quando o XML nao abre
-
-aplicar_cancelamento(conexao, evento) -> str
-    # devolve "cancelamento_aplicado" ou "cancelamento_orfao"
-    # ja cuida sozinho de chave ausente, nota inexistente e tipo de evento errado
 ```
 
-COMO REESTRUTURAR `importar`:
+Essas duas funcoes ja existem e ja estao testadas. NAO as altere e NAO altere
+`src/nfe_parser/cancelamento.py`. Os contratos delas:
 
-1. Primeiro COLETE os membros numa lista de pares `(nome, conteudo_bytes)`, sem processar nada.
-   Isso vale para os dois caminhos que a funcao ja tem: o `.zip` e o `.xml` avulso. Os dois tem de
-   desembocar na mesma lista e nas mesmas duas passadas.
+    extrair_evento(xml_texto) -> {"ch_nfe": str|None, "tp_evento": str|None, "dh_evento": str|None}
+                                 levanta ValueError quando o XML nao abre
+    aplicar_cancelamento(conexao, evento) -> "cancelamento_aplicado" ou "cancelamento_orfao"
+                                 ja cuida de chave ausente, nota inexistente e tipo de evento errado
 
-2. PRIMEIRA PASSADA: para cada par da lista, classifique com `classificar_xml`. Se a classificacao
-   for `"evento"`, guarde o par numa segunda lista e siga para o proximo SEM registrar nada ainda.
-   Todo o resto (`"nfe"`, `"nao_suportado_sat"`, `"invalida"`) continua sendo tratado exatamente
-   como hoje, pela funcao `_processar_arquivo`.
+EM `_processar_arquivo`, APAGUE ESTAS DUAS LINHAS:
 
-3. SEGUNDA PASSADA: para cada evento guardado, chame `extrair_evento` e depois
-   `aplicar_cancelamento`, e so entao insira a linha em `importacao_arquivos`.
+```python
+    elif classificacao == "evento":
+        resultado = "cancelamento_orfao"
+```
 
-O QUE A LINHA DE LOG DO EVENTO PRECISA TER:
+Elas ficaram inalcancaveis: nenhum evento chega mais a essa funcao.
 
-    resultado  ->  o que `aplicar_cancelamento` devolveu
-    chave      ->  o `ch_nfe` do evento, ou NULL quando ele for None
-    detalhe    ->  NULL
+⛔ NAO acrescente um ramo `else` com `resultado = "desconhecido"`, e NAO acrescente nenhuma lista
+de valores permitidos antes do INSERT. Esses valores nao existem no banco e o CHECK vai recusa-los.
+Se algum `resultado` estiver saindo vazio, a causa e a separacao das listas acima, nao a falta de
+uma validacao.
 
-QUANDO `extrair_evento` LEVANTAR `ValueError`: registre esse arquivo com
-`resultado = "invalida"` e um `detalhe` com o texto do erro, e SIGA para o proximo evento. Um
-evento que nao abre nao pode derrubar o lote. Isto acontece de verdade: um `<procEventoNFe>` sem
-namespace passa pelo `classificar_xml` e falha no parser.
+⛔ NAO mexa no `UPDATE importacoes` no fim da funcao. O `cancelamentos_aplicados = 0` continua como
+esta — ajustar esse contador e a proxima tarefa, nao esta.
 
-O hash do arquivo continua sendo `hashlib.sha256(conteudo_bytes).hexdigest()`, igual ao que
-`_processar_arquivo` ja faz.
-
-Sugestao de desenho: crie uma funcao `_processar_evento(conexao, importacao_id, nome,
-conteudo_bytes)` espelhando a `_processar_arquivo` que ja existe, e remova de `_processar_arquivo`
-o ramo `elif classificacao == "evento"`, que agora nunca sera alcancado por ela.
-
-DUAS COISAS QUE NAO PODEM MUDAR:
-
-- O `UPDATE importacoes` no fim da funcao fica EXATAMENTE como esta, inclusive o
-  `cancelamentos_aplicados = 0`. Ajustar esse contador e a proxima tarefa, nao esta.
-- A funcao continua devolvendo o `importacao_id`.
-
-NAO altere nenhum outro arquivo.
+A funcao continua devolvendo o `importacao_id`. NAO altere nenhum outro arquivo.
