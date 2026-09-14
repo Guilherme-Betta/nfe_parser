@@ -13,6 +13,7 @@ Criterios em `specs/005-cancelamento-duas-passadas/spec.md` §3, bloco C1.
 """
 
 import pytest
+
 from nfe_parser.cancelamento import extrair_evento
 
 NS = "http://www.portalfiscal.inf.br/nfe"

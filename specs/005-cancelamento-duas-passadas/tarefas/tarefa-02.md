@@ -3,8 +3,7 @@ Acrescente a funcao `aplicar_cancelamento` ao arquivo `src/nfe_parser/cancelamen
 NAO altere a funcao `extrair_evento` que ja esta nesse arquivo. Ela esta pronta e testada.
 
 ```python
-def aplicar_cancelamento(conexao, evento: dict) -> str:
-    ...
+def aplicar_cancelamento(conexao, evento: dict) -> str: ...
 ```
 
 `evento` e exatamente o dicionario que `extrair_evento` devolve: `{"ch_nfe": ..., "tp_evento": ...,
@@ -54,6 +53,7 @@ ja usa:
 
 ```python
 from datetime import UTC, datetime
+
 datetime.now(UTC).isoformat()
 ```
 

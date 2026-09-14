@@ -31,10 +31,10 @@ Herdadas da story 004, sem alteracao.
 
 | # | Tarefa | Arquivo alvo | Oraculo da tarefa | Criterios | Turno 1 (estimado) | Status |
 | - | ------ | ------------ | ----------------- | --------- | ------------------ | ------ |
-| 1 | **Ler o evento**: `extrair_evento` devolve os tres campos, e nunca levanta por campo ausente | `src/nfe_parser/cancelamento.py` (novo) | `tests/test_extrair_evento.py` | C1 | ~4,3k | ⬜ |
-| 2 | **Aplicar o evento**: `aplicar_cancelamento` cancela a nota que existe e devolve orfao para a que nao existe | `src/nfe_parser/cancelamento.py` | `tests/test_aplicar_cancelamento.py` | C2 | ~4,6k | ⬜ |
-| 3 | **Duas passadas**: `importar` varre o lote duas vezes; a ordem no `.zip` deixa de importar | `src/nfe_parser/importador.py` | `tests/test_duas_passadas.py` | C3 | ~5,2k | ⬜ |
-| 4 | **O contador**: `cancelamentos_aplicados` deixa de ser zero fixo | `src/nfe_parser/importador.py` | `tests/test_contador_cancelamentos.py` | C4 | ~4,8k | ⬜ |
+| 1 | **Ler o evento**: `extrair_evento` devolve os tres campos, e nunca levanta por campo ausente | `src/nfe_parser/cancelamento.py` (novo) | `tests/test_extrair_evento.py` | C1 | ~4,3k | ✅ |
+| 2 | **Aplicar o evento**: `aplicar_cancelamento` cancela a nota que existe e devolve orfao para a que nao existe | `src/nfe_parser/cancelamento.py` | `tests/test_aplicar_cancelamento.py` | C2 | ~4,6k | ✅ |
+| 3 | **Duas passadas**: `importar` varre o lote duas vezes; a ordem no `.zip` deixa de importar | `src/nfe_parser/importador.py` | `tests/test_duas_passadas.py` | C3 | ~5,2k | ✅ |
+| 4 | **O contador**: `cancelamentos_aplicados` deixa de ser zero fixo | `src/nfe_parser/importador.py` | `tests/test_contador_cancelamentos.py` | C4 | ~4,8k | ✅ |
 
 **Status:** ⬜ nao iniciada · 🔄 no modelo local · 👀 aguardando revisao · ✅ aceita
 
@@ -68,15 +68,24 @@ refactor das passadas e produzir um diff que ninguem consegue revisar.
 ⛔ **As fixtures XML NAO entram no `--read`.** Os stubs de evento vivem **dentro** de cada modulo de
 teste, como constantes — que e como a 004 ja faz.
 
-🔴 **Remedido no fim do passo 2**, com os quatro modulos de teste escritos: `bytes ÷ 4`. Os
-numeros da primeira versao desta tabela eram estimativa e ficam abaixo, para comparacao.
+🔴 **Recalculado no fim do passo 2**, com os quatro modulos de teste escritos: `bytes ÷ 4` sobre
+arquivos que ja existem. A coluna **REAL** foi preenchida depois, com o que o Aider de fato enviou.
 
-| Tarefa | Sistema do Aider | Alvo | `--read` (o teste) | `--message-file` | **Total medido** | Estimado no P1 |
-| ------ | ---------------- | ---- | ------------------ | ---------------- | ---------------- | -------------- |
-| 1 | ~2,0k | `cancelamento.py` (novo, 0,0k) | **1,17k** | **0,61k** | **~3,8k** ✅ | ~4,3k |
-| 2 | ~2,0k | `cancelamento.py` (~0,4k) | **1,19k** | **0,61k** | **~4,2k** ✅ | ~4,6k |
-| 3 | ~2,0k | `importador.py` (**0,92k**) | **1,85k** | **0,75k** | **~5,5k** ⚠️ | ~5,2k |
-| 4 | ~2,0k | `importador.py` (~1,3k) | **1,38k** | **0,32k** | **~5,0k** ✅ | ~4,8k |
+| Tarefa | Sistema do Aider | Alvo | `--read` (o teste) | `--message-file` | **Previsto no P2** | Estimado no P1 | 🔴 **REAL** |
+| ------ | ---------------- | ---- | ------------------ | ---------------- | ------------------ | -------------- | ----------- |
+| 1 | ~2,0k | `cancelamento.py` (novo, 0,0k) | **1,17k** | **0,61k** | ~3,8k | ~4,3k | **5,2k** |
+| 2 | ~2,0k | `cancelamento.py` (~0,4k) | **1,19k** | **0,61k** | ~4,2k | ~4,6k | **5,5k** |
+| 3 | ~2,0k | `importador.py` (**0,92k**) | **1,85k** | **0,75k** | ~5,5k ⚠️ | ~5,2k | **6,4k** ⛔ |
+| 4 | ~2,0k | `importador.py` (~1,3k) | **1,38k** | **0,32k** | ~5,0k | ~4,8k | **5,8k** |
+
+> 🔴 **As quatro previsoes erraram para BAIXO, entre +0,8k e +1,4k.** A formula `bytes ÷ 4` se
+> sustenta; o que esta errado e a constante `~2,0k` do "Sistema do Aider", que na pratica custa
+> **~2,7k a ~3,4k**. Detalhamento e a proposta de correcao em
+> [`passo3-registro.md`](passo3-registro.md).
+>
+> A consequencia pratica: a tarefa 3 foi orcada em 5,5k, **abaixo** do teto de 6k, e entrou no
+> laco a **6,4k**, acima. O aviso escrito abaixo — "a tarefa 3 e a de risco" — acertou o alvo pelo
+> motivo errado, e a margem que eu achava ter nao existia.
 
 ⚠️ **A tarefa 3 e a de risco: 5,5k contra o teto de 6k da regra 5.** Ela nao foi partida porque
 "varrer duas vezes" e **um** defeito — parti-la seria inventar uma fronteira que a spec nao tem, e
@@ -163,3 +172,88 @@ ja nao cria nota a partir de evento, entao o caso orfao ela satisfaz por constru
 ⭐ Anotado aqui porque a story 003 perdeu essa informacao e ela distorce o placar: sem esta linha,
 a tarefa 3 pareceria ter 7 testes resolvidos pelo modelo local quando sao **6**. E o mesmo erro de
 leitura que o Achado M descreve, uma casa antes.
+
+---
+
+## ✅ Passo 3 — resultado
+
+**4/4 tarefas verdes, 6 invocacoes, 3/4 resolvidas pelo modelo local.** O detalhamento, os numeros
+de contexto medidos e o achado principal estao em [`passo3-registro.md`](passo3-registro.md), que
+foi **reconstruido a mao** porque o script apaga o registro a cada `--a-partir-de`.
+
+Em uma linha: **o orcamento do kit subestima o turno 1 em ~1k**, as tres invocacoes da tarefa 3
+comecaram acima do teto de 6k, e por isso ela nunca teve chance.
+
+---
+
+## ✅ Passo 4 — revisao: o que foi lido, o que mudei e o que anotei
+
+Lidos os **dois modulos inteiros** (`cancelamento.py` e `importador.py`), nao so o diff. O motivo e
+o Achado H: na story 004, 35 testes passavam, o `ruff` passava, e uma funcao estava com o corpo
+inteiro duplicado **depois do `return`** — codigo morto que nenhuma assercao alcanca.
+
+| Conferido | Resultado |
+| --------- | --------- |
+| Corpo duplicado depois do `return` (Achado H) | ✅ **Nenhum**, nos dois modulos |
+| `print()` de debug deixado no codigo de producao | ✅ **Nenhum** (`grep` em todo o `src/`) |
+| `scripts/verify.py` | ✅ **164 passed** |
+| `ruff format` e `ruff check --fix` | ✅ 1 arquivo reformatado, 3 erros corrigidos, 0 restantes |
+| Nenhum `.zip`, `.db`, `.env` ou `.sqlite` rastreado | ✅ `git ls-files` limpo |
+| Nenhum CPF/CNPJ real | ✅ o unico CNPJ nas fixtures e o anonimizado `99999999000199` |
+| `passo3-logs/` fora do repo | ✅ ja no `.gitignore` |
+
+### Cobertura como diagnostico (sem limiar)
+
+```
+src/nfe_parser/cancelamento.py   33 stmts   0 miss   100%
+src/nfe_parser/importador.py     73 stmts   3 miss    96%   faltando: 25-27
+```
+
+Duas linhas nao-cobertas apareceram na primeira medida, e elas contavam historias diferentes:
+
+**(1) A linha do `.xml` avulso que e um evento — lacuna de teste, e foi escrita.** O ramo existia,
+estava correto, e nenhum teste passava por ele. Nao e linha morta: e o **C5 da story 004**, que
+exige que o `.zip` e o avulso desemboquem no mesmo caminho de codigo. Sem o teste, "os dois
+caminhos convergem" valia para nota e nao valia para evento — e ninguem saberia.
+✅ Acrescentado `test_evento_chega_tambem_como_xml_avulso`, e a cobertura fechou.
+
+**(2) As linhas 25-27 — ressalva PRE-EXISTENTE, nao mexida.** E o `except ValueError` de
+`extrair_nota` em `_processar_arquivo`, que a story 004 ja tinha anotado como ressalva (c): o
+`except` envolve tambem a chamada a `persistir_nota`, entao um erro da persistencia seria
+registrado como `invalida`, culpando o XML por um defeito que nao e dele. **Nenhum criterio da 005
+cobre isso.** Continua anotada, continua candidata a story 006.
+
+### 🔧 O que a revisao mudou no codigo
+
+Tudo cosmetico, nenhuma mudanca de comportamento — os 164 testes ficaram verdes antes e depois:
+
+- **`cancelamento.py` ganhou docstrings e comentarios.** O modelo local entregou o modulo sem
+  nenhum, e o resto do projeto tem. Os dois comentarios que importam explicam *por que* o
+  `getattr(..., "value", ...)` existe e *por que* o `AND status = 'ok'` existe — sem eles, os dois
+  parecem enfeite e o proximo a mexer os remove.
+- **Imports reordenados** (`datetime` da stdlib vinha depois dos de terceiros).
+- **`110111` virou a constante `TP_EVENTO_CANCELAMENTO`**, com o comentario dizendo o que sao os
+  outros `tpEvento`.
+- **A query do `UPDATE` quebrada em duas linhas**, que passava de 100 colunas.
+
+### ⚠️ Anotado e NAO consertado (§6: anotar, nao consertar)
+
+**(a) `importar` decodifica e classifica cada arquivo duas vezes.** A separacao em listas faz
+`decode` + `classificar_xml` na coleta, e `_processar_arquivo` refaz os dois. E desperdicio, nao
+defeito, e nenhum teste o reprova. Passar o `texto` ja decodificado adiante e a correcao obvia —
+mas e mudanca de assinatura de duas funcoes sem teste que a defina.
+
+**(b) O `getattr(..., "value", ...)` esta nos tres campos, e so `tpEvento` precisa.** Em `chNFe` e
+`dhEvento` ele e inofensivo e sugere, errado, que os tres podem vir como enum. Anotado porque
+mexer aqui e mexer no unico ponto do modulo que tem armadilha real.
+
+**(c) `ruff format .` reformata blocos de codigo dentro dos `.md` das tarefas.** Ele alterou
+`tarefas/tarefa-02.md` durante o passo 4. Inofensivo — as tarefas ja tinham rodado —, mas se
+acontecesse ANTES da invocacao mudaria a mensagem que o modelo local recebe, e o orcamento de
+contexto junto. Vale saber antes de rodar `ruff` no meio de um passo 3.
+
+### Contexto: os `ConverterWarning` na saida do pytest
+
+Dois `ConverterWarning` aparecem na suite (`110110` e `ABC` nao sao `InfEventoTpEvento` validos).
+Eles vem dos testes que exercitam o C1.4 **de proposito** — sao a prova de que o caminho da string
+crua e percorrido. Nao sao ruido a silenciar.

@@ -206,3 +206,25 @@ def test_reimportar_o_mesmo_lote_nao_duplica_nem_move_o_carimbo(conexao, tmp_pat
         ("evento.xml", "cancelamento_aplicado"),
         ("nota.xml", "duplicada"),
     ]
+
+
+# --- acrescentado no passo 4, pela cobertura ---------------------------------
+def test_evento_chega_tambem_como_xml_avulso(conexao, tmp_path):
+    """Escrito na REVISAO, nao no passo 2: a cobertura acusou o ramo do `.xml`
+    avulso que classifica um evento (`importador.py`, a linha do
+    `eventos.append` fora do `.zip`) como a unica linha nova sem teste.
+
+    Nao e linha morta — e o C5 da story 004, que exige que o `.zip` e o avulso
+    desemboquem no mesmo caminho de codigo. Sem este teste, "os dois caminhos
+    convergem" valia para nota e nao valia para evento, e ninguem saberia.
+    """
+    nota = tmp_path / "nota.xml"
+    nota.write_text(_texto("nfe_55_1item.xml"), encoding="utf-8")
+    evento = tmp_path / "evento.xml"
+    evento.write_text(_evento(), encoding="utf-8")
+
+    importar(conexao, nota)
+    importacao_id = importar(conexao, evento)
+
+    assert _nota(conexao)[0] == "cancelada"
+    assert _log(conexao, importacao_id) == [("evento.xml", "cancelamento_aplicado")]

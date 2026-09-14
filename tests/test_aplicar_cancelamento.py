@@ -15,9 +15,9 @@ Criterios em `specs/005-cancelamento-duas-passadas/spec.md` §3, bloco C2.
 """
 
 import pytest
-from nfe_parser.cancelamento import aplicar_cancelamento
 
 from nfe_parser.banco import abrir_banco
+from nfe_parser.cancelamento import aplicar_cancelamento
 
 CHAVE_A = "35260499999999000199550010000000011000000017"
 CHAVE_B = "35260499999999000199650010000000021000000025"
