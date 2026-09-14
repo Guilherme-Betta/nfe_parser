@@ -6,6 +6,7 @@ from pathlib import Path
 from nfe_parser.classificador import classificar_xml
 from nfe_parser.extrator import extrair_nota
 from nfe_parser.persistencia import persistir_nota
+from nfe_parser.cancelamento import aplicar_cancelamento, extrair_evento
 
 
 def _processar_arquivo(conexao, importacao_id, nome, conteudo_bytes) -> None:
@@ -26,8 +27,6 @@ def _processar_arquivo(conexao, importacao_id, nome, conteudo_bytes) -> None:
             detalhe = str(e)
     elif classificacao == "nao_suportado_sat":
         resultado = "nao_suportado_sat"
-    elif classificacao == "evento":
-        resultado = "cancelamento_orfao"
     elif classificacao == "invalida":
         resultado = "invalida"
         detalhe = "Conteúdo inválido"
@@ -50,6 +49,9 @@ def importar(conexao, caminho, origem: str | None = None) -> int:
     )
     importacao_id = cursor.lastrowid
 
+    notas = []
+    eventos = []
+
     if caminho.suffix.lower() == ".zip":
         # 2. Abre o .zip
         with zipfile.ZipFile(caminho, "r") as arquivo_zip:
@@ -57,11 +59,27 @@ def importar(conexao, caminho, origem: str | None = None) -> int:
                 if not membro.lower().endswith(".xml") or membro.endswith("/"):
                     continue
                 bytes_content = arquivo_zip.read(membro)
-                _processar_arquivo(conexao, importacao_id, membro, bytes_content)
+                texto = bytes_content.decode("utf-8", errors="replace")
+                if classificar_xml(texto) == "evento":
+                    eventos.append((membro, bytes_content))
+                else:
+                    notas.append((membro, bytes_content))
     else:
         # Trata como um arquivo XML avulso
         bytes_content = caminho.read_bytes()
-        _processar_arquivo(conexao, importacao_id, caminho.name, bytes_content)
+        texto = bytes_content.decode("utf-8", errors="replace")
+        if classificar_xml(texto) == "evento":
+            eventos.append((caminho.name, bytes_content))
+        else:
+            notas.append((caminho.name, bytes_content))
+
+    # PRIMEIRA passada -- so a lista `notas`
+    for nome, conteudo_bytes in notas:
+        _processar_arquivo(conexao, importacao_id, nome, conteudo_bytes)
+
+    # SEGUNDA passada -- so a lista `eventos`, depois de todas as notas estarem no banco
+    for nome, conteudo_bytes in eventos:
+        _processar_evento(conexao, importacao_id, nome, conteudo_bytes)
 
     # 3. UPDATE em `importacoes`
     finalizado_em = datetime.now(UTC).isoformat()
