@@ -21,7 +21,7 @@ def importar(conexao, caminho, origem: str | None = None) -> int:
     # 2. Abre o .zip
     with zipfile.ZipFile(caminho, "r") as arquivo_zip:
         for membro in arquivo_zip.namelist():
-            if not membro.endswith(".xml") or membro.endswith("/"):
+            if not membro.lower().endswith(".xml") or membro.endswith("/"):
                 continue
             bytes_content = arquivo_zip.read(membro)
             arquivo_hash = hashlib.sha256(bytes_content).hexdigest()
@@ -48,6 +48,7 @@ def importar(conexao, caminho, origem: str | None = None) -> int:
                 detalhe = "Conteúdo inválido"
 
             # INSERT em `importacao_arquivos`
+            print(f"Processing file: {membro}")  # Adicionado para debug
             conexao.execute(
                 "INSERT INTO importacao_arquivos (importacao_id, arquivo, arquivo_hash, chave, resultado, detalhe) VALUES (?, ?, ?, ?, ?, ?)",
                 (importacao_id, membro, arquivo_hash, chave, resultado, detalhe)
