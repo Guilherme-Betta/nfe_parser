@@ -12,11 +12,11 @@ def importar(conexao, caminho, origem: str | None = None) -> int:
     if origem is None:
         origem = str(caminho)
     iniciado_em = datetime.now(timezone.utc).isoformat()
-    conexao.execute(
+    cursor = conexao.execute(
         "INSERT INTO importacoes (origem, iniciado_em) VALUES (?, ?)",
         (origem, iniciado_em)
     )
-    importacao_id = conexao.lastrowid
+    importacao_id = cursor.lastrowid
 
     # 2. Abre o .zip
     with zipfile.ZipFile(caminho, "r") as arquivo_zip:
