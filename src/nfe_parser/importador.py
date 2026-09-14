@@ -37,6 +37,8 @@ def _processar_arquivo(conexao, importacao_id, nome, conteudo_bytes) -> None:
     # INSERT em `importacao_arquivos`
     if resultado is None:
         resultado = "desconhecido"
+    if resultado not in ['nova', 'duplicada', 'invalida', 'cancelamento_aplicado', 'cancelamento_orfao', 'nao_suportado_sat']:
+        resultado = "invalida"
     conexao.execute(
         "INSERT INTO importacao_arquivos (importacao_id, arquivo, arquivo_hash, chave, resultado, detalhe) VALUES (?, ?, ?, ?, ?, ?)",
         (importacao_id, nome, arquivo_hash, chave, resultado, detalhe),
