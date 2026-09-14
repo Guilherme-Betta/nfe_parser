@@ -166,12 +166,16 @@ def test_chave_inexistente_devolve_none_e_nao_json_vazio(conexao):
 def test_o_acento_sobrevive_a_ida_e_a_volta(conexao):
     """`json.dumps` escapa acento POR PADRAO: o default erra este criterio.
 
-    O defeito so aparece em quem abre o arquivo depois -- `"S\u00e3o Paulo"` e
+    O defeito so aparece em quem abre o arquivo depois -- `"S\\u00e3o Paulo"` e
     JSON valido, e `json.loads` ate o le de volta certo. O que se perde e a
     legibilidade do arquivo, que e metade da razao de existir uma saida em JSON.
     """
     bruto = nota_para_json(conexao, CHAVE)
 
     assert MUNICIPIO in bruto
-    assert "\u00e3" not in bruto
+    # ⚠️ O `r` NAO e enfeite: numa string Python comum a sequencia de escape
+    # JA E o caractere acentuado, entao esta assercao contradiria a de cima e o
+    # teste seria IMPOSSIVEL de passar. O que se procura aqui e a sequencia de
+    # escape literal, de seis caracteres, dentro do texto do JSON.
+    assert r"\u00e3" not in bruto
     assert json.loads(bruto)["emit_municipio"] == MUNICIPIO
