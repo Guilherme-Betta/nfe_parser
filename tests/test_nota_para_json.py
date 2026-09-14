@@ -109,7 +109,12 @@ def test_as_chaves_sao_exatamente_estas_e_nesta_ordem(conexao):
     """
     dados = json.loads(nota_para_json(conexao, CHAVE))
 
-    assert list(dados) == CHAVES_DA_NOTA
+    # ⚠️ PREFIXO, nao igualdade. A tarefa 3 acrescenta a chave `itens` a esta
+    # mesma saida (spec §4, C3), entao uma igualdade estrita aqui passaria na
+    # tarefa 2 e quebraria na 3 -- foi exatamente o que aconteceu. A igualdade
+    # estrita, ja com `itens`, mora em test_itens_no_json.py.
+    assert list(dados)[: len(CHAVES_DA_NOTA)] == CHAVES_DA_NOTA
+    assert set(dados) - set(CHAVES_DA_NOTA) <= {"itens"}
     assert XML_RAW not in nota_para_json(conexao, CHAVE)
 
 

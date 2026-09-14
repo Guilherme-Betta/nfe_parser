@@ -44,7 +44,7 @@ def test_de_centavos_zero():
 
 
 def test_de_centavos_valor_redondo_mantem_as_duas_casas():
-    """"1.0" nao serve: o contrato e duas casas SEMPRE, para a saida ser uniforme."""
+    """ "1.0" nao serve: o contrato e duas casas SEMPRE, para a saida ser uniforme."""
     assert de_centavos(100) == "1.00"
 
 
