@@ -38,6 +38,37 @@ def _processar_arquivo(conexao, importacao_id, nome, conteudo_bytes) -> None:
     )
 
 
+def _processar_evento(conexao, importacao_id, nome, conteudo_bytes) -> None:
+    """Aplica um evento de cancelamento e registra a linha dele no log do lote.
+
+    So e chamada na SEGUNDA passada de `importar`, quando todas as notas do
+    lote ja estao no banco -- e o que permite aplicar um evento que veio antes
+    da sua nota dentro do `.zip`.
+    """
+
+    arquivo_hash = hashlib.sha256(conteudo_bytes).hexdigest()
+    texto = conteudo_bytes.decode("utf-8", errors="replace")
+    chave = None
+    detalhe = None
+
+    try:
+        evento = extrair_evento(texto)
+        resultado = aplicar_cancelamento(conexao, evento)
+        chave = evento["ch_nfe"]
+    except ValueError as e:
+        # Evento que nao abre e `invalida`, o mesmo tratamento que uma nota que
+        # nao abre recebe. Sem este `except` a excecao sobe e derruba o lote
+        # inteiro -- inclusive as notas boas, que nao tem culpa nenhuma.
+        resultado = "invalida"
+        detalhe = str(e)
+
+    # INSERT em `importacao_arquivos`
+    conexao.execute(
+        "INSERT INTO importacao_arquivos (importacao_id, arquivo, arquivo_hash, chave, resultado, detalhe) VALUES (?, ?, ?, ?, ?, ?)",
+        (importacao_id, nome, arquivo_hash, chave, resultado, detalhe),
+    )
+
+
 def importar(conexao, caminho, origem: str | None = None) -> int:
     caminho = Path(caminho)
     # 1. INSERT em `importacoes`
