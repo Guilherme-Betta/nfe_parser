@@ -318,6 +318,57 @@ def rodar_tarefa(tarefa: dict, raiz: Path, pasta_log: Path) -> dict:
 # ===========================================================================
 
 
+def acumular_registros(novos: list[dict], acumulado: Path) -> list[dict]:
+    """Funde os registros desta execucao com os das execucoes anteriores.
+
+    🔴 ISTO CONSERTA UM BUG QUE JA CUSTOU UMA MEDICAO INTEIRA. Ate a story 005,
+    `escrever_registro` gravava so os registros da execucao CORRENTE. Como
+    `--a-partir-de` roda um subconjunto das tarefas, cada retomada SOBRESCREVIA
+    o arquivo e apagava as tarefas ja registradas.
+
+    O estrago medido na 005: o registro final dizia "1 de 1 tarefa verde" quando
+    eram 4 de 4, e "1 invocacao" quando foram 6. Ou seja, o numero que o Achado
+    11 existe para preservar -- INVOCACOES, nao tarefas -- era justamente o que
+    se perdia, e a tarefa que deu trabalho (3 invocacoes, uma reversao, uma
+    funcao ditada) sumia do placar como se nunca tivesse acontecido.
+
+    A fusao e por `id` de tarefa, e uma tarefa reexecutada ACUMULA em vez de
+    substituir: invocacoes somam, tempo soma, commits concatenam. O `verde` e o
+    da ULTIMA execucao, que e o estado em que a tarefa de fato ficou.
+    """
+    if not acumulado.exists():
+        return novos
+
+    try:
+        anteriores = json.loads(acumulado.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        # Registro anterior ilegivel nao pode derrubar a rodada nem, pior,
+        # apagar o que sobrou dele em silencio -- que e o bug original.
+        print(f"AVISO: nao consegui ler {acumulado}; seguindo so com esta execucao.", flush=True)
+        return novos
+
+    por_id = {r["id"]: r for r in anteriores}
+    for novo in novos:
+        antigo = por_id.get(novo["id"])
+        if antigo is None:
+            por_id[novo["id"]] = novo
+            continue
+        fundido = dict(novo)
+        fundido["invocacoes"] = antigo.get("invocacoes", 0) + novo["invocacoes"]
+        fundido["segundos"] = round(antigo.get("segundos", 0) + novo["segundos"], 1)
+        fundido["commits"] = antigo.get("commits", []) + novo["commits"]
+        por_id[novo["id"]] = fundido
+
+    # Ordena pelo id numerico quando der, para a tabela sair na ordem do backlog.
+    def chave(registro: dict):
+        try:
+            return (0, int(registro["id"]))
+        except (TypeError, ValueError):
+            return (1, str(registro["id"]))
+
+    return sorted(por_id.values(), key=chave)
+
+
 def escrever_registro(registros: list[dict], manifesto: dict, destino: Path, contexto: str | None):
     """Escreve o resumo em markdown, pronto para colar no offload-log.
 
@@ -372,6 +423,39 @@ def escrever_registro(registros: list[dict], manifesto: dict, destino: Path, con
             "mesma linha — e na medicao 5 nao eram (Achado M)."
         ),
     ]
+
+    # ⭐ A EVIDENCIA BRUTA, DENTRO DA DOCUMENTACAO.
+    #
+    # Decisao do Gui (2026-09-14): o repo oficial passa a receber as stories com
+    # historico CURADO, e nao com as mensagens que o Aider gera -- que sao
+    # frequentemente a explicacao inteira despejada como titulo. O argumento
+    # dele: documentacao boa vale mais do que a evidencia crua espalhada pelo
+    # `git log` de um repositorio publico.
+    #
+    # Para que curar o historico nao APAGUE a evidencia, ela passa a ser
+    # registrada aqui -- num arquivo que e commitado e lido, em vez de num
+    # historico que sera squashado. Este bloco e o que torna as duas coisas
+    # compativeis, em vez de um trade-off.
+    linhas += [
+        "",
+        "---",
+        "",
+        "## Commits brutos do modelo local",
+        "",
+        "Registrados aqui porque a transferencia para o repo oficial usa historico curado.",
+        "Esta e a evidencia do que o modelo local produziu, tarefa a tarefa — o `git log`",
+        "do repo oficial nao a tem mais, e o clone do shakedown e descartavel.",
+        "",
+    ]
+    for r in registros:
+        linhas.append(f"**Tarefa {r['id']} — {r['titulo']}**")
+        linhas.append("")
+        if r["commits"]:
+            linhas += [f"- `{commit}`" for commit in r["commits"]]
+        else:
+            linhas.append("- *(nenhum commit — o modelo local nao aplicou nenhuma edicao)*")
+        linhas.append("")
+
     destino.write_text("\n".join(linhas) + "\n", encoding="utf-8")
 
 
@@ -474,11 +558,14 @@ def main() -> int:
             file=sys.stderr,
         )
 
+    # ⭐ FUNDE com as execucoes anteriores ANTES de escrever. Sem isto, um
+    # `--a-partir-de` apaga do registro as tarefas que ja tinham rodado.
+    acumulado = pasta_log / "registro.json"
+    registros = acumular_registros(registros, acumulado)
+
     destino = caminho_manifesto.parent / "passo3-registro.md"
     escrever_registro(registros, manifesto, destino, contexto)
-    (pasta_log / "registro.json").write_text(
-        json.dumps(registros, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+    acumulado.write_text(json.dumps(registros, indent=2, ensure_ascii=False), encoding="utf-8")
 
     verdes = sum(1 for r in registros if r["verde"])
     print(f"\n{'=' * 70}")
