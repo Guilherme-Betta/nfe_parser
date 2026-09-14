@@ -1,5 +1,6 @@
 import xml.etree.ElementTree as ET
 
+
 def classificar_xml(xml_texto: str) -> str:
     try:
         root = ET.fromstring(xml_texto)

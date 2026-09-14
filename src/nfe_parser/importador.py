@@ -1,11 +1,12 @@
 import hashlib
 import zipfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from nfe_parser.classificador import classificar_xml
 from nfe_parser.extrator import extrair_nota
 from nfe_parser.persistencia import persistir_nota
+
 
 def _processar_arquivo(conexao, importacao_id, nome, conteudo_bytes) -> None:
     arquivo_hash = hashlib.sha256(conteudo_bytes).hexdigest()
@@ -32,21 +33,20 @@ def _processar_arquivo(conexao, importacao_id, nome, conteudo_bytes) -> None:
         detalhe = "Conteúdo inválido"
 
     # INSERT em `importacao_arquivos`
-    print(f"Processing file: {nome}")  # Adicionado para debug
     conexao.execute(
         "INSERT INTO importacao_arquivos (importacao_id, arquivo, arquivo_hash, chave, resultado, detalhe) VALUES (?, ?, ?, ?, ?, ?)",
-        (importacao_id, nome, arquivo_hash, chave, resultado, detalhe)
+        (importacao_id, nome, arquivo_hash, chave, resultado, detalhe),
     )
+
 
 def importar(conexao, caminho, origem: str | None = None) -> int:
     caminho = Path(caminho)
     # 1. INSERT em `importacoes`
     if origem is None:
         origem = str(caminho)
-    iniciado_em = datetime.now(timezone.utc).isoformat()
+    iniciado_em = datetime.now(UTC).isoformat()
     cursor = conexao.execute(
-        "INSERT INTO importacoes (origem, iniciado_em) VALUES (?, ?)",
-        (origem, iniciado_em)
+        "INSERT INTO importacoes (origem, iniciado_em) VALUES (?, ?)", (origem, iniciado_em)
     )
     importacao_id = cursor.lastrowid
 
@@ -64,7 +64,7 @@ def importar(conexao, caminho, origem: str | None = None) -> int:
         _processar_arquivo(conexao, importacao_id, caminho.name, bytes_content)
 
     # 3. UPDATE em `importacoes`
-    finalizado_em = datetime.now(timezone.utc).isoformat()
+    finalizado_em = datetime.now(UTC).isoformat()
     conexao.execute(
         """
         UPDATE importacoes
@@ -88,7 +88,15 @@ def importar(conexao, caminho, origem: str | None = None) -> int:
             cancelamentos_aplicados = 0
         WHERE id = ?
         """,
-        (finalizado_em, importacao_id, importacao_id, importacao_id, importacao_id, importacao_id, importacao_id)
+        (
+            finalizado_em,
+            importacao_id,
+            importacao_id,
+            importacao_id,
+            importacao_id,
+            importacao_id,
+            importacao_id,
+        ),
     )
 
     # 4. Devolve o importacao_id

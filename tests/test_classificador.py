@@ -41,9 +41,7 @@ def _fixture(nome):
 
 
 # --- C3.1 -------------------------------------------------------------------
-@pytest.mark.parametrize(
-    "nome", ["nfe_55_1item.xml", "nfe_55_3itens.xml", "nfe_65_1item.xml"]
-)
+@pytest.mark.parametrize("nome", ["nfe_55_1item.xml", "nfe_55_3itens.xml", "nfe_65_1item.xml"])
 def test_as_tres_fixtures_sao_nfe(nome):
     assert classificar_xml(_fixture(nome)) == "nfe"
 
@@ -108,19 +106,15 @@ def test_o_namespace_nao_atrapalha_a_leitura_da_raiz():
     teste que usasse XML sem namespace. Por isso as fixtures deste projeto tem
     o namespace de verdade, e este teste exige as duas formas.
     """
-    sem_ns = '<nfeProc><NFe><infNFe><ide><mod>55</mod></ide></infNFe></NFe></nfeProc>'
-    com_ns = (
-        f'<nfeProc xmlns="{NS}"><NFe><infNFe><ide><mod>55</mod></ide></infNFe></NFe></nfeProc>'
-    )
+    sem_ns = "<nfeProc><NFe><infNFe><ide><mod>55</mod></ide></infNFe></NFe></nfeProc>"
+    com_ns = f'<nfeProc xmlns="{NS}"><NFe><infNFe><ide><mod>55</mod></ide></infNFe></NFe></nfeProc>'
 
     assert classificar_xml(sem_ns) == "nfe"
     assert classificar_xml(com_ns) == "nfe"
 
 
 def test_o_modelo_65_tambem_e_nfe_e_nao_so_o_55():
-    com_ns = (
-        f'<nfeProc xmlns="{NS}"><NFe><infNFe><ide><mod>65</mod></ide></infNFe></NFe></nfeProc>'
-    )
+    com_ns = f'<nfeProc xmlns="{NS}"><NFe><infNFe><ide><mod>65</mod></ide></infNFe></NFe></nfeProc>'
 
     assert classificar_xml(com_ns) == "nfe"
 

@@ -117,9 +117,12 @@ def test_devolve_o_id_da_importacao(conexao, tmp_path):
     importacao_id = importar(conexao, caminho)
 
     assert isinstance(importacao_id, int)
-    assert conexao.execute(
-        "SELECT COUNT(*) FROM importacoes WHERE id = ?", (importacao_id,)
-    ).fetchone()[0] == 1
+    assert (
+        conexao.execute(
+            "SELECT COUNT(*) FROM importacoes WHERE id = ?", (importacao_id,)
+        ).fetchone()[0]
+        == 1
+    )
 
 
 # --- C4.2 -------------------------------------------------------------------
@@ -145,9 +148,12 @@ def test_a_origem_explicita_vence_o_caminho(conexao, tmp_path):
 
     importacao_id = importar(conexao, caminho, origem="portal-sefaz-abril")
 
-    assert conexao.execute(
-        "SELECT origem FROM importacoes WHERE id = ?", (importacao_id,)
-    ).fetchone()[0] == "portal-sefaz-abril"
+    assert (
+        conexao.execute("SELECT origem FROM importacoes WHERE id = ?", (importacao_id,)).fetchone()[
+            0
+        ]
+        == "portal-sefaz-abril"
+    )
 
 
 # --- C4.3 -------------------------------------------------------------------
@@ -169,9 +175,12 @@ def test_sem_chave_conhecida_a_coluna_chave_sai_null(conexao, tmp_path):
 
     importacao_id = importar(conexao, caminho)
 
-    assert conexao.execute(
-        "SELECT chave FROM importacao_arquivos WHERE importacao_id = ?", (importacao_id,)
-    ).fetchone()[0] is None
+    assert (
+        conexao.execute(
+            "SELECT chave FROM importacao_arquivos WHERE importacao_id = ?", (importacao_id,)
+        ).fetchone()[0]
+        is None
+    )
 
 
 # --- C4.4 -------------------------------------------------------------------
@@ -306,6 +315,9 @@ def test_um_zip_sem_nenhum_xml_fecha_a_importacao_sem_erro(conexao, tmp_path):
     importacao_id = importar(conexao, caminho)
 
     assert _log(conexao, importacao_id) == []
-    assert conexao.execute(
-        "SELECT finalizado_em FROM importacoes WHERE id = ?", (importacao_id,)
-    ).fetchone()[0] is not None
+    assert (
+        conexao.execute(
+            "SELECT finalizado_em FROM importacoes WHERE id = ?", (importacao_id,)
+        ).fetchone()[0]
+        is not None
+    )

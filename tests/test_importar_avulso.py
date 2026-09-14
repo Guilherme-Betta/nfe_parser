@@ -150,7 +150,9 @@ def test_o_mesmo_xml_avulso_e_dentro_do_zip_da_o_mesmo_resultado(tmp_path):
     criterio de desenho, virado em assercao.
     """
     texto = _texto("nfe_55_1item.xml")
-    colunas = "SELECT resultado, arquivo_hash, chave FROM importacao_arquivos WHERE importacao_id = ?"
+    colunas = (
+        "SELECT resultado, arquivo_hash, chave FROM importacao_arquivos WHERE importacao_id = ?"
+    )
 
     con_zip = abrir_banco(tmp_path / "a.db")
     id_zip = importar(con_zip, _zip(tmp_path, "lote.zip", {"nota.xml": texto}))

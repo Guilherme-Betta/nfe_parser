@@ -22,12 +22,12 @@
 
 | # | Tarefa | Arquivo alvo | Oraculo da tarefa | Criterios | Turno 1 (**medido**) | Status |
 | - | ------ | ------------ | ----------------- | --------- | -------------------- | ------ |
-| 1 | **Persistir**: `persistir_nota` insere a nota e os N itens, devolvendo `"nova"` | `src/nfe_parser/persistencia.py` (novo) | `tests/test_persistir_nota.py` (13) | C1 | ~4,9k ✅ | ⬜ |
-| 2 | **Dedup idempotente**: `chave` ja presente devolve `"duplicada"` e **nao escreve nada** | `src/nfe_parser/persistencia.py` | `tests/test_dedup.py` (8) | C2 | ~4,3k ✅ | ⬜ |
-| 3 | **Classificar**: raiz + `ide/mod` viram uma de 4 strings, sem nunca levantar | `src/nfe_parser/classificador.py` (novo) | `tests/test_classificador.py` (9) | C3 | ~3,5k ✅ | ⬜ |
-| 4 | **Importar o `.zip`**: uma linha de log por arquivo, nenhuma excecao escapando | `src/nfe_parser/importador.py` (novo) | `tests/test_importar_lote.py` (16) | C4 | ~5,3k ✅ | ⬜ |
-| 5 | **`.xml` avulso pelo MESMO caminho de codigo** | `src/nfe_parser/importador.py` | `tests/test_importar_avulso.py` (8) | C5 | ~4,8k ✅ | ⬜ |
-| 6 | **Contadores**: a linha de `importacoes` fecha com os contadores batendo com o log | `src/nfe_parser/importador.py` | `tests/test_importacao_contadores.py` (7) | C6 | ~4,8k ✅ | ⬜ |
+| 1 | **Persistir**: `persistir_nota` insere a nota e os N itens, devolvendo `"nova"` | `src/nfe_parser/persistencia.py` (novo) | `tests/test_persistir_nota.py` (13) | C1 | ~4,9k ✅ | ✅ |
+| 2 | **Dedup idempotente**: `chave` ja presente devolve `"duplicada"` e **nao escreve nada** | `src/nfe_parser/persistencia.py` | `tests/test_dedup.py` (8) | C2 | ~4,3k ✅ | ✅ |
+| 3 | **Classificar**: raiz + `ide/mod` viram uma de 4 strings, sem nunca levantar | `src/nfe_parser/classificador.py` (novo) | `tests/test_classificador.py` (9) | C3 | ~3,5k ✅ | ✅ |
+| 4 | **Importar o `.zip`**: uma linha de log por arquivo, nenhuma excecao escapando | `src/nfe_parser/importador.py` (novo) | `tests/test_importar_lote.py` (16) | C4 | ~5,3k ✅ | ✅ |
+| 5 | **`.xml` avulso pelo MESMO caminho de codigo** | `src/nfe_parser/importador.py` | `tests/test_importar_avulso.py` (8) | C5 | ~4,8k ✅ | ✅ |
+| 6 | **Contadores**: a linha de `importacoes` fecha com os contadores batendo com o log | `src/nfe_parser/importador.py` | `tests/test_importacao_contadores.py` (7) | C6 | ~4,8k ✅ | ✅ |
 
 **Status:** ⬜ nao iniciada · 🔄 no modelo local · 👀 aguardando revisao · ✅ aceita
 
@@ -187,6 +187,93 @@ local**, que e a condicao que faltou a medicao 4 para resolver a previsao do P3.
 
 Nenhum. O `verify.py`, a `.venv` e as fixtures se comportaram como o pre-voo previa.
 
-## Passo 4 — revisao
+## Passo 3 — o que de fato aconteceu, tarefa a tarefa
 
-*(a preencher)*
+| # | Invocacoes | Turno 1 | Desfecho |
+| - | ---------- | ------- | -------- |
+| 1 | 1 (+1 perdida) | 5,8k | ✅ acertou de primeira. A invocacao perdida foi erro de sintaxe do `--test-cmd`, meu |
+| 2 | 1 | 4,8k | ✅ 1 turno, 0 reflexoes |
+| 3 | **3** | 4,0k / ? / 4,5k | ⚠️ 3a estourou as 3 reflexoes **contra um oraculo impossivel**; 3b piorou (1→6 falhas); 3c so passou com o codigo ditado |
+| 4 | 2 | 5,6k → **24k** | ⚠️ estourou o `num_ctx` no laco de reflexao; a 2a invocacao, com 1 defeito nomeado, resolveu |
+| 5 | 1 | 5,5k | ✅ 1 turno, e o refactor **nao regrediu** o ramo do `.zip` |
+| 6 | 1 | 5,3k | ✅ 1 turno, com o `verify.py` cheio: **133 passed** |
+
+### 🔴 Achado novo: a regra 5 orca o turno 1, e o que estoura e a reflexao
+
+Na tarefa 4 o turno 1 saiu a **5,6k**, dentro do orcamento — e o laco chegou a **24k contra um
+`num_ctx` de 8192**. O que inflou nao foi o codigo nem o teste: foi a **realimentacao do
+`--auto-test`**, que despeja a saida de falha de **16 testes** de uma vez.
+
+Os sintomas foram os classicos de truncamento: o modelo emitiu `# Resto do codigo...` dentro de um
+bloco de edicao e passou a dar conselhos vagos ("certifique-se de que a conexao esta sendo aberta
+corretamente") em vez de codigo.
+
+> ⭐ **A regra 5 esta incompleta.** Ela orca o **turno 1**. Mas o orcamento que decide se o laco
+> converge tem de contar tambem o **tamanho do despejo de falha**, e esse escala com o **numero de
+> testes do modulo**, nao com o tamanho do codigo. Um modulo de 16 testes que falha inteiro custa
+> mais contexto que o proprio codigo que ele julga.
+
+### 🔴 Achado novo: o oraculo errado queima o orcamento inteiro, e a culpa parece do modelo
+
+A tarefa 3a gastou as tres reflexoes contra um criterio **insatisfazivel**: o C3.6 prendia a
+implementacao ao `ElementTree`, e o C3.1 exigia que as tres fixtures classificassem como `"nfe"` —
+mas as fixtures tinham reguas `-----` dentro de comentarios XML, o que as tornava **XML malformado**
+desde a story 002. O `lxml` (via `nfelib`) tolerava e escondeu o defeito por duas stories; o
+`ElementTree` (expat) recusa, corretamente.
+
+E literalmente o cenario que o docstring do proprio `scripts/verify.py` avisa: *"um oraculo quebrado
+faz TODO diff parecer quebrado — e a culpa cai injustamente no modelo local"*. Agora foi medido
+acontecendo. As fixtures foram consertadas em `bae6034`, com os 66 testes antigos reconferidos
+verdes.
+
+---
+
+## ✅ Passo 4 — revisao: o que foi lido, o que mudei e o que anotei
+
+Lidos os **tres modulos inteiros** (167 linhas), nao so o diff. O motivo e o Achado H: 35 testes
+passavam, o `ruff` passava, e uma funcao estava com o corpo inteiro duplicado **depois do
+`return`**. Codigo morto nao roda, entao nenhuma assercao o alcanca.
+
+| Conferido | Resultado |
+| --------- | --------- |
+| Corpo duplicado depois do `return` (Achado H) | ✅ **Nenhum**, nos tres modulos |
+| `scripts/verify.py` | ✅ **133 passed** (66 antigos + 67 novos) |
+| `ruff format --no-cache .` e depois `ruff check --fix --no-cache .` | ✅ 6 arquivos reformatados, 8 erros corrigidos, 0 restantes |
+| Nenhum `.zip` commitado | ✅ os lotes nascem em `tmp_path` |
+
+### 🔧 O unico conserto que a revisao fez
+
+**Removido um `print()` de debug** em `_processar_arquivo`, no meio do codigo de producao:
+
+```python
+print(f"Processing file: {nome}")  # Adicionado para debug
+```
+
+O modelo local o pos por conta propria ao consertar a extensao em maiuscula, e **admitiu no proprio
+commit** (`a4fe45d`, "adicionar log de debug"). O oraculo nao pega: o `pytest` nao reprova por
+`print`, e o `ruff` so pegaria com a regra `T201` ligada, que nao esta. **A leitura foi o unico
+portao** — de novo.
+
+### ⚠️ Tres coisas anotadas e NAO consertadas (§6: anotar, nao consertar)
+
+**(a) `persistir_nota` chama `conexao.commit()`.** Uma funcao de persistencia decidindo o limite da
+transacao e cheiro de desenho: quem orquestra N arquivos e o `importar`, e e ele que deveria ser
+dono do commit. Como esta, um lote grande que falhe no meio deixa metade comitada. **Nenhum
+criterio cobre isso e nenhum teste reprova** — mexer agora seria mudar semantica de transacao sem
+teste que a defina. Candidata a story 006.
+
+**(b) `classificar_xml` pega o PRIMEIRO elemento chamado `mod` no documento inteiro**, e nao o
+`ide/mod` especificamente. Hoje acerta porque no esquema da NF-e o `ide/mod` vem **antes** do
+`ide/NFref/refNF/mod` em ordem de documento, e o `root.iter()` e pre-ordem. Numa nota que referencie
+outra, a corretude depende dessa ordem — e fragil, e nada no codigo diz isso.
+🔴 **Este codigo e meu, nao do modelo local:** eu o ditei linha a linha na terceira tentativa da
+tarefa 3. A revisao do passo 4 tem de valer para o que o Claude escreve tambem.
+
+**(c) O `except ValueError` de `_processar_arquivo` envolve tambem a chamada a `persistir_nota`.**
+Um `ValueError` vindo da persistencia seria registrado como `invalida`, culpando o XML por um erro
+que nao e dele. Sem teste que force o caso.
+
+### Contexto: o `detalhe` de XML invalido e uma string fixa
+
+`detalhe = "Conteudo invalido"`, e nao a mensagem do parser. O C4.6 so exige texto nao vazio, entao
+passa — mas o log perde a unica informacao util que teria. Registrado como qualidade, nao defeito.
