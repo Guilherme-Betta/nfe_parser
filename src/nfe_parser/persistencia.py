@@ -4,6 +4,12 @@ import sqlite3
 def persistir_nota(conexao: sqlite3.Connection, extraido: dict, importacao_id: int | None = None) -> str:
     """Persiste uma nota e seus itens no banco de dados."""
     
+    # Verificando se a nota já existe
+    chave = extraido["nota"]["chave"]
+    query_check = "SELECT 1 FROM notas WHERE chave = ?"
+    if conexao.execute(query_check, (chave,)).fetchone():
+        return "duplicada"
+    
     # Inserindo a nota
     nota = extraido["nota"]
     campos_nota = [
