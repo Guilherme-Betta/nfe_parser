@@ -1,4 +1,5 @@
 import sqlite3
+
 from nfe_parser.migracoes import aplicar_migracoes
 
 
@@ -66,6 +67,11 @@ def abrir_banco(caminho):
     O `PRAGMA foreign_keys = ON` nao e detalhe: no SQLite ele vem DESLIGADO por
     padrao e vale POR CONEXAO, nao pelo arquivo. Sem ele, os REFERENCES do DDL
     sao decorativos e um item orfao entra em silencio.
+
+    A ordem das duas ultimas chamadas tambem nao e estilo. `criar_esquema` poe de
+    pe as tabelas da spec 01, e a migracao v2 faz `ALTER TABLE itens` — num banco
+    novo essa tabela so existe depois de `criar_esquema` ter rodado. Invertidas, a
+    primeira abertura de um banco novo quebraria.
     """
 
     conexao = sqlite3.connect(caminho)
