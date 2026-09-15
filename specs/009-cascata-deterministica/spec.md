@@ -227,6 +227,53 @@ que é pai e filho de si mesmo; `Vestuário`, que é pai sem filho; e os nomes c
 
 ## 7. Contratos acrescentados no P4
 
-> 📋 Seção obrigatória do kit, e fica **vazia até o P4 acontecer**. O que entrar aqui é contrato que
-> **não** estava nos critérios congelados do §4 — legítimo, e é a rastreabilidade que o torna
-> legítimo (foi o caso das duas `ValueError` da 008, registradas como C4 na spec dela).
+> 📋 O que está aqui **não** estava nos critérios congelados do §4. É legítimo, e é a
+> rastreabilidade que o torna legítimo — foi o caso das duas `ValueError` da 008.
+
+### C4 — `definir_categoria_manual` recusa categoria vazia
+
+Módulo: `tests/test_categorizacao_precondicoes.py` (**novo**, ⛔ nunca dentro dos três do P2).
+
+| # | Critério |
+| - | -------- |
+| C4.1 | `categoria_id` `None` ou `0` → **`ValueError`** |
+| C4.2 | A recusa **não escreve nada** — `categoria_id`, `origem` e `atualizado_em` saem intactos |
+| C4.3 | ⭐ O produto recusado **continua classificável**: a cascata ainda o alcança e o manda ao bucket |
+| C4.4 | ⚠️ Categoria válida continua passando — a guarda recusa o vazio e **só** o vazio |
+
+### 🔴 O defeito que ele fecha, e por que nada o via
+
+A revisão do P4 leu o código inteiro, não o diff *(Achado H)*, e o código do modelo local estava
+correto em tudo que os oráculos cobriam. O que a leitura achou foi outra coisa, e é muda.
+
+⛔ **A chave estrangeira não pega categoria vazia.** `produtos.categoria_id` é anulável, então NULL
+é valor legítimo para ela e o `PRAGMA foreign_keys = ON` não tem o que recusar.
+
+🔴 **A consequência:** `definir_categoria_manual(conexao, produto_id, None)` gravaria `categoria_id`
+NULL **junto com `origem='manual'`**. E aí o passo 1 da cascata — que existe justamente para nunca
+sobrescrever decisão humana — protegeria aquele produto para sempre. Ele ficaria **preso fora do
+bucket**: sem categoria, sem chance de ganhar uma, e invisível a qualquer relatório que some por
+categoria.
+
+⚠️ **Por que a cobertura não via:** as linhas existem e **são executadas** — a cobertura fechou em
+**100% sobre 35 statements** *com* o defeito presente. O que faltava era uma chamada com a chave
+vazia passando por elas. ⭐ É o mesmo modo de falha do Achado W da 008, e a mesma lição:
+**cobertura é diagnóstico, não prova.**
+
+⭐ **`ValueError`, e não `LookupError`** — a distinção da D5 vale aqui inteira: o que está errado é o
+**argumento**, não a existência de uma linha no banco.
+
+📋 **Validado por mutação**, como manda o kit: desligada a guarda, os quatro testes do módulo novo
+ficam vermelhos e o da categoria válida segue verde.
+
+---
+
+## 8. ⚠️ O que ficou ANOTADO e não virou código
+
+📋 **Nenhum destes vence na 009**, e ficam escritos para não serem redescobertos:
+
+| # | O quê | Onde vence |
+| - | ----- | ---------- |
+| 1 | `origem='llm'` não está no conjunto protegido — a cascata derrubaria no bucket um produto já classificado pelo LLM | **012** (ver §3) |
+| 2 | Não existe varredura `classificar_produtos_pendentes(conexao)` | **013**, junto com o chamador real |
+| 3 | `_categoria_do_bucket` é privada; a 011 provavelmente vai querê-la pública | **011** |
