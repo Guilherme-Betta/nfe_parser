@@ -1,0 +1,26 @@
+{
+  "story": "007-migracao-esquema",
+  "tarefas": [
+    {
+      "id": "1",
+      "titulo": "executor de migracoes por PRAGMA user_version, atomico por migracao, e o fio em abrir_banco",
+      "alvo": ["src/nfe_parser/migracoes.py", "src/nfe_parser/banco.py"],
+      "teste": "tests/test_migracoes.py",
+      "mensagem": "specs/007-migracao-esquema/tarefas/tarefa-01.md"
+    },
+    {
+      "id": "2",
+      "titulo": "migracao v1: as 5 tabelas da spec 02 e os 2 indices unicos parciais",
+      "alvo": "src/nfe_parser/migracoes.py",
+      "teste": "tests/test_esquema_classificacao.py",
+      "mensagem": "specs/007-migracao-esquema/tarefas/tarefa-02.md"
+    },
+    {
+      "id": "3",
+      "titulo": "migracao v2: ALTER TABLE itens ADD COLUMN produto_id, indice, e o banco legado",
+      "alvo": "src/nfe_parser/migracoes.py",
+      "teste": "tests/test_migracao_itens.py",
+      "mensagem": "specs/007-migracao-esquema/tarefas/tarefa-03.md"
+    }
+  ]
+}
