@@ -76,11 +76,31 @@ tambem pode ser duplicada.
 
 > Preenchido ao fim do passo 2, com os testes ja escritos e medidos. ⭐ *Achado E.*
 
-| # | alvo real | teste real | mensagem real | **medido** |
-| - | --------- | ---------- | ------------- | ---------- |
-| 1 | | | | |
-| 2 | | | | |
-| 3 | | | | |
+| # | alvo | teste | mensagem | **remedido** | era |
+| - | ---- | ----- | -------- | ------------ | --- |
+| 1 | 0 B | 3.951 B | 3.880 B | **4,96k** | 4,6k |
+| 2 | 402 B | 4.351 B | 3.587 B | **5,08k** | 4,8k |
+| 3 | 1.710 B | 5.256 B | 3.890 B | **5,71k** | 5,3k |
+
+⭐ **O `alvo` deixou de ser chute.** A implementacao de referencia do Achado S foi medida por corte
+antes de ser apagada: `produtos.py` tem **402 B** depois da tarefa 1 e **910 B** depois da tarefa 2,
+sem docstring — que e como o modelo local o deixa. Os 1.710 B da tarefa 3 sao esses 910 B mais
+**800 B de folga para o Achado R**.
+
+### 🔴 O corte que essas medidas obrigaram
+
+Na primeira escrita os tres modulos de teste sairam com 5.021 / 4.351 / 6.075 B, contra os
+2,6/3,0/3,2 kB que eu havia estimado — quase tudo docstring. **A tarefa 3 fechou em 5,92k**, dentro
+do teto de 6k e com margem nenhuma.
+
+📋 Cortado ~2,0 kB dos dois modulos mais verbosos, e o criterio do corte foi **onde a explicacao
+mora**: o teste ficou com o minimo para ser entendido por quem le a falha, e o *porque* longo ficou
+na [spec](spec.md), que ⛔ **nao e enviada ao modelo local**. A mensagem nao foi tocada — ela e o
+que faz a tarefa convergir; o docstring do teste nao.
+
+⚠️ **A tarefa 3 continua sendo a apertada: 5,71k contra o teto de 6k**, ~5% de margem. Se ela parar
+por **truncamento** (bloco de edicao malformado, 0 commits), o remedio do handoff e encolher — e
+aqui ja se encolheu o que dava sem perder contrato. Nesse caso, assumir a tarefa.
 
 ---
 
@@ -192,13 +212,34 @@ Achado S, no fim do P2.
 
 ---
 
-## 6. O oraculo foi provado satisfazivel?
+## 6. O oraculo foi provado satisfazivel — e provado MORDENTE
 
-> Preenchido no fim do P2, depois do protocolo do Achado S. ⛔ Nao commite os testes antes disto.
+### 6.1 O protocolo do Achado S
 
 | | |
 | - | - |
-| Prototipo rodou | |
-| Modulos novos | |
-| Suite inteira | |
-| `git status` apos apagar | |
+| Prototipo | escrito no diretorio temporario da sessao, 1.609 B, sem docstring |
+| Modulos novos | ✅ **30 passaram** (7 funcoes + 4 casos parametrizados na tarefa 1, 7 na 2, 7 na 3) |
+| Suite inteira | ✅ **236 passaram** (era 206, +30) |
+| Apagado | ✅ `produtos.py` e `__pycache__` removidos |
+| `git status` | ✅ so os tres `tests/test_*.py` nao rastreados |
+
+⛔ **O prototipo nao entrou em commit nenhum.** Se entrasse, o modelo local receberia a resposta
+pronta e a medicao do P3 nao valeria nada.
+
+### 6.2 🔴 E a parte que o Achado S NAO cobre: as duas mutacoes
+
+A ressalva registrada na [spec §5](spec.md) e que *satisfazivel nao e correto* — um oraculo frouxo
+passa despercebido. Com o prototipo ainda instalado, os dois riscos mais caros foram quebrados de
+proposito para ver se alguem reclamava:
+
+| Mutacao | Risco | Resultado |
+| ------- | ----- | --------- |
+| trocar `c in PERMITIDOS` por `c.isalnum()` | **R1** | 🔴 **3 vermelhos** — e exatamente os casos `1º PRECO`, `ø10mm` e `µg VITAMINA`. Os outros 13 seguiram verdes |
+| tirar o `gtin IS NULL` do SELECT | **R5** | 🔴 **1 vermelho** — e exatamente `test_produto_que_tem_gtin_nunca_e_devolvido...`. Os outros 6 seguiram verdes |
+
+⭐ **As duas mutacoes falharam onde deviam e so onde deviam.** Um teste que nunca se viu falhar nao
+e guarda, e decoracao — estes dois se viram.
+
+⚠️ Isto cobre R1 e R5. **R2, R3, R4 e R6 continuam sem prova de mordida** — R4 (`commit()` dentro do
+modulo) por desenho: nenhum teste consegue pega-lo, e por isso ele e item de revisao do P4.
