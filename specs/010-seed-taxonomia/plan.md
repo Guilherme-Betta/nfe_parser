@@ -60,22 +60,24 @@ whole`**, e três pontos bastam para ajustar a reta em vez de chutar.
 e ⭐ **não era o coeficiente por byte: era o piso fixo.** O `diff` tem piso ainda maior (~+1,8k),
 que é o Achado X inteiro.
 
-### O orçamento desta story
+### O orçamento desta story — ⭐ agora com TODOS os insumos medidos
 
-| Tarefa | alvo | mensagem | teste (**teto**) | **sent previsto** |
-| ------ | ---- | -------- | ---------------- | ----------------- |
-| 1 | 0 | **3.922** | ≤ 3.500 | **~7,7k** |
-| 2 | ~1.400 | **3.489** | ≤ 3.500 | **~7,9k** |
+> 📋 Preenchido depois do P2, com o protótipo de referência na mão: o `bytes(alvo)` da tarefa 2 sai
+> de graça ali (Achado V), e os testes já estão congelados.
 
-🔴 **O teto de 3.500 bytes por módulo de teste é a restrição que o P2 tem de respeitar**, e agora
-ela tem origem aritmética, não gosto: é o que sobra de 8.192 depois do piso de 5,65k e das
-mensagens, que já estão medidas.
+| Tarefa | alvo | teste | mensagem | **soma (B)** | **sent previsto** |
+| ------ | ---- | ----- | -------- | ------------ | ----------------- |
+| 1 | 0 | 3.890 | 3.922 | **7.812** | **~7,76k** |
+| 2 | **1.174** | 3.093 | 3.489 | **7.756** | **~7,75k** |
+
+✅ **As duas cabem nos 8.192**, com ~430 tokens de folga cada. ⚠️ Folga pequena: 1.600 bytes a mais
+em qualquer insumo estoura.
 
 ⚠️ **Passar de 8.192 não é morte certa** — as tarefas 2 e 3 da 009 enviaram 8,6k e 8,4k e
 converteram. ⛔ Mas também não é margem para gastar de propósito.
 
-⭐ **O teto do `whole` não aperta aqui:** `seed.py` fecha com ~55 linhas de código, contra as ~120
-que o kit mede como limite de reescrita integral.
+⭐ **O teto do `whole` não aperta aqui:** o `seed.py` de referência fechou com **59 linhas** (sem
+docstrings), contra as ~120 que o kit mede como limite de reescrita integral.
 
 ---
 
@@ -104,22 +106,41 @@ aqui a restrição que morde antes é a de **bytes**, não a de contagem.
 | `test_seed_categorias.py` | upsert por slug, duas passadas, `id` estável, invariante do bucket | `ncm_ancora` |
 | `test_seed_ncm.py` | upsert por prefixo, largura 2/4/8, resolução do slug | árvore de categorias — semeia **duas** linhas e pronto |
 
-### 🔴 A metade 2 — as mutações que valem a pena
+### 🔴 A metade 2 — seis mutações, e **três** contrariaram a previsão
 
 Previsão escrita ANTES de rodar, para poder ser contrariada (foi o que pagou na 009):
 
-| # | Mutação | Previsão |
-| - | ------- | -------- |
-| M1 | juntar as duas passadas num `for` só | C1.2 vermelho (filho antes do pai) |
-| M2 | trocar o UPSERT por `INSERT OR IGNORE` | C1.6 vermelho; C1.3 e C1.4 **verdes** |
-| M3 | trocar o UPSERT por `INSERT OR REPLACE` | C1.4 vermelho (o `id` muda) |
-| M4 | contar `is_bucket` na lista em vez de no banco | C1.7 vermelho só no caso de **dois** buckets |
-| M5 | tirar a guarda de largura do prefixo | C2.5 vermelho, e **só** ele |
-| M6 | deixar o `SELECT` do slug devolver `None` | C2.4 vermelho, mas com `IntegrityError` no lugar de `LookupError` |
+| # | Mutação | Previsão | **Real** | |
+| - | ------- | -------- | -------- | - |
+| M1 | juntar as duas passadas num `for` só | C1.2 | **C1.1, C1.2, C1.3, C1.4, C1.6** | ⚠️ 5, não 1 |
+| M2 | UPSERT → `INSERT OR IGNORE` | C1.6; C1.3 e C1.4 verdes | C1.6 | ✅ |
+| M3 | UPSERT → `INSERT OR REPLACE` | C1.4 | **C1.4 e C1.6** | ⚠️ |
+| M4 | contar `is_bucket` na lista, não no banco | C1.7 (caso "dois") | ⛔ **NENHUM** | 🔴 |
+| M5 | tirar a guarda de largura do prefixo | C2.5, e só ele | C2.5 | ✅ |
+| M6 | deixar o slug inexistente passar adiante | C2.4 | C2.4 | ✅ |
 
-⚠️ **M2 é a mutação mais informativa da lista**, e por isso está aqui: se `INSERT OR IGNORE`
-deixasse C1.3 **e** C1.6 verdes, o oráculo não saberia distinguir "idempotente" de "insere e
-ignora" — que é exatamente a diferença que a **D4** diz importar.
+#### 🔴 M4 — o oráculo não distinguia a D8, e ⭐ **este dava para consertar**
+
+A **D8** manda contar os buckets **no banco**, e o argumento inteiro dela é o caso em que a lista
+está certa e o banco não. ⚠️ Mas os dois casos do C1.7 original passavam **uma lista só** — nos dois,
+contar a lista e contar o banco davam o mesmo número, e a mutação passava incólume.
+
+✅ **Acrescentado `test_dois_seeds_com_um_bucket_cada_ainda_e_recusado`**: dois carregamentos em
+sequência, cada um com **um** bucket. A lista diz 1; o banco fica com 2. Com ele, a M4 acende — e
+acende **só** ele.
+
+⭐ **É a diferença em relação ao Achado Z da 009.** Lá o teste que não discriminava era
+infortalecível e virou documentação de contrato. Aqui o buraco era do *cenário*, não do contrato:
+faltava o caso, e o caso existe.
+
+#### ⚠️ M1 acende 5 de 8 — e isso NÃO é o defeito do Achado Z
+
+A causa é conhecida e aceita: com as passadas fundidas, `mercado-frutas` (primeiro na lista) procura
+um pai que ainda não existe e a função **levanta**, então todo teste que carrega o `SEED` morre
+junto. ⛔ Não é oráculo redundante; é mutação catastrófica.
+
+⭐ E a mesma escolha que espalha o vermelho é a que garante o verdadeiro sinal: **o filho vir antes
+do pai na fixture é de propósito**. Uma fixture "arrumada" deixaria a M1 passar inteira.
 
 ---
 
