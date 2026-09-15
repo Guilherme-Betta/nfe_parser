@@ -277,3 +277,15 @@ não pode se dar.
   consequência mecânica provada; "só dígitos" é qualidade do dado, e por isso foi para o C4.
 - **`Verduras` × `Legumes` é a fronteira mais discutível do mapa**, e o capítulo 07 cobre as duas.
   Está na lista de revisão do Gui.
+
+### ⚠️ Dois limites que a leitura do código inteiro achou no P4, e a cobertura de 100% não via
+
+1. **`parent` com string vazia é tratado como "sem pai", em silêncio.** O `if pai_slug:` é um teste
+   de verdade, não de presença — e o teste do dado repete o mesmo `if`, então não o pegaria. ⭐ Não
+   virou guarda porque `""` não é valor que o arquivo produza naturalmente; fica anotado como o
+   próximo lugar onde um slug errado passaria batido.
+2. 🔴 **A D5 vale para `ncm_ancora` também, e a spec só falava de `categorias`.** Tirar um prefixo
+   do arquivo de dados **não** o apaga do banco: um mapeamento errado que já foi carregado pode ser
+   *reapontado*, nunca *removido*, editando o JSON. ⚠️ Não é defeito — é a mesma decisão de nunca
+   apagar —, mas é consequência que não estava escrita. Remover prefixo é trabalho de quem for dono
+   da edição de taxonomia, a **011**.

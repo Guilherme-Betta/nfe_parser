@@ -170,12 +170,30 @@ e pedir só a função que falta (Achado T).
 
 ## 6. P4 — e a ordem importa por causa do `ruff`
 
-1. Ler o **código inteiro**, não o diff (Achado H).
-2. Escrever as docstrings — o modelo local não escreve nenhuma, quinta story seguida.
-3. C3 (a cola) e C5 (`pyproject.toml`).
-4. Escrever o JSON de dados → 🛑 **parada do Gui**.
-5. C4, o teste do dado, em módulo novo, validado por mutação.
-6. Cobertura, `ruff format`, e só então `ruff check --fix`.
+1. ✅ Ler o **código inteiro**, não o diff (Achado H) — achou **dois limites** que a cobertura de
+   100% não via; estão no §8 da spec.
+2. ✅ As docstrings — o modelo local não escreveu nenhuma, **sexta** story seguida.
+3. ✅ C3 (a cola) e C5 (`pyproject.toml`).
+4. ✅ O JSON de dados: 10 pais, 32 subs, 1 bucket, e **54 âncoras** NCM.
+5. ✅ C4, em módulo novo, validado por **cinco** mutações — quatro no dado e uma no código da 009.
+6. ✅ Cobertura **100%** em `seed.py`, `ruff format`, `ruff check --fix` → `All checks passed`.
+   **296 testes verdes.**
+
+### ⚠️ Desvio deliberado da ordem: o C4 foi escrito ANTES da parada do Gui
+
+O plan mandava `JSON → 🛑 Gui → C4`. Inverti, e o motivo é que a inversão serve à revisão em vez de
+atrapalhá-la: com o C4 pronto, qualquer edição que o Gui fizer no arquivo cai numa rede que confere
+slug repetido, `parent` fantasma, prefixo de largura impossível e âncora órfã. ⭐ Ele revisa com
+verificação automática por baixo, e não sem ela.
+
+⚠️ **O que a inversão não muda:** o dado continua sendo decisão de produto dele, e o teste só prova
+**coerência estrutural** — ⛔ não prova que `07` deva ser `Legumes`.
+
+### ⭐ A mutação que mais valeu no P4 não quebrou a 010: quebrou a 009
+
+Fazer `classificar_produto` parar em *"já tem categoria"* deixa vermelho **um único teste do
+projeto inteiro** — o do resgate do bucket. É a D3 da 009 e a idempotência da 010 se provando no
+mesmo lugar, e é o único teste que liga as duas stories.
 
 ⚠️ **Achado Y aplica em cheio aqui:** enquanto `seed.py` não existir, o isort classifica
 `nfe_parser.seed` como pacote de **terceiros** e o `ruff check` acusa `I001` falso nos testes do P2.

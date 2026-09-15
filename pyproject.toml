@@ -28,6 +28,12 @@ dev = ["pytest", "pytest-cov", "ruff", "httpx"]
 [tool.setuptools.packages.find]
 where = ["src"]
 
+# Sem esta secao o `packages.find` recolhe so os .py, e o seed da taxonomia
+# sumiria no `pip install`. O defeito NAO apareceria na suite: o venv de
+# desenvolvimento e editavel e le o arquivo direto da arvore.
+[tool.setuptools.package-data]
+"nfe_parser" = ["dados/*.json"]
+
 [tool.ruff]
 line-length = 100
 

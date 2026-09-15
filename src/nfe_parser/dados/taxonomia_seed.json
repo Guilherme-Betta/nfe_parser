@@ -1,0 +1,143 @@
+{
+  "categorias": [
+    { "slug": "mercado", "nome": "Mercado" },
+    { "slug": "mercado-frutas", "nome": "Frutas", "parent": "mercado" },
+    { "slug": "mercado-verduras", "nome": "Verduras", "parent": "mercado" },
+    { "slug": "mercado-legumes", "nome": "Legumes", "parent": "mercado" },
+    { "slug": "mercado-carnes-e-peixes", "nome": "Carnes e peixes", "parent": "mercado" },
+    { "slug": "mercado-laticinios", "nome": "Laticínios", "parent": "mercado" },
+    { "slug": "mercado-padaria", "nome": "Padaria", "parent": "mercado" },
+    { "slug": "mercado-mercearia", "nome": "Mercearia (secos/enlatados)", "parent": "mercado" },
+    { "slug": "mercado-congelados", "nome": "Congelados", "parent": "mercado" },
+
+    { "slug": "bebidas", "nome": "Bebidas" },
+    { "slug": "bebidas-cerveja", "nome": "Cerveja", "parent": "bebidas" },
+    { "slug": "bebidas-vinho", "nome": "Vinho", "parent": "bebidas" },
+    { "slug": "bebidas-destilados", "nome": "Destilados", "parent": "bebidas" },
+    { "slug": "bebidas-cafe", "nome": "Café", "parent": "bebidas" },
+    { "slug": "bebidas-cha", "nome": "Chá", "parent": "bebidas" },
+
+    { "slug": "limpeza", "nome": "Limpeza" },
+    { "slug": "limpeza-faxina", "nome": "Faxina", "parent": "limpeza" },
+    { "slug": "limpeza-lavanderia", "nome": "Lavanderia", "parent": "limpeza" },
+    { "slug": "limpeza-louca", "nome": "Louça", "parent": "limpeza" },
+
+    { "slug": "cuidado-pessoal", "nome": "Cuidado pessoal" },
+    { "slug": "cuidado-pessoal-cabelo", "nome": "Cabelo", "parent": "cuidado-pessoal" },
+    { "slug": "cuidado-pessoal-pele", "nome": "Pele", "parent": "cuidado-pessoal" },
+
+    { "slug": "saude", "nome": "Saúde" },
+    { "slug": "saude-higiene", "nome": "Higiene", "parent": "saude" },
+    { "slug": "saude-medicamentos", "nome": "Medicamentos", "parent": "saude" },
+    { "slug": "saude-farmacia", "nome": "Farmácia (não-medicamento)", "parent": "saude" },
+    { "slug": "saude-suplementos", "nome": "Suplementos", "parent": "saude" },
+
+    { "slug": "restaurante-e-delivery", "nome": "Restaurante e delivery" },
+    {
+      "slug": "restaurante-e-delivery-restaurante",
+      "nome": "Restaurante",
+      "parent": "restaurante-e-delivery"
+    },
+    {
+      "slug": "restaurante-e-delivery-delivery",
+      "nome": "Delivery",
+      "parent": "restaurante-e-delivery"
+    },
+    {
+      "slug": "restaurante-e-delivery-lanche",
+      "nome": "Lanche",
+      "parent": "restaurante-e-delivery"
+    },
+    {
+      "slug": "restaurante-e-delivery-cafeteria",
+      "nome": "Cafeteria",
+      "parent": "restaurante-e-delivery"
+    },
+
+    { "slug": "eletronicos", "nome": "Eletrônicos" },
+    { "slug": "eletronicos-eletronicos", "nome": "Eletrônicos", "parent": "eletronicos" },
+    { "slug": "eletronicos-acessorios", "nome": "Acessórios", "parent": "eletronicos" },
+
+    { "slug": "vestuario", "nome": "Vestuário" },
+
+    { "slug": "automovel", "nome": "Automóvel" },
+    { "slug": "automovel-borracharia", "nome": "Borracharia", "parent": "automovel" },
+    { "slug": "automovel-combustivel", "nome": "Combustível", "parent": "automovel" },
+    { "slug": "automovel-mecanico", "nome": "Mecânico", "parent": "automovel" },
+
+    { "slug": "outros", "nome": "Outros" },
+    { "slug": "outros-petshop", "nome": "Petshop", "parent": "outros" },
+
+    { "slug": "uncategorized", "nome": "Não Classificado", "is_bucket": true }
+  ],
+
+  "ncm_ancora": [
+    { "prefixo": "02", "categoria": "mercado-carnes-e-peixes" },
+    { "prefixo": "03", "categoria": "mercado-carnes-e-peixes" },
+
+    { "prefixo": "04", "categoria": "mercado" },
+    { "prefixo": "0401", "categoria": "mercado-laticinios" },
+    { "prefixo": "0402", "categoria": "mercado-laticinios" },
+    { "prefixo": "0403", "categoria": "mercado-laticinios" },
+    { "prefixo": "0405", "categoria": "mercado-laticinios" },
+    { "prefixo": "0406", "categoria": "mercado-laticinios" },
+
+    { "prefixo": "07", "categoria": "mercado-legumes" },
+    { "prefixo": "0704", "categoria": "mercado-verduras" },
+    { "prefixo": "0705", "categoria": "mercado-verduras" },
+
+    { "prefixo": "08", "categoria": "mercado-frutas" },
+
+    { "prefixo": "09", "categoria": "mercado-mercearia" },
+    { "prefixo": "0901", "categoria": "bebidas-cafe" },
+    { "prefixo": "0902", "categoria": "bebidas-cha" },
+
+    { "prefixo": "10", "categoria": "mercado-mercearia" },
+    { "prefixo": "11", "categoria": "mercado-mercearia" },
+    { "prefixo": "15", "categoria": "mercado-mercearia" },
+    { "prefixo": "16", "categoria": "mercado-mercearia" },
+    { "prefixo": "17", "categoria": "mercado-mercearia" },
+    { "prefixo": "18", "categoria": "mercado-mercearia" },
+    { "prefixo": "19", "categoria": "mercado-mercearia" },
+    { "prefixo": "1905", "categoria": "mercado-padaria" },
+    { "prefixo": "20", "categoria": "mercado-mercearia" },
+    { "prefixo": "21", "categoria": "mercado-mercearia" },
+
+    { "prefixo": "22", "categoria": "bebidas" },
+    { "prefixo": "2203", "categoria": "bebidas-cerveja" },
+    { "prefixo": "2204", "categoria": "bebidas-vinho" },
+    { "prefixo": "2205", "categoria": "bebidas-vinho" },
+    { "prefixo": "2207", "categoria": "automovel-combustivel" },
+    { "prefixo": "2208", "categoria": "bebidas-destilados" },
+
+    { "prefixo": "2309", "categoria": "outros-petshop" },
+    { "prefixo": "2710", "categoria": "automovel-combustivel" },
+
+    { "prefixo": "30", "categoria": "saude" },
+    { "prefixo": "3004", "categoria": "saude-medicamentos" },
+    { "prefixo": "3005", "categoria": "saude-farmacia" },
+
+    { "prefixo": "33", "categoria": "cuidado-pessoal" },
+    { "prefixo": "3304", "categoria": "cuidado-pessoal-pele" },
+    { "prefixo": "3305", "categoria": "cuidado-pessoal-cabelo" },
+    { "prefixo": "3306", "categoria": "saude-higiene" },
+    { "prefixo": "3307", "categoria": "saude-higiene" },
+
+    { "prefixo": "34", "categoria": "limpeza" },
+    { "prefixo": "34011100", "categoria": "saude-higiene" },
+
+    { "prefixo": "4011", "categoria": "automovel-borracharia" },
+    { "prefixo": "4818", "categoria": "saude-higiene" },
+
+    { "prefixo": "61", "categoria": "vestuario" },
+    { "prefixo": "62", "categoria": "vestuario" },
+    { "prefixo": "64", "categoria": "vestuario" },
+
+    { "prefixo": "85", "categoria": "eletronicos" },
+    { "prefixo": "8471", "categoria": "eletronicos-eletronicos" },
+    { "prefixo": "8507", "categoria": "automovel-mecanico" },
+    { "prefixo": "8517", "categoria": "eletronicos-eletronicos" },
+    { "prefixo": "8528", "categoria": "eletronicos-eletronicos" },
+    { "prefixo": "8544", "categoria": "eletronicos-acessorios" }
+  ]
+}
