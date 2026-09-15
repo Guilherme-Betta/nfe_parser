@@ -16,18 +16,13 @@ from nfe_parser.categorizacao import categoria_do_bucket
 `categoria_do_bucket(conexao)` JA EXISTE e devolve o `id` da categoria "Nao Classificado". Ela
 levanta sozinha se o bucket nao existir. NAO reimplemente essa busca.
 
-As tabelas ja existem e NAO se alteram:
+Colunas das tabelas, que ja existem e NAO se alteram:
 
-```sql
-CREATE TABLE categorias (
-  id INTEGER PRIMARY KEY, slug TEXT NOT NULL UNIQUE, nome TEXT NOT NULL,
-  parent_id INTEGER REFERENCES categorias(id), is_bucket INTEGER NOT NULL DEFAULT 0
-);
-CREATE TABLE ncm_ancora (
-  prefixo TEXT PRIMARY KEY, categoria_id INTEGER NOT NULL REFERENCES categorias(id)
-);
-CREATE TABLE categorias_apagadas (slug TEXT PRIMARY KEY, apagada_em TEXT NOT NULL);
--- produtos tem, entre outras colunas: id, categoria_id, origem, atualizado_em
+```
+categorias           id, slug, nome, parent_id, is_bucket
+ncm_ancora           prefixo, categoria_id   (categoria_id e NOT NULL)
+categorias_apagadas  slug, apagada_em
+produtos             id, categoria_id, origem, atualizado_em, e outras
 ```
 
 
@@ -93,13 +88,9 @@ conexao.execute("DELETE FROM categorias WHERE id = ?", (categoria_id,))
 ```
 
 
-REGRA 1 -- A ORDEM DOS PASSOS 4, 5 E 7 E OBRIGATORIA.
-
-`produtos.categoria_id` e `ncm_ancora.categoria_id` apontam para `categorias(id)`, e o banco roda
-com as chaves estrangeiras LIGADAS. Apagar a categoria com produto ou ancora ainda apontando para
-ela levanta `sqlite3.IntegrityError` e NADA acontece.
-
-NAO apague a categoria primeiro. NAO use `ON DELETE CASCADE`: o esquema nao pode mudar.
+REGRA 1 -- A ORDEM DOS PASSOS 4, 5 E 7 E OBRIGATORIA. As chaves estrangeiras estao LIGADAS, e
+apagar a categoria com produto ou ancora ainda apontando para ela levanta `IntegrityError` e nada
+acontece. NAO apague a categoria primeiro. NAO use `ON DELETE CASCADE`.
 
 
 REGRA 2 -- O PASSO 4 ZERA A `origem`, E ESSE E O PONTO MAIS IMPORTANTE DA TAREFA.
@@ -108,35 +99,28 @@ O que protege um produto de ser reclassificado e a coluna `origem`, nao a catego
 fosse para o bucket mantendo `origem = 'manual'` ficaria protegido DENTRO do bucket, para sempre.
 
 O UPDATE escreve `origem = NULL` em TODOS os produtos da categoria, sem olhar o que estava la.
-NAO acrescente `AND origem IS NULL`. NAO preserve `'manual'`. NAO trate `'manual'` como caso
-especial.
+NAO acrescente `AND origem IS NULL`. NAO preserve `'manual'`. NAO trate `'manual'` como especial.
 
 
-REGRA 3 -- O PASSO 6 USA `ON CONFLICT(slug) DO NOTHING`.
-
-A mesma categoria pode ser apagada duas vezes ao longo da vida do banco, e a segunda lapide nao
-pode levantar. NAO use `INSERT OR REPLACE`.
+REGRA 3 -- O PASSO 6 USA `ON CONFLICT(slug) DO NOTHING`, porque a mesma categoria pode ser apagada
+duas vezes ao longo da vida do banco. NAO use `INSERT OR REPLACE`.
 
 
-REGRA 4 -- A FUNCAO DEVOLVE None, e NAO CHAMA `conexao.commit()`, `rollback`, `BEGIN`, `close` nem
-`PRAGMA`.
-
-Sao quatro escritas em sequencia, e elas tem de entrar ou nao entrar juntas. Quem abriu a transacao
-e que a fecha.
+REGRA 4 -- A FUNCAO DEVOLVE None, e NAO CHAMA `commit`, `rollback`, `BEGIN`, `close` nem `PRAGMA`:
+sao quatro escritas que tem de entrar ou nao entrar juntas.
 
 
-REGRA 5 -- NENHUMA LISTA, DICIONARIO OU CONSTANTE NO NIVEL DO MODULO.
-
-O arquivo e imports + funcoes. A proxima tarefa acrescenta mais funcoes depois da ultima linha.
+REGRA 5 -- NENHUMA LISTA, DICIONARIO OU CONSTANTE NO NIVEL DO MODULO. O arquivo e imports +
+funcoes, e as proximas tarefas acrescentam funcoes depois da ultima linha.
 
 
 O QUE NAO PODE MUDAR
 
 NAO faca `CREATE TABLE`, `ALTER TABLE` nem `CREATE INDEX`.
 
-NAO leia `categorias_apagadas` em lugar nenhum: quem a le e o seed, que e outro arquivo.
+NAO leia `categorias_apagadas`: quem a le e o seed, que e outro arquivo.
 
-NAO escreva funcao para renomear nem para mover categoria. E a proxima tarefa.
+NAO escreva funcao para renomear nem para mover categoria. Sao as proximas tarefas.
 
 NAO altere nenhum outro arquivo: nem `banco.py`, nem `migracoes.py`, nem `categorizacao.py`, nem
 `seed.py`, nem teste nenhum.

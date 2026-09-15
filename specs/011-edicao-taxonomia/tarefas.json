@@ -10,10 +10,17 @@
     },
     {
       "id": "2",
-      "titulo": "renomear_categoria e mover_categoria: o id sobrevive, e mover recusa ciclo",
+      "titulo": "mover_categoria: o id sobrevive, None sobe para nivel 1, e a subida recusa ciclo",
       "alvo": "src/nfe_parser/taxonomia.py",
-      "teste": "tests/test_taxonomia_editar.py",
+      "teste": "tests/test_taxonomia_mover.py",
       "mensagem": "specs/011-edicao-taxonomia/tarefas/tarefa-02.md"
+    },
+    {
+      "id": "3",
+      "titulo": "renomear_categoria: muda o nome e NUNCA o slug; nome vazio levanta",
+      "alvo": "src/nfe_parser/taxonomia.py",
+      "teste": "tests/test_taxonomia_renomear.py",
+      "mensagem": "specs/011-edicao-taxonomia/tarefas/tarefa-03.md"
     }
   ]
 }

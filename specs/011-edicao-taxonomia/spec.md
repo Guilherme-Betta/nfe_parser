@@ -20,7 +20,7 @@ passa a ser *base default*, e ⛔ nunca mais sobrescreve o que o usuário editou
 
 | Parte | Quem escreve | Por quê |
 | ----- | ------------ | ------- |
-| `taxonomia.py` | 🤖 modelo local, 2 tarefas | arquivo novo, cabe no orçamento |
+| `taxonomia.py` | 🤖 modelo local, **3 tarefas** | arquivo novo; a divisão e a ordem estão na §2 do plan |
 | migração v3 | 👤 fora do loop | 4 linhas de DDL; tarefa de loop não se justifica |
 | mudança no `seed.py` | 👤 fora do loop | 🔴 **não cabe:** ver abaixo |
 
@@ -123,7 +123,7 @@ categoria, ponto.
 
 ### D5 — ⛔ apagar o bucket é RECUSADO
 
-`_categoria_do_bucket` levanta `LookupError` quando não há linha `is_bucket = 1`, e o passo 4 da
+`categoria_do_bucket` (D10) levanta `LookupError` quando não há linha `is_bucket = 1`, e o passo 4 da
 cascata morre inteiro. 🔴 Apagar o bucket quebraria a classificação de todo produto não coberto pelo
 mapa NCM — e o próprio `apagar_categoria` precisa do bucket para funcionar.
 
@@ -251,6 +251,7 @@ ou reencontra a categoria movida.
 | C3.6 | categoria com filhas | `ValueError`, e a categoria **continua lá** *(D6)* |
 | C3.7 | o bucket | `ValueError`, e o bucket **continua lá** *(D5)* |
 | C3.8 | slug inexistente | `LookupError` |
+| C3.9 | apagar o **mesmo slug duas vezes** (ela voltou por um seed antigo) | ⛔ não levanta — a lápide usa `ON CONFLICT DO NOTHING` |
 
 ### C4 — o seed depois da 011 *(escrito fora do loop)*
 
