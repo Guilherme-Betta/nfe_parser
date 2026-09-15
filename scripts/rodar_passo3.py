@@ -201,6 +201,20 @@ def conferir_contexto_do_ollama() -> str | None:
 # ===========================================================================
 
 
+def alvos_de(tarefa: dict) -> list[str]:
+    """Normaliza o campo `alvo` para lista.
+
+    O campo aceita string (um arquivo) ou lista (varios). Quase toda tarefa tem
+    um alvo so, e o recorte da spec 02 recomenda manter assim: cada arquivo alvo
+    entra INTEIRO no turno 1 e custa bytes/4 de contexto. Mas a story 007 tem uma
+    tarefa que precisa mesmo de dois -- criar `migracoes.py` e ligar a chamada em
+    `banco.py` sao a mesma entrega, e separa-las custaria uma invocacao a mais.
+    """
+
+    alvo = tarefa["alvo"]
+    return [alvo] if isinstance(alvo, str) else list(alvo)
+
+
 def montar_comando(tarefa: dict) -> list[str]:
     """Monta a linha de comando do Aider para uma tarefa.
 
@@ -241,7 +255,7 @@ def montar_comando(tarefa: dict) -> list[str]:
         # rodada autonoma morre parada. E aceitavel porque o raio de dano e um
         # clone descartavel sem remote.
         "--yes-always",
-        tarefa["alvo"],
+        *alvos_de(tarefa),
     ]
 
 
@@ -492,6 +506,10 @@ def main() -> int:
             )
         if "teste" in tarefa and not (raiz / tarefa["teste"]).exists():
             problemas.append(f"tarefa {tarefa.get('id', '?')}: teste nao existe: {tarefa['teste']}")
+        if "alvo" in tarefa and not isinstance(tarefa["alvo"], (str, list)):
+            problemas.append(
+                f"tarefa {tarefa.get('id', '?')}: 'alvo' tem de ser string ou lista de strings"
+            )
 
     if problemas:
         print("PRE-VOO REPROVOU. Nada foi invocado:\n", file=sys.stderr)
