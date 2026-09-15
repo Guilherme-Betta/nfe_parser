@@ -215,7 +215,7 @@ def alvos_de(tarefa: dict) -> list[str]:
     return [alvo] if isinstance(alvo, str) else list(alvo)
 
 
-def montar_comando(tarefa: dict) -> list[str]:
+def montar_comando(tarefa: dict, edit_format: str | None = None) -> list[str]:
     """Monta a linha de comando do Aider para uma tarefa.
 
     Cada argumento aqui tem uma medicao ou um bug atras dele. Nenhum e enfeite.
@@ -228,7 +228,7 @@ def montar_comando(tarefa: dict) -> list[str]:
     teste_windows = tarefa["teste"].replace("/", "\\")
     test_cmd = f'"{PY}" -m pytest -q {teste_windows}'
 
-    return [
+    comando = [
         "aider",
         "--model",
         "ollama_chat/qwen2.5-coder:14b",
@@ -255,11 +255,32 @@ def montar_comando(tarefa: dict) -> list[str]:
         # rodada autonoma morre parada. E aceitavel porque o raio de dano e um
         # clone descartavel sem remote.
         "--yes-always",
-        *alvos_de(tarefa),
     ]
 
+    # ⚠️ O formato de edicao SO entra quando pedido. Sem a flag vale o
+    # `edit-format: diff` do .aider.conf.yml, que e o que as stories 005-008
+    # usaram -- trocar o padrao aqui tornaria as medicoes delas irreproduziveis.
+    #
+    # 🔴 A razao de a opcao existir, medida na story 009: o system prompt do
+    # `diff` (as regras e os exemplos de bloco SEARCH/REPLACE) e grande, e num
+    # repo que cresceu ele passou a NAO CABER nos 8192 do num_ctx. O sintoma e
+    # mudo e enganoso: o Ollama trunca, o modelo perde as instrucoes de formato,
+    # responde um bloco de codigo simples, o Aider nao tem o que aplicar, e o
+    # registro diz "0 commits" como se o modelo tivesse errado a LOGICA. Na 009
+    # ele tinha acertado o algoritmo inteiro, linha por linha.
+    #
+    # ⛔ `whole` tem um teto proprio: o modelo reescreve o arquivo INTEIRO a cada
+    # tarefa, entao alvo grande volta truncado. O kit mede esse teto em ~120
+    # linhas (fase0-resultados.md, secao 9). Acima disso, divida a tarefa em vez
+    # de trocar o formato.
+    if edit_format:
+        comando += ["--edit-format", edit_format]
 
-def rodar_tarefa(tarefa: dict, raiz: Path, pasta_log: Path) -> dict:
+    comando += alvos_de(tarefa)
+    return comando
+
+
+def rodar_tarefa(tarefa: dict, raiz: Path, pasta_log: Path, edit_format: str | None = None) -> dict:
     """Invoca o Aider para uma tarefa e confere o resultado. Devolve o registro.
 
     ⭐ A conferencia e feita RODANDO O ORACULO DE NOVO, e nao lendo o codigo de
@@ -273,7 +294,7 @@ def rodar_tarefa(tarefa: dict, raiz: Path, pasta_log: Path) -> dict:
     head_antes = _git("rev-parse", "HEAD")
     inicio = time.monotonic()
 
-    comando = montar_comando(tarefa)
+    comando = montar_comando(tarefa, edit_format)
     print(f"  $ {' '.join(comando)}\n", flush=True)
 
     # capture_output=False de proposito: numa rodada autonoma longa voce quer
@@ -483,6 +504,13 @@ def main() -> int:
     ap.add_argument("manifesto", help="caminho do tarefas.json produzido pelo passo 1")
     ap.add_argument("--simular", action="store_true", help="so mostra o que faria")
     ap.add_argument("--a-partir-de", default=None, help="retoma a partir do id desta tarefa")
+    ap.add_argument(
+        "--edit-format",
+        default=None,
+        choices=["diff", "whole"],
+        help="sobrepoe o edit-format do .aider.conf.yml; `whole` custa menos"
+        " contexto, mas so serve para alvo de ate ~120 linhas",
+    )
     args = ap.parse_args()
 
     raiz = Path.cwd()
@@ -530,7 +558,7 @@ def main() -> int:
         print("\n--simular: nenhuma invocacao sera feita.\n")
         for tarefa in tarefas:
             print(f"[tarefa {tarefa['id']}] {tarefa.get('titulo', '')}")
-            print(f"  $ {' '.join(montar_comando(tarefa))}\n")
+            print(f"  $ {' '.join(montar_comando(tarefa, args.edit_format))}\n")
         return 0
 
     # --- a rodada ----------------------------------------------------------
@@ -540,7 +568,7 @@ def main() -> int:
     registros = []
     interrompeu = False
     for tarefa in tarefas:
-        registro = rodar_tarefa(tarefa, raiz, pasta_log)
+        registro = rodar_tarefa(tarefa, raiz, pasta_log, args.edit_format)
         registros.append(registro)
         if not registro["verde"]:
             # ⛔ PARA. Nao tenta de novo, e nao segue para a proxima.
