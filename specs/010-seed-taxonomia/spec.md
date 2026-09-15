@@ -278,6 +278,27 @@ não pode se dar.
 - **`Verduras` × `Legumes` é a fronteira mais discutível do mapa**, e o capítulo 07 cobre as duas.
   Está na lista de revisão do Gui.
 
+### 🔴 O limite de 6 dígitos — achado pela revisão do Gui, e é o mais sério da story
+
+⛔ **"Bateria de carro" NÃO é expressável neste mapa**, e a razão é estrutural.
+
+O NCM tem 8 dígitos e uma hierarquia de quatro degraus: capítulo (2), posição (4), **subposição (6)**
+e item (8). ⚠️ A D7 só admite **2, 4 ou 8**, porque é isso que a 009 consulta — e o conceito
+"acumulador de chumbo para arranque de motor" mora exatamente em `8507.10`, o degrau de **6** que
+não existe aqui.
+
+⭐ **E mapear os 8 dígitos não resolve:** a bateria real sai com `8507.10.10` ou `8507.10.90`, e um
+prefixo `85071000` não casa com nenhum dos dois — `ncm[:8]` é comparação exata, não prefixo.
+
+📋 **Resolução desta story:** a âncora `8507` foi **removida**. Pilha, power bank e bateria de carro
+caem todos em `85` → `Eletrônicos`. ⭐ Errado só para a bateria, e o erro custa **uma** classificação
+manual: a memória da 008 faz todo item futuro daquele produto herdá-la.
+
+⛔ **Acrescentar o degrau de 6 NÃO foi feito aqui**, e não por preguiça: mudar
+`buscar_categoria_por_ncm` é lógica de classificação, que o §6 diz que esta story não entrega — e
+invalidaria as medições da 009. ⚠️ É a **dívida j**, e vale mais que as outras porque toda a
+curadoria futura do mapa esbarra nela.
+
 ### ⚠️ Dois limites que a leitura do código inteiro achou no P4, e a cobertura de 100% não via
 
 1. **`parent` com string vazia é tratado como "sem pai", em silêncio.** O `if pai_slug:` é um teste

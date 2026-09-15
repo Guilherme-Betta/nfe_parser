@@ -35,11 +35,11 @@ def conexao(tmp_path):
 
 
 def test_a_forma_do_seed_bate_com_o_report(conexao):
-    """§5 do report: 10 categorias-pai, 32 subcategorias, e o bucket."""
+    """§5 do report + a chamada do Gui em 15/09: `Vegetais` virou pai."""
     pais = [c for c in CATEGORIAS if not c.get("parent") and not c.get("is_bucket")]
     subs = [c for c in CATEGORIAS if c.get("parent")]
-    assert (len(pais), len(subs)) == (10, 32)
-    assert len(CATEGORIAS) == 43
+    assert (len(pais), len(subs)) == (11, 32)
+    assert len(CATEGORIAS) == 44
 
 
 def test_os_slugs_sao_unicos():
@@ -80,7 +80,7 @@ def test_o_arquivo_real_carrega_e_recarrega_sem_duplicar(conexao):
     primeira = dict(conexao.execute("SELECT slug, id FROM categorias").fetchall())
     carregar_seed_padrao(conexao)
     assert dict(conexao.execute("SELECT slug, id FROM categorias").fetchall()) == primeira
-    assert len(primeira) == 43
+    assert len(primeira) == 44
     assert conexao.execute("SELECT COUNT(*) FROM ncm_ancora").fetchone()[0] == len(ANCORAS)
 
 
