@@ -208,6 +208,37 @@ devolve-lo por engano se a coluna viesse preenchida. O teste fecha essa porta.
    passaria com uma funcao que devolve `""` sempre — e por isso que C1.3, C1.4 e C1.6 afirmam
    **preservacao de conteudo**. Os dois lados juntos e que prendem o comportamento.
 
+### 🔴 C4 — as precondicoes, acrescentadas no PASSO 4
+
+⚠️ **Isto nao estava nos criterios congelados.** Entrou na revisao do P4, e esta registrado aqui
+para que a diferenca entre o que foi congelado e o que foi entregue fique visivel.
+
+| # | Criterio |
+| - | -------- |
+| C4.1 | `resolver_produto_por_gtin` com `gtin` vazio ou `None` levanta `ValueError` e nao cria linha. |
+| C4.2 | `resolver_produto_por_texto` com `emit_cnpj` vazio ou `None` levanta `ValueError` e nao cria linha. |
+
+**O que a revisao encontrou:** em SQL, `WHERE coluna = NULL` nao casa com nada — nem com outra
+linha que tenha NULL ali. Como as duas funcoes procuram antes de inserir, a busca com chave vazia
+falharia **sempre** e cada chamada criaria uma linha nova.
+
+🔴 **E os indices unicos parciais nao pegariam.** `ux_produtos_gtin` so cobre `gtin IS NOT NULL`, e
+`ux_produtos_texto` indexa um par que, com NULL dentro, nao colide com outro par igual. A rede de
+seguranca descrita na §2 tem exatamente este buraco.
+
+⭐ **Nem o oraculo nem a cobertura de 100% enxergavam isso:** as linhas existiam e eram executadas
+— o que faltava era uma chamada com chave vazia passando por elas. Foi leitura do codigo inteiro
+(*Achado H*) que achou.
+
+📋 Guardado por `tests/test_produtos_precondicoes.py`, **modulo novo** — os tres modulos do P2 sao
+a evidencia do que foi congelado antes da implementacao e nao se mexe neles depois do P3. Os quatro
+testes foram **validados por mutacao**: com os dois `raise` desativados, os quatro ficam vermelhos
+e o das chaves validas segue verde.
+
+⚠️ **A decisao foi falhar alto, e ela segue o precedente do repositorio:** `migracoes.py` ja
+registra que engolir excecao "deixaria o banco num estado que ninguem pediu". Um produto fantasma
+por chamada e exatamente esse tipo de estado.
+
 ---
 
 ## 6. Dividas tecnicas: nenhuma vence aqui
