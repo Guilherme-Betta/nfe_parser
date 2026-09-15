@@ -100,7 +100,7 @@ NAO faca `CREATE TABLE`, `ALTER TABLE` nem `CREATE INDEX`.
 
 NAO escreva funcao para renomear categoria. E a proxima tarefa.
 
-NAO escreva nada sobre `produtos`, `ncm_ancora`, bucket, lapide, classificacao ou seed.
+NAO escreva nada sobre produtos, ancoras NCM, bucket, lapide ou classificacao.
 
-NAO altere nenhum outro arquivo: nem `banco.py`, nem `migracoes.py`, nem `categorizacao.py`, nem
-`seed.py`, nem teste nenhum.
+NAO altere nenhum outro arquivo do projeto, e NAO altere teste nenhum. O unico arquivo que voce
+escreve e o que esta aberto nesta conversa.

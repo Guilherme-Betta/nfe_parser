@@ -118,9 +118,9 @@ O QUE NAO PODE MUDAR
 
 NAO faca `CREATE TABLE`, `ALTER TABLE` nem `CREATE INDEX`.
 
-NAO leia `categorias_apagadas`: quem a le e o seed, que e outro arquivo.
+NAO leia a tabela `categorias_apagadas`: quem a le e outro modulo, noutra tarefa.
 
 NAO escreva funcao para renomear nem para mover categoria. Sao as proximas tarefas.
 
-NAO altere nenhum outro arquivo: nem `banco.py`, nem `migracoes.py`, nem `categorizacao.py`, nem
-`seed.py`, nem teste nenhum.
+NAO altere nenhum outro arquivo do projeto, e NAO altere teste nenhum. O unico arquivo que voce
+escreve e o que esta aberto nesta conversa.
