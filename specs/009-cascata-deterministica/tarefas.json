@@ -1,0 +1,26 @@
+{
+  "story": "009-cascata-deterministica",
+  "tarefas": [
+    {
+      "id": "1",
+      "titulo": "buscar_categoria_por_ncm: prefixo mais longo em ncm_ancora (8, 4 ou 2 digitos)",
+      "alvo": "src/nfe_parser/categorizacao.py",
+      "teste": "tests/test_ncm_ancora.py",
+      "mensagem": "specs/009-cascata-deterministica/tarefas/tarefa-01.md"
+    },
+    {
+      "id": "2",
+      "titulo": "classificar_produto: a cascata memoria > NCM > bucket, e grava o resultado",
+      "alvo": "src/nfe_parser/categorizacao.py",
+      "teste": "tests/test_cascata.py",
+      "mensagem": "specs/009-cascata-deterministica/tarefas/tarefa-02.md"
+    },
+    {
+      "id": "3",
+      "titulo": "definir_categoria_manual: a decisao humana, que a cascata nunca sobrescreve",
+      "alvo": "src/nfe_parser/categorizacao.py",
+      "teste": "tests/test_categoria_manual.py",
+      "mensagem": "specs/009-cascata-deterministica/tarefas/tarefa-03.md"
+    }
+  ]
+}
