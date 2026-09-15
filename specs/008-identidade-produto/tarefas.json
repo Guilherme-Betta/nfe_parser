@@ -1,0 +1,26 @@
+{
+  "story": "008-identidade-produto",
+  "tarefas": [
+    {
+      "id": "1",
+      "titulo": "normalizar_descricao: minuscula, sem acento, pontuacao vira espaco, espacos colapsados",
+      "alvo": "src/nfe_parser/produtos.py",
+      "teste": "tests/test_normalizar_descricao.py",
+      "mensagem": "specs/008-identidade-produto/tarefas/tarefa-01.md"
+    },
+    {
+      "id": "2",
+      "titulo": "resolver_produto_por_gtin: casa ou cria em produtos com identidade_origem 'gtin'",
+      "alvo": "src/nfe_parser/produtos.py",
+      "teste": "tests/test_produto_por_gtin.py",
+      "mensagem": "specs/008-identidade-produto/tarefas/tarefa-02.md"
+    },
+    {
+      "id": "3",
+      "titulo": "resolver_produto_por_texto: casa ou cria por descricao_normalizada + emit_cnpj",
+      "alvo": "src/nfe_parser/produtos.py",
+      "teste": "tests/test_produto_por_texto.py",
+      "mensagem": "specs/008-identidade-produto/tarefas/tarefa-03.md"
+    }
+  ]
+}
