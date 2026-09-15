@@ -1,84 +1,35 @@
-Crie o arquivo `src/nfe_parser/migracoes.py` (ele ainda NAO existe) e acrescente UMA linha em
-`src/nfe_parser/banco.py`.
+O arquivo `src/nfe_parser/migracoes.py` ja existe e esta QUASE certo. Ha UM defeito nele.
 
-O modulo poe o banco sob controle de versao usando o `PRAGMA user_version` do SQLite. Nesta tarefa
-voce escreve SO O MECANISMO: nenhuma tabela, nenhum DDL, nenhum dado.
+DEFEITO: a ultima linha de `aplicar_migracoes` e `return versao`.
 
-```python
-MIGRACOES = []
+`versao` e a variavel do `for`. Quando a lista de migracoes esta vazia -- que e o caso agora,
+porque `MIGRACOES = []` -- o corpo do laco nunca roda, `versao` nunca chega a existir, e a funcao
+levanta `NameError: name 'versao' is not defined`.
 
-
-def versao_do_banco(conexao) -> int:
-    ...
-
-
-def aplicar_migracoes(conexao, migracoes=None) -> int:
-    ...
-```
-
-`MIGRACOES` e uma LISTA DE FUNCOES, e A POSICAO E A VERSAO: indice 0 e a migracao versao 1,
-indice 1 e a versao 2. Nesta tarefa ela fica VAZIA.
-
-`versao_do_banco` le o `PRAGMA user_version` e devolve o inteiro. Banco novo devolve 0.
-
-`aplicar_migracoes` roda, em ordem crescente, so as migracoes cuja versao e MAIOR que a versao
-atual do banco, e devolve a versao final. `migracoes=None` significa usar `MIGRACOES`. O parametro
-existe para o teste injetar uma lista propria -- mantenha-o.
-
-
-REGRA 1 -- O PRAGMA NAO ACEITA PARAMETRO LIGADO. E o que mais quebra aqui.
-
-    conexao.execute("PRAGMA user_version = ?", (versao,))
-    -> sqlite3.OperationalError: near "?": syntax error
-
-Foi medido. O numero tem de ser interpolado:
+Troque essa linha por uma leitura do banco:
 
 ```python
-conexao.execute(f"PRAGMA user_version = {versao}")
+    return versao_do_banco(conexao)
 ```
 
-Escreva assim mesmo. Nao ha risco de SQL injection: `versao` e um `int` calculado dentro desta
-funcao a partir da posicao na lista, nunca vem de fora. Para LER, `execute` normal serve:
-`conexao.execute("PRAGMA user_version").fetchone()[0]`.
+Essa e a UNICA mudanca em `migracoes.py`. O resto do arquivo esta correto. NAO mexa no laco, no
+`BEGIN`/`COMMIT`/`ROLLBACK`, no `raise`, no `PRAGMA` interpolado nem na assinatura da funcao.
 
 
-REGRA 2 -- CADA MIGRACAO E ATOMICA, E A VERSAO ENTRA DENTRO DA TRANSACAO.
+AGORA O `src/nfe_parser/banco.py`. Ele esta como no comeco: falta a ligacao inteira.
 
-Se a versao avancasse sem a migracao ter terminado, a proxima abertura pularia aquela migracao e o
-banco ficaria quebrado para sempre, sem sintoma. Repare no `PRAGMA` DENTRO do bloco:
+Sao duas mudancas, e so estas duas.
+
+1. No topo do arquivo, logo depois de `import sqlite3`:
 
 ```python
-for indice, migracao in enumerate(migracoes):
-    versao = indice + 1
-    if versao <= atual:
-        continue
-    conexao.execute("BEGIN")
-    try:
-        migracao(conexao)
-        conexao.execute(f"PRAGMA user_version = {versao}")
-        conexao.execute("COMMIT")
-    except Exception:
-        conexao.execute("ROLLBACK")
-        raise
+from nfe_parser.migracoes import aplicar_migracoes
 ```
 
-A excecao SOBE. Nao engula, nao logue, nao devolva codigo de erro.
+Sem este import a chamada abaixo levanta `NameError: name 'aplicar_migracoes' is not defined`.
 
-DDL do SQLite obedece transacao: um `CREATE TABLE` feito dentro do `BEGIN` desaparece no
-`ROLLBACK`, e o `user_version` volta junto. Foi medido, e ha teste para isso.
-
-
-REGRA 3 -- E PROIBIDO `executescript` DENTRO DE UMA MIGRACAO.
-
-Ele faz COMMIT IMPLICITO antes de rodar: destroi a transacao acima, o `ROLLBACK` explode com
-"cannot rollback - no transaction is active", e o que ja rodou fica gravado. Foi medido. Use
-`conexao.execute(...)`, um comando por chamada.
-
-Voce vai ver `executescript` em `criar_esquema`, no `banco.py`. La esta certo -- nao ha transacao
-envolvida. Dentro de migracao, nao.
-
-
-A UNICA MUDANCA EM `banco.py` -- `abrir_banco` ganha uma linha:
+2. Dentro de `abrir_banco`, UMA chamada -- exatamente uma, nao duas, nao tres -- entre
+`criar_esquema` e o `return`:
 
 ```python
 def abrir_banco(caminho):
@@ -89,13 +40,13 @@ def abrir_banco(caminho):
     return conexao
 ```
 
-Mais o `import` de `aplicar_migracoes` no topo.
+A ordem importa: `criar_esquema` ANTES. Uma migracao futura altera a tabela `itens`, e num banco
+novo ela so existe depois de `criar_esquema` rodar.
 
-A ORDEM IMPORTA: `criar_esquema` ANTES. Uma migracao futura altera a tabela `itens`, e num banco
-novo ela so existe depois de `criar_esquema` rodar. Invertido, a primeira abertura quebraria.
 
-NAO altere `criar_esquema` -- nem o DDL, nem os nomes, nem a docstring. Ele esta correto e ja
-coberto por testes que passam.
+NAO altere `criar_esquema` -- nem o DDL, nem os nomes, nem a docstring.
 
-NAO faca mais nada: nenhum CREATE TABLE, nenhum ALTER TABLE, nenhuma migracao concreta, nenhum
-dado. `MIGRACOES` fica `[]`. NAO altere nenhum outro arquivo.
+NAO acrescente migracao nenhuma: `MIGRACOES` continua `[]`. Nenhum CREATE TABLE, nenhum
+ALTER TABLE, nenhum dado.
+
+NAO altere nenhum outro arquivo.

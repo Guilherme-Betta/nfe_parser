@@ -1,4 +1,5 @@
 import sqlite3
+from nfe_parser.migracoes import aplicar_migracoes
 
 
 def criar_esquema(conexao):
@@ -70,4 +71,5 @@ def abrir_banco(caminho):
     conexao = sqlite3.connect(caminho)
     conexao.execute("PRAGMA foreign_keys = ON")
     criar_esquema(conexao)
+    aplicar_migracoes(conexao)
     return conexao
