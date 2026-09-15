@@ -1,7 +1,7 @@
 """Carrega a taxonomia e o mapa NCM curado — o dado de que a cascata vive.
 
 A story 009 escreveu a cascata; esta escreve o que ela consulta. Sem o seed, o
-`_categoria_do_bucket` levanta `LookupError` e o passo 4 da classificacao nao
+`categoria_do_bucket` levanta `LookupError` e o passo 4 da classificacao nao
 existe — a mensagem daquele erro aponta para esta story pelo numero.
 
 🔴 O contrato central e a IDEMPOTENCIA, e ela nao e enfeite. A D3 da 009 diz que
@@ -61,7 +61,7 @@ def carregar_categorias(conexao, categorias):
     bucket, deixam o banco com dois — e contar a lista diria 1 nas duas vezes. E
     o estado do banco que a 009 consulta, entao e ele que precisa valer.
 
-    ⚠️ Dois buckets nao dao erro em lugar nenhum: `_categoria_do_bucket` faz
+    ⚠️ Dois buckets nao dao erro em lugar nenhum: `categoria_do_bucket` faz
     `SELECT ... WHERE is_bucket = 1` seguido de `fetchone()` e devolve um QUALQUER
     dos dois. Metade dos produtos nao classificados iria para um e metade para o
     outro, para sempre, sem sintoma.

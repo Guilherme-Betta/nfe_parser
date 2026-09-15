@@ -5,8 +5,16 @@ o modelo local, nunca editavel.
 
 Criterios em `specs/007-migracao-esquema/spec.md` §4, bloco C3.
 
-⭐ Ultima tarefa que mexe na versao do banco, entao o unico modulo que pode
-afirmar `== 2`. Os das tarefas 1 e 2 usam `len(MIGRACOES)` e `>= 1`.
+⚠️ A versao 007 deste modulo dizia "ultima tarefa que mexe na versao do banco,
+entao o unico modulo que pode afirmar `== 2`", e afirmava o literal 2 em dois
+testes. A premissa caiu na story 011, que acrescentou a migracao v3 (a lapide de
+`categorias_apagadas`) — e os dois testes ficaram vermelhos sem que nada do
+contrato da 007 tivesse mudado.
+
+⭐ E o risco R5 do recorte, acontecendo: igualdade estrita que uma story
+posterior quebra. O conserto preserva a INTENCAO — "o banco termina na versao
+final, e migrar um banco legado nao para no meio" — trocando o literal por
+`len(MIGRACOES)`, que e o que os modulos das tarefas 1 e 2 ja faziam.
 """
 
 import sqlite3
@@ -14,7 +22,7 @@ import sqlite3
 import pytest
 
 from nfe_parser.banco import abrir_banco, criar_esquema
-from nfe_parser.migracoes import versao_do_banco
+from nfe_parser.migracoes import MIGRACOES, versao_do_banco
 
 CHAVE = "0" * 44
 DH = "2026-01-02T10:00:00-03:00"
@@ -62,8 +70,8 @@ def test_cria_o_indice_do_produto_em_itens(conexao):
 
 
 # --- C3.3 -------------------------------------------------------------------
-def test_a_versao_final_do_banco_e_dois(conexao):
-    assert versao_do_banco(conexao) == 2
+def test_a_versao_final_do_banco_e_a_ultima_migracao(conexao):
+    assert versao_do_banco(conexao) == len(MIGRACOES)
 
 
 # --- C3.4 -------------------------------------------------------------------
@@ -93,7 +101,7 @@ def test_banco_legado_migra_sem_perder_dado(tmp_path):
 
     assert notas == [(CHAVE, 1234, "ok")]
     assert itens == [(1, "ARROZ 5KG", 1234)]
-    assert versao == 2
+    assert versao == len(MIGRACOES)
 
 
 # --- C3.6 -------------------------------------------------------------------

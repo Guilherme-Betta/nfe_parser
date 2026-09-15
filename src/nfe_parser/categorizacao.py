@@ -89,7 +89,7 @@ def buscar_categoria_por_ncm(conexao, ncm):
     return None
 
 
-def _categoria_do_bucket(conexao):
+def categoria_do_bucket(conexao):
     """Devolve o `id` do bucket "Nao Classificado". Levanta se ele nao existir.
 
     ⚠️ `categorias` nasce VAZIA da migracao v1 — o seed e a story 010, que vem
@@ -99,6 +99,13 @@ def _categoria_do_bucket(conexao):
     ⭐ Quem chama so a invoca no ramo que precisa dela. A checagem e PREGUICOSA
     de proposito: um banco cujo mapa NCM cobre o produto classifica normalmente
     sem bucket nenhum, e levantar na entrada proibiria um caso que funciona.
+
+    ⚠️ Nasceu privada (`_categoria_do_bucket`) na story 009 e virou PUBLICA na
+    011, que precisa dela em `taxonomia.py`: apagar uma categoria manda os
+    produtos dela para o bucket. ⛔ A alternativa la seria
+    `SET categoria_id = (SELECT id FROM categorias WHERE is_bucket = 1)` — e num
+    banco sem bucket a subconsulta devolve NULL e o UPDATE grava NULL em
+    silencio. E por isso que o `LookupError` daqui vale a exportacao.
     """
 
     linha = conexao.execute("SELECT id FROM categorias WHERE is_bucket = 1").fetchone()
@@ -152,7 +159,7 @@ def classificar_produto(conexao, produto_id, ncm):
 
     categoria = buscar_categoria_por_ncm(conexao, ncm)
     if categoria is None:
-        categoria = _categoria_do_bucket(conexao)
+        categoria = categoria_do_bucket(conexao)
         origem = None
     else:
         origem = "ncm"

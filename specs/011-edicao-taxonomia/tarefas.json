@@ -1,0 +1,19 @@
+{
+  "story": "011-edicao-taxonomia",
+  "tarefas": [
+    {
+      "id": "1",
+      "titulo": "apagar_categoria: produtos ao bucket com origem zerada, ancoras fora, lapide gravada",
+      "alvo": "src/nfe_parser/taxonomia.py",
+      "teste": "tests/test_taxonomia_apagar.py",
+      "mensagem": "specs/011-edicao-taxonomia/tarefas/tarefa-01.md"
+    },
+    {
+      "id": "2",
+      "titulo": "renomear_categoria e mover_categoria: o id sobrevive, e mover recusa ciclo",
+      "alvo": "src/nfe_parser/taxonomia.py",
+      "teste": "tests/test_taxonomia_editar.py",
+      "mensagem": "specs/011-edicao-taxonomia/tarefas/tarefa-02.md"
+    }
+  ]
+}

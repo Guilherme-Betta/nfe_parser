@@ -136,6 +136,39 @@ def _migracao_02_produto_id_em_itens(conexao):
     conexao.execute("CREATE INDEX IF NOT EXISTS idx_itens_produto ON itens(produto_id)")
 
 
+def _migracao_03_lapide_de_categorias(conexao):
+    """Guarda o slug de cada categoria que o usuario apagou. A "lapide".
+
+    Sem ela, apagar categoria nao e definitivo: o seed da story 010 insere o que
+    falta, e uma categoria apagada e, para ele, uma categoria que falta. Ela
+    voltaria no proximo `carregar_seed_padrao` — com `id` novo e sem os produtos
+    que tinha, sendo prestativa e desfazendo uma decisao de quem usa o programa.
+
+    ⛔ NAO ha `REFERENCES categorias(id)`, e nao e esquecimento: a linha de
+    `categorias` nao existe mais. E exatamente isso que esta tabela registra.
+
+    ⭐ Tabela separada, e nao uma coluna `apagada_em` em `categorias` (o "soft
+    delete"): com a coluna, a linha continuaria la, e TODA consulta futura sobre
+    categorias — relatorio, UI, soma por categoria — passaria a precisar de
+    `WHERE apagada_em IS NULL`. Esquecer o filtro em um lugar so ja volta a
+    mostrar a categoria apagada. Aqui, quem esta em `categorias` E uma categoria.
+
+    ⚠️ O `slug` e a chave, e nao o `id`, porque e por slug que o seed casa. Um
+    `id` de categoria apagada nao significa mais nada para ninguem.
+    """
+
+    conexao.execute("""
+        CREATE TABLE IF NOT EXISTS categorias_apagadas (
+          slug TEXT PRIMARY KEY,
+          apagada_em TEXT NOT NULL
+        )
+    """)
+
+
 # A POSICAO E A VERSAO: indice 0 e a migracao v1, indice 1 e a v2. A lista torna
 # impossivel um numero de versao duplicado ou um buraco na sequencia.
-MIGRACOES = [_migracao_01_esquema_classificacao, _migracao_02_produto_id_em_itens]
+MIGRACOES = [
+    _migracao_01_esquema_classificacao,
+    _migracao_02_produto_id_em_itens,
+    _migracao_03_lapide_de_categorias,
+]
