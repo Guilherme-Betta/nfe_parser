@@ -55,17 +55,42 @@ folga entre os dois é para os turnos 2 e 3 que o Aider gasta ao ler a saída do
 > 3,9 kB; estimei testes de ~3,0 kB e escrevi de 4,3 a 6,1 kB. Por isso, desta vez, **as mensagens
 > foram escritas ANTES do plan** e entram na tabela medidas.
 
-### ⚠️ As tarefas 2 e 3 estão a menos de 0,4k do teto — e o remeço do P2 é obrigatório
+### ✅ O remeço do P2 — feito, e ele **reprovou** a tarefa 2 na primeira conta
 
-📋 **O `bytes(alvo)` sai de graça do protótipo do Achado S** *(Achado V)*. Antes de apagá-lo:
+📋 **O `bytes(alvo)` saiu de graça do protótipo do Achado S** *(Achado V)*, medido por corte antes
+de apagá-lo: `texto.index("def _categoria_do_bucket")` = **445 B**, e
+`texto.index("def definir_categoria_manual")` = **1.504 B**. Folga por cima — o protótipo é limpo e o
+do modelo local pode não ser — de **+400 B** e **+800 B** (na 008 foram +800 B na última tarefa).
 
-```python
-texto.index("def _categoria_do_bucket")     # = bytes(alvo) da tarefa 2
-texto.index("def definir_categoria_manual") # = bytes(alvo) da tarefa 3
-```
+| Tarefa | alvo+folga | teste (1ª conta) | mensagem | **total** | |
+| ------ | ---------- | ---------------- | -------- | --------- | - |
+| 1 | 0,00k | 1,01k | 0,87k | **4,89k** | ✅ |
+| 2 | 0,21k | **1,79k** | 1,28k | **6,18k** | 🔴 **estourou** |
+| 3 | 0,58k | 1,39k | 0,91k | **5,78k** | ⚠️ |
 
-⚠️ **Some folga por cima**, porque o protótipo é limpo e o do modelo local pode não ser. Na 008
-foram **+800 B** na última tarefa.
+🔴 **A tarefa 2 estourou o teto**, e foi o corolário da 008 que a salvou: cortou-se o **docstring do
+teste**, ⛔ nunca a mensagem.
+
+⭐ **Mas o corte que mais rendeu não foi de prosa — foi de dado redundante.** `test_cascata.py`
+semeava cinco categorias e três âncoras NCM, reencenando a precedência de prefixo que o
+`test_ncm_ancora.py` já é dono. Reduzido a **uma âncora**, que casa ou não casa.
+
+⚠️ **E isso melhorou o oráculo, não só o orçamento.** Antes, a mutação M1 (tirar o `ORDER BY`)
+deixava **6** testes vermelhos, espalhados pelos dois módulos; depois, deixa **3**, todos no módulo
+que é dono daquele risco. ⭐ **Um oráculo em que cada módulo falha pela própria razão diz onde está
+o defeito; um que falha em bloco só diz que há um.**
+
+### 📋 A conta final, e a folga agora é por desenho
+
+| Tarefa | alvo+folga | teste | mensagem | **total** | folga até 6k |
+| ------ | ---------- | ----- | -------- | --------- | ------------ |
+| 1 | 0,00k | 1,01k (4.051 B) | 0,87k | **4,89k** | **+1,11k** |
+| 2 | 0,21k | 1,30k (5.202 B) | 1,28k | **5,79k** | **+0,21k** |
+| 3 | 0,58k | 1,29k (5.173 B) | 0,91k | **5,78k** | **+0,22k** |
+
+⚠️ Na 008 a tarefa 3 fechou em 5,92k *"passando raspando por acidente, não por desenho"*. Os 0,2k
+das duas últimas aqui são pequenos, mas foram **escolhidos**: a primeira conta deu 5,97k e o corte
+continuou até haver folga de verdade.
 
 ### 🔴 Se o remeço estourar o teto, corte o docstring do TESTE — ⛔ não a mensagem
 
@@ -112,19 +137,66 @@ a medição do P3 não vale nada.
 Com o protótipo ainda instalado, quebrar de propósito os riscos mais caros e confirmar que **os
 testes certos, e só eles**, ficam vermelhos.
 
-| # | Mutação | Vermelho esperado |
-| - | ------- | ----------------- |
-| **M1** | tirar o `ORDER BY LENGTH(prefixo) DESC` | só os testes de prefixo mais longo (C1.2, C1.3) |
-| **M2** | trocar a tupla protegida por `("manual",)` | **só C2.5** |
-| **M3** | trocar o passo 1 por `if categoria_atual is not None: return` | **só C2.6** — o produto ficaria preso no bucket |
-| **M4** | tirar o `if not ncm: return None` | só C1.6 |
+✅ **Feito, contra os oráculos finais.** Cinco mutações, 22 testes:
+
+| # | Mutação | Previsto | **Medido** | |
+| - | ------- | -------- | ---------- | - |
+| **M1** | tirar o `ORDER BY LENGTH(prefixo) DESC` | C1.2, C1.3 | **C1.2, C1.3 e C1.7** — 3 vermelhos | ⚠️ |
+| **M2** | tupla protegida vira `("manual",)` | só C2.5 | **só C2.5** | ✅ |
+| **M3** | passo 1 vira `if categoria_atual is not None` | só C2.6 | **só C2.6** | ✅ |
+| **M4** | tirar o `if not ncm: return None` | só C1.6 | **C1.6[None] e C2.3** | ⚠️ |
+| **M5** | o ramo do bucket grava `origem='ncm'` | — | **C2.2 e C2.3** | ➕ |
 
 ⭐ **M3 é a mutação que mais importa**, porque é o erro que um humano escreveria sem perceber: "já
 tem categoria, então não mexe". Ele prenderia no bucket, para sempre, todo produto que caísse lá
-uma vez — e a story 010, que existe para fazer o mapa NCM crescer, não recuperaria nenhum.
+uma vez — e a story 010, que existe para fazer o mapa NCM crescer, não recuperaria nenhum. ✅ O
+oráculo o pega, e **só** ele fica vermelho.
 
-⚠️ **Satisfazível não é correto.** Um oráculo frouxo passa no Achado S sem reclamar; é a mutação
-que o reprova. **Depois apagar o protótipo e conferir o `git status` de novo.**
+#### 📋 Onde a previsão errou, e o que cada erro ensinou
+
+**M1** — previ dois vermelhos e vieram três: **C1.7 também depende do `ORDER BY`**. `"0403"` casa
+`0403` e `04`, e sem a ordenação o SQLite pode devolver o pai. ⭐ Errar para **mais** é o lado bom
+de errar: o oráculo morde mais do que eu sabia.
+
+**M4** — previ só C1.6 e veio também **C2.3**, porque `classificar_produto(conexao, id, None)`
+atravessa a guarda e bate em `None[:8]`. ⭐ É a prova de que a cascata realmente delega a busca em
+vez de reimplementá-la.
+
+**M5 não estava no plano** e foi acrescentada ao ver o `CHECK` da coluna: gravar `'ncm'` no ramo do
+bucket é o erro mais provável de quem escreve o UPDATE uma vez só. ✅ Pego por C2.2 e C2.3.
+
+### 🔴 Um limite do oráculo, medido e declarado
+
+⚠️ **`C1.6` com `""` NÃO discrimina.** Sob M4, `test_ncm_vazio_devolve_none[None]` fica vermelho e
+**`[""]` continua verde** — `""[:8]` é `""`, nenhum prefixo vazio existe no mapa, e a função devolve
+`None` com guarda ou sem ela.
+
+⛔ **E não dá para fortalecê-lo honestamente:** só morderia se o mapa tivesse uma linha de prefixo
+vazio, que é dado que não existe no mundo. 📋 **Fica registrado como documentação de contrato, não
+como guarda** — quem apagar a guarda será pego pelo caso `None`, que é o que de fato quebra.
+
+⭐ É exatamente para isto que o Achado U serve: *um teste que nunca se viu falhar não é guarda, é
+decoração* — e agora se sabe **qual** dos 22 é decoração, em vez de supor que nenhum é.
+
+⚠️ **Satisfazível não é correto.** ✅ Protótipo apagado e `git status` conferido: só os três módulos
+de teste ficaram, e a suíte voltou ao `ModuleNotFoundError` esperado.
+
+### 🔴 Achado novo do P2 — ⛔ NÃO rode `ruff check --fix` nos testes antes do P3
+
+Formatar os oráculos **antes** de congelá-los é certo — um `ruff format` no P4 mexeria no commit que
+é a evidência do que foi congelado. ⚠️ **Mas o `ruff check` reprova três `I001` que são falsos.**
+
+📋 **A causa, medida e não suposta:** o isort do ruff classifica `nfe_parser.categorizacao` como
+**terceiro** enquanto o arquivo não existe, e quer movê-lo para junto do `import pytest`. Criado um
+`categorizacao.py` vazio, o mesmo comando responde **`All checks passed!`**; apagado, os três erros
+voltam.
+
+⛔ **Aplicar o `--fix` embaralharia os imports**, e o P4 — com o módulo já criado pelo modelo local —
+os desfaria. Seriam duas mexidas no arquivo congelado, ambas ruído.
+
+📋 **A regra:** `ruff format` antes de congelar, **sim**. `ruff check --fix`, **só no P4**. ⭐ Vale
+para toda story que cria um módulo **novo** — ou seja, a 010 (`seed.py`) e a 012 (`eval_llm.py`)
+vão bater nisto.
 
 ---
 
