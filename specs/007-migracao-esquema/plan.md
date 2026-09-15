@@ -71,8 +71,28 @@ interpolado foi de quatro linhas para duas, a proibicao de `executescript` perde
 advertencias sobre `criar_esquema` viraram uma linha so. ⭐ O corte foi de explicacao redundante,
 nunca de instrucao — a licao da 005.
 
-⚠️ **Esta tabela e provisoria.** Estimar o tamanho de arquivo que ainda nao existe nao funciona
-(*Achado E*). ⭐ **Remedir no fim do P2**, com os testes escritos e os bytes reais.
+### ⭐ Remeco do fim do P2 — bytes reais, testes escritos
+
+Esta e a tabela que vale. O `alvo` das tarefas 2 e 3 continua estimado, mas agora com lastro: sao
+os bytes das partes correspondentes do prototipo do §6, que foi escrito **sem docstring**, como o
+modelo local escreve.
+
+| # | alvo | teste | mensagem | **turno 1 medido** | teto 6k |
+| - | ---- | ----- | -------- | ------------------ | ------- |
+| 1 | **3.023 b** (`banco.py`) + 0 b (`migracoes.py` novo) | **4.111 b** | **3.551 b** | **5,67k** | ⚠️ folga 0,33k |
+| 2 | ~908 b (so o executor) | **3.762 b** | **3.410 b** | **5,02k** | ✅ folga 0,98k |
+| 3 | ~2.539 b (executor + migracao v1) | **4.220 b** | **3.282 b** | **5,51k** | ✅ folga 0,49k |
+
+⚠️ **A tarefa 1 e a apertada, e ja foi encolhida duas vezes** — a mensagem no P1 (−730 b) e o
+modulo de teste no P2 (−690 b: a docstring meta foi para a `spec.md` e a lista de migracoes de
+mentira, repetida em dois testes, virou o helper `_tres`). ⛔ Nenhuma asserção saiu nos dois cortes.
+
+📋 **Se a tarefa 1 truncar mesmo assim**, o proximo corte e a prosa da REGRA 2 da mensagem (o
+paragrafo sobre banco meio migrado): ~160 b que motivam, mas nao instruem. ⛔ O esqueleto de codigo
+da REGRA 2 nao pode sair — e ele que mostra o `PRAGMA` dentro do bloco.
+
+⛔ **Mover o `banco.py` para outra tarefa nao ajuda** — foi recalculado com os bytes reais: na
+tarefa 2 ele produz 5,78k (folga 0,22k, pior que 0,33k) e na tarefa 3, 6,27k (estoura).
 
 ⚠️ **A incerteza que sobra e o `alvo` das tarefas 2 e 3** — quanto `migracoes.py` cresce em cada
 passo. O modelo local nao escreve docstring (005 e 006), entao a tendencia e ficar **abaixo** do
@@ -182,3 +202,30 @@ implementacao podia satisfazer:
 | `executescript` dentro de `BEGIN` | ⛔ commita sozinho e destroi a transacao |
 
 Ambiente: Python 3.14.2, SQLite 3.50.4.
+
+---
+
+## 6. 🔴 O oraculo foi provado SATISFAZIVEL antes de ser commitado
+
+A story 006 perdeu as tres reflexoes de uma tarefa contra um teste que **nenhuma implementacao
+podia passar** (*Achado P*). Medir comportamento do SQLite (§5) reduz esse risco, mas nao o elimina:
+o defeito da 006 nasceu da interacao entre duas asserções, nao de um fato errado sobre a biblioteca.
+
+📋 **Entao, no fim do P2, os 21 testes foram rodados contra uma implementacao de referencia** —
+escrita no diretorio temporario da sessao, instalada no clone por um minuto, executada, e apagada.
+
+    21 passed                     so os tres modulos novos
+    205 passed                    a suite inteira (184 anteriores + 21)
+
+⛔ **O prototipo NAO entrou no clone e nao existe em commit nenhum.** Se entrasse, o modelo local
+receberia a resposta pronta e a medicao do P3 nao valeria nada. Conferido depois de apagar:
+`git status` mostrava so os tres arquivos de teste, e `git diff src/nfe_parser/banco.py` saiu vazio.
+
+⭐ **Dois achados caíram desta rodada:**
+
+1. ✅ **O risco R2 do recorte nao disparou.** `test_itens_no_json.py:124` afirma
+   `list(item) == CHAVES_DO_ITEM` — igualdade estrita e **publicada** — e a coluna `produto_id`
+   nova em `itens` **nao** apareceu na saida. `serializacao.py` lista as colunas explicitamente em
+   vez de usar `SELECT *`. O R2 continua adiado para a 013, como o recorte previu.
+2. ✅ **Nenhuma das 184 asserções anteriores depende do formato da tabela `itens`.** A migracao v2
+   e aditiva de verdade.
