@@ -78,13 +78,30 @@ def test_parent_inexistente_levanta_lookup_error(conexao):
         carregar_categorias(conexao, orfa)
 
 
-# --- C1.6 -------------------------------------------------------------------
-def test_nome_mudado_no_dado_atualiza_sem_trocar_o_id(conexao):
+# --- C1.6 (INVERTIDO na story 011 — ver a docstring) -------------------------
+def test_nome_mudado_no_dado_nao_atualiza_e_o_id_nao_muda(conexao):
+    """🔴 Este caso afirmava o CONTRARIO ate a 011, e a mudanca e de produto.
+
+    A D4 da 010 mandava `ON CONFLICT(slug) DO UPDATE SET nome = excluded.nome`, e
+    este teste provava que corrigir o nome no arquivo de dados chegava ao banco.
+    Estava certo enquanto o arquivo era o UNICO autor de `categorias`.
+
+    A story 011 deu a quem usa o programa um segundo teclado sobre a mesma
+    tabela, e o Gui decidiu quem ganha: *"o seed serve so como base default (...)
+    um helpful placeholder"*. Um seed que atualiza o nome desfaz, calado, todo
+    `renomear_categoria` — medido em banco real antes de mudar.
+
+    ⭐ O que se perde: corrigir nome pelo arquivo de dados. ⭐ O que entra no
+    lugar: `taxonomia.renomear_categoria`.
+
+    ⚠️ A segunda metade do caso — o `id` NAO muda — continua valendo, e continua
+    sendo o que impede `produtos.categoria_id` de apontar para o nada.
+    """
     carregar_categorias(conexao, SEED)
     antes = _linha(conexao, "mercado")[0]
     carregar_categorias(conexao, [dict(SEED[1], nome="Supermercado"), SEED[3]])
     depois = _linha(conexao, "mercado")
-    assert depois[1] == "Supermercado"
+    assert depois[1] == "Mercado"
     assert depois[0] == antes
 
 

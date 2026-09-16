@@ -293,7 +293,37 @@ mencionou "adicionar" ao descrever o sistema ideal; ficou **anotado**, não sile
 
 ## 7. Contratos acrescentados FORA do loop
 
-*(preencher no P4 — ver o precedente na §7 da spec da 010)*
+⚠️ **Tudo desta seção entrou no P4**, escrito à mão, e ⛔ não passou pelo modelo local.
+
+### C5 — `carregar_categorias` insere o que falta e ⛔ não toca no que existe
+
+O `ON CONFLICT(slug) DO UPDATE` da **D4 da 010 sai**, e a segunda passada
+(`parent_id`) passa a rodar só sobre as categorias **recém-inseridas**. É esta segunda parte que
+desfazia o `mover` — o `UPDATE` incondicional devolvia toda categoria ao pai que o arquivo declara,
+toda vez.
+
+🔴 **Isto inverteu um teste publicado.** `test_seed_categorias.py::test_nome_mudado_no_dado_...`
+provava que corrigir o nome no arquivo chegava ao banco; agora prova o contrário. ⛔ Não foi
+"fazer o teste passar": ele afirmava a D4 antiga, e a D4 antiga foi revogada por decisão de produto.
+A docstring dele conta a história inteira.
+
+### C6 — o seed pula o que a lápide registra
+
+| Caso | Comportamento |
+| ---- | ------------- |
+| categoria cujo slug está na lápide | ✅ pulada, em silêncio |
+| categoria nova cujo **`parent`** está na lápide | ✅ pulada junto — o galho foi removido de propósito |
+| âncora NCM cujo slug está na lápide | ✅ pulada, em silêncio |
+| âncora cujo slug **nunca existiu** | 🔴 `LookupError`, como antes |
+
+⭐ **A lápide é o que distingue os dois últimos.** Sem ela, uma remoção legítima faria o seed inteiro
+levantar **para sempre**, e a pessoa não teria como sair disso sem editar o arquivo de dados.
+
+### C7 — ⛔ `carregar_ncm_ancora` MANTÉM o `ON CONFLICT ... DO UPDATE`
+
+⚠️ Parece incoerente com o C5 e não é: ninguém edita âncora pela 011, então não há edição de gente
+para preservar. ⭐ E crescer o mapa NCM é exatamente o que resgata produto preso no bucket (D3 da
+009, D6 da 010) — tirar o UPDATE daqui mataria o resgate.
 
 ---
 
@@ -307,3 +337,12 @@ mencionou "adicionar" ao descrever o sistema ideal; ficou **anotado**, não sile
   `categoria_do_bucket` procura por `is_bucket = 1`, não pela posição na árvore — mas um relatório
   que some por categoria de nível 1 passaria a contar o não-classificado dentro de outra coisa.
 - ⚠️ **A dívida `j` (o degrau de 6 dígitos do NCM) ⛔ não vence aqui.** Continua marcada para a 012.
+- 🔴 **⛔ Não existe desfazer.** Uma vez na lápide, a categoria default nunca mais volta pelo seed, e
+  não há `restaurar_categoria`. ⭐ É o que o Gui pediu ("isso deveria ser definitivo"), mas num
+  programa de uma pessoa só, apagar por engano não tem saída a não ser editar o banco à mão.
+  📋 Candidato a story própria, junto com `adicionar_categoria`.
+- ⚠️ **`apagar_categoria` chama `categoria_do_bucket` mesmo quando a categoria não tem produto
+  nenhum.** A 009 fez a checagem do bucket ser PREGUIÇOSA de propósito — "levantar na entrada
+  proibiria um caso que funciona". Aqui ela é ansiosa, e num banco sem bucket apagar uma categoria
+  vazia levanta. ⛔ Não é defeito (banco sem bucket está quebrado de qualquer forma, e a mensagem do
+  erro é precisa), mas é uma incoerência deliberada com a 009, e fica anotada como tal.
