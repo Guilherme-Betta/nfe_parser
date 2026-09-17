@@ -1,0 +1,33 @@
+{
+  "story": "013-integracao",
+  "tarefas": [
+    {
+      "id": "1",
+      "titulo": "persistir_nota resolve a identidade do item, grava produto_id e para de commitar",
+      "alvo": "src/nfe_parser/persistencia.py",
+      "teste": "tests/test_item_resolve_produto.py",
+      "mensagem": "specs/013-integracao/tarefas/tarefa-01.md"
+    },
+    {
+      "id": "2",
+      "titulo": "o item no JSON ganha categoria_slug e categoria, por LEFT JOIN",
+      "alvo": "src/nfe_parser/serializacao.py",
+      "teste": "tests/test_categoria_no_json.py",
+      "mensagem": "specs/013-integracao/tarefas/tarefa-02.md"
+    },
+    {
+      "id": "3",
+      "titulo": "o except ValueError cobre so a extracao, e o lote commita uma vez no fim",
+      "alvo": "src/nfe_parser/importador.py",
+      "teste": "tests/test_importar_diagnostico.py",
+      "mensagem": "specs/013-integracao/tarefas/tarefa-03.md"
+    },
+    {
+      "id": "4",
+      "titulo": "classificar_produtos_pendentes: a varredura que resgata quem esta com origem NULL",
+      "alvo": "src/nfe_parser/varredura.py",
+      "teste": "tests/test_varredura_pendentes.py",
+      "mensagem": "specs/013-integracao/tarefas/tarefa-04.md"
+    }
+  ]
+}
