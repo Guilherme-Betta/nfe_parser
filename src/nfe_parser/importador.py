@@ -10,12 +10,28 @@ from nfe_parser.persistencia import persistir_nota
 
 
 def _processar_arquivo(conexao, importacao_id, nome, conteudo_bytes, texto, classificacao) -> None:
+    """Processa UMA nota do lote e registra a linha dela no log.
+
+    ⚠️ `texto` e `classificacao` chegam PRONTOS, e nao sao recalculados aqui.
+    Quem roteia entre nota e evento em `importar` ja precisou decodificar e
+    classificar cada arquivo; refazer as duas contas era a divida `d`.
+
+    ⛔ `conteudo_bytes` continua vindo junto mesmo assim: o `sha256` e do
+    ARQUIVO, nao do texto decodificado — `errors="replace"` pode trocar bytes
+    invalidos, e o hash deixaria de identificar o que entrou.
+    """
+
     arquivo_hash = hashlib.sha256(conteudo_bytes).hexdigest()
     resultado = None
     chave = None
     detalhe = None
 
     if classificacao == "nfe":
+        # 🔴 O `else` nao e estilo: e o que mantem `persistir_nota` FORA do
+        # `try`. Dentro dele, um erro de gravacao — ou da resolucao de produto,
+        # que entrou no fluxo na story 013 — sairia registrado como "XML
+        # invalido", e um lote inteiro apontaria para o lugar errado. Erro aqui
+        # SOBE e derruba a importacao, que e o desfecho honesto.
         try:
             extraido = extrair_nota(texto)
         except ValueError as e:
@@ -49,6 +65,8 @@ def _processar_evento(conexao, importacao_id, nome, conteudo_bytes, texto) -> No
     chave = None
     detalhe = None
 
+    # Mesmo `else` de `_processar_arquivo`, pelo mesmo motivo: evento que NAO
+    # ABRE e invalido, mas falhar ao APLICAR o cancelamento e outra coisa.
     try:
         evento = extrair_evento(texto)
     except ValueError as e:
@@ -83,6 +101,7 @@ def importar(conexao, caminho, origem: str | None = None) -> int:
     eventos = []
 
     if caminho.suffix.lower() == ".zip":
+        # 2. Abre o .zip
         with zipfile.ZipFile(caminho, "r") as arquivo_zip:
             for membro in arquivo_zip.namelist():
                 if not membro.lower().endswith(".xml") or membro.endswith("/"):
@@ -95,6 +114,7 @@ def importar(conexao, caminho, origem: str | None = None) -> int:
                 else:
                     notas.append((membro, bytes_content, texto, classificacao))
     else:
+        # Trata como um arquivo XML avulso
         bytes_content = caminho.read_bytes()
         texto = bytes_content.decode("utf-8", errors="replace")
         classificacao = classificar_xml(texto)
@@ -151,6 +171,9 @@ def importar(conexao, caminho, origem: str | None = None) -> int:
         ),
     )
 
-    # 4. Devolve o importacao_id
+    # O lote e uma transacao so, e quem a abriu foi esta funcao. ⛔ Nao se
+    # commita dentro dos lacos: um `.zip` ou entra inteiro ou nao entra.
     conexao.commit()
+
+    # 4. Devolve o importacao_id
     return importacao_id

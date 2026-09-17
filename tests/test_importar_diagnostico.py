@@ -33,6 +33,14 @@ CHAVE_1ITEM = "35260499999999000199550010000000011000000017"
 
 XML_QUE_NAO_ABRE = "<isto nao e xml"
 
+# ⚠️ Sem namespace de proposito: o `classificar_xml` le a tag crua, acha o `mod`
+# 55 e responde "nfe" — mas o parser do `nfelib` recusa. E o unico jeito de
+# chegar ao `except ValueError` de `_processar_arquivo`, e por isso o C3.8
+# existe: sem ele aquele ramo nao e exercitado por teste nenhum da suite.
+NFE_QUE_CLASSIFICA_MAS_NAO_ABRE = (
+    "<nfeProc><NFe><infNFe><ide><mod>55</mod></ide></infNFe></NFe></nfeProc>"
+)
+
 
 def _evento(chave=CHAVE_1ITEM):
     return (
@@ -150,9 +158,9 @@ def test_as_duas_passadas_continuam_valendo(conexao, tmp_path):
         _zip(tmp_path, {"1_evento.xml": _evento(), "2_nota.xml": _texto("nfe_55_1item.xml")}),
     )
 
-    status = conexao.execute(
-        "SELECT status FROM notas WHERE chave = ?", (CHAVE_1ITEM,)
-    ).fetchone()[0]
+    status = conexao.execute("SELECT status FROM notas WHERE chave = ?", (CHAVE_1ITEM,)).fetchone()[
+        0
+    ]
     assert status == "cancelada"
 
 
@@ -170,3 +178,20 @@ def test_erro_ao_aplicar_cancelamento_nao_vira_invalida(conexao, tmp_path, monke
         importar(conexao, _avulso(tmp_path, _evento(), nome="evento.xml"))
 
     assert _log(conexao) == []
+
+
+# --- C3.8 (acrescentado no P4) ----------------------------------------------
+def test_nota_que_classifica_como_nfe_mas_nao_abre_e_invalida(conexao, tmp_path):
+    """🔴 ESTE e o ramo que a divida `c` disputava, e a cobertura mostrou que
+    nenhum teste da suite o exercitava.
+
+    O C3.1 manda um arquivo que nem parece XML, e ele para no `elif` de
+    `classificacao == "invalida"` — nunca chega ao `try`. So um XML que PASSA
+    pelo classificador e TRAVA no extrator entra no `except`, e e ele que tem de
+    continuar virando "invalida" depois de `persistir_nota` ter saido de la.
+    """
+    importar(conexao, _avulso(tmp_path, NFE_QUE_CLASSIFICA_MAS_NAO_ABRE))
+
+    resultado, detalhe = _log(conexao)[0]
+    assert resultado == "invalida"
+    assert detalhe

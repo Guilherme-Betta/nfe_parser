@@ -48,7 +48,10 @@ def conexao(tmp_path):
     con = abrir_banco(tmp_path / "nfe.db")
     con.executemany(
         "INSERT INTO categorias (id, slug, nome, is_bucket) VALUES (?, ?, ?, ?)",
-        [(QUEIJO, "queijo-minas", "Queijo Minas", 0), (BUCKET, "uncategorized", "Nao Classificado", 1)],
+        [
+            (QUEIJO, "queijo-minas", "Queijo Minas", 0),
+            (BUCKET, "uncategorized", "Nao Classificado", 1),
+        ],
     )
     con.execute(
         "INSERT INTO notas (chave, modelo, serie, numero, dh_emi, emit_nome, emit_cnpj,"

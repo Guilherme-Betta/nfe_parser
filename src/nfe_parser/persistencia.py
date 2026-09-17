@@ -1,9 +1,47 @@
+"""Uma nota extraida do XML vira linhas no banco: `notas`, `itens`, `produtos`.
+
+A story 013 acrescentou a terceira tabela a essa lista. Ate ela, um item entrava
+como evento de compra solto; agora cada item resolve QUAL produto ele e, e grava
+esse `produto_id` junto.
+
+🔴 NENHUMA FUNCAO DAQUI CHAMA `conexao.commit()`, e isso mudou na 013. Antes
+`persistir_nota` commitava por conta propria, e era a divida `a`: resolver o
+produto e inserir o item TEM de ser a mesma transacao. Com o commit la dentro, a
+nota e os itens ja estariam gravados quando a resolucao de um item POSTERIOR
+falhasse, e o banco ficaria com item sem produto, sem sintoma nenhum.
+
+⭐ A regra agora e a mesma que `produtos.py`, `categorizacao.py`, `seed.py` e
+`taxonomia.py` ja anunciam: quem abriu a transacao e que a fecha. Quem abre o
+lote e `importar`.
+
+⛔ Este modulo NAO classifica. O produto nasce com `categoria_id` e `origem`
+NULL, que e o estado "pendente" que `varredura.py` procura depois.
+"""
+
 import sqlite3
 from datetime import UTC, datetime
+
 from nfe_parser.produtos import resolver_produto_por_gtin, resolver_produto_por_texto
 
 
 def resolver_produto_do_item(conexao, item, emit_cnpj):
+    """Despacha um item de nota para a resolucao de identidade que serve a ele.
+
+    ⭐ E o despachante que faltava entre as duas funcoes de `produtos.py` — a
+    divida `g`. A regra e curta: quem tem codigo de barras se identifica por ele;
+    quem nao tem cai na chave de texto, que so vale DENTRO da loja que emitiu.
+
+    🔴 E ele mora AQUI, e nao em `produtos.py`, de proposito. A regra de despacho
+    e uma politica sobre ITEM DE NOTA, e aquele modulo declara no cabecalho que
+    nao sabe o que e um item: ele fala de GTIN e de texto+CNPJ, nunca de `itens`.
+    Este modulo existe justamente para transformar item de nota em linha de
+    banco, e e aqui que a politica pertence.
+
+    ⚠️ Item sem GTIN em nota sem CNPJ levanta `ValueError`, vindo de
+    `resolver_produto_por_texto`. ⛔ O erro SOBE: engoli-lo deixaria `produto_id`
+    NULL em silencio, e uma chave de texto sem loja nao identificaria nada.
+    """
+
     if item["gtin"]:
         return resolver_produto_por_gtin(conexao, item["gtin"], item["descricao"])
     return resolver_produto_por_texto(conexao, item["descricao"], emit_cnpj)
@@ -12,7 +50,17 @@ def resolver_produto_do_item(conexao, item, emit_cnpj):
 def persistir_nota(
     conexao: sqlite3.Connection, extraido: dict, importacao_id: int | None = None
 ) -> str:
-    """Persiste uma nota e seus itens no banco de dados."""
+    """Persiste uma nota e seus itens, resolvendo a identidade de cada item.
+
+    Devolve `"duplicada"` se a chave ja existe, e `"nova"` se gravou.
+
+    ⭐ A checagem de duplicada e a PRIMEIRA coisa, e continua sendo: nota repetida
+    sai pela porta de cima sem criar produto nenhum.
+
+    ⚠️ Dentro do laco, a ordem importa — resolver ANTES de inserir. Nao porque o
+    SQL exija, mas porque as duas coisas tem de estar na mesma transacao, e e
+    essa transacao que o `commit` de quem chamou vai fechar.
+    """
 
     # Verificando se a nota já existe
     chave = extraido["nota"]["chave"]

@@ -293,7 +293,26 @@ transformou *"como faço passar?"* em *"este teste afirmava a regra antiga?"*.
 
 ---
 
-## 7. ⚠️ O que fica ANOTADO e não vira código
+## 7. Contratos acrescentados FORA do loop *(no P4)*
+
+### C3.8 — nota que classifica como `nfe` mas ⛔ não abre continua sendo `'invalida'`
+
+🔴 **Achado pela cobertura, e ele mostra que o C3.1 não testava o que a docstring dele dizia.**
+
+O C3.1 manda um arquivo que nem parece XML. `classificar_xml` responde `"invalida"`, e o fluxo para
+no `elif` — ⛔ **nunca chega ao `try`**. O ramo `except ValueError` de `_processar_arquivo`, que é
+exatamente o que a dívida `c` disputava, **não era exercitado por teste nenhum da suíte** (`importador.py`
+ficou em 96%, com as trêslinhas do `except` descobertas).
+
+⭐ O C3.8 manda um `<nfeProc>` **sem namespace** com `mod` 55: o classificador aceita, o `nfelib`
+recusa, e o `except` acende. ⛔ Sem ele, trocar o `else` de volta pelo código antigo não quebraria
+nada em `_processar_arquivo`.
+
+📋 Com o C3.8, os quatro alvos da story ficam em **100%** de cobertura.
+
+---
+
+## 8. ⚠️ O que fica ANOTADO e não vira código
 
 - 🔴 **`aplicar_cancelamento` também chama `commit()`** *(`cancelamento.py:77`)* — é a mesma dívida
   `a`, na outra ponta do fluxo, e ⛔ não estava anotada em lugar nenhum. Achada no P1 da 013. Não

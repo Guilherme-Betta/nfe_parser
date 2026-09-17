@@ -165,11 +165,78 @@ existe.** A C1.3 só vale porque a C1.1 afirma a existência ao lado dela; sozin
 
 ## 6. P3 — um comando só
 
-*(preenchido no P3)*
+✅ **4 de 4 verdes na PRIMEIRA rodada**, 4 invocações para 4 tarefas, **4,7 min** de máquina, e a
+suíte completa verde no fim. ⛔ Nenhuma rodada descartada, ⛔ nenhuma sonda.
+
+| # | Tempo | Invocações | Commits | Quem resolveu |
+| - | ----- | ---------- | ------- | ------------- |
+| 1 | 66,9s | 1 | 1 | 🤖 |
+| 2 | 117,4s | 1 | 1 | 🤖 |
+| 3 | 77,5s | 1 | 1 | 🤖 |
+| 4 | 23,0s | 1 | 2 | 🤖 |
+
+### ⭐ A fórmula da 011 se confirmou fora da 011
+
+| # | previsto no P1 | **`sent` real** | erro |
+| - | -------------- | --------------- | ---- |
+| 1 | 4,71k | **4,6k** | −2,3% |
+| 2 | 5,29k | **5,3k** | +0,2% |
+| 3 | 5,81k | **5,3k** | −8,8% |
+| 4 | 4,17k | **4,3k** | +3,1% |
+
+🔴 **Quatro pontos novos, numa story diferente, e a fórmula errou no máximo 9% — sempre para
+MAIS.** ⭐ Com a 011, são sete medidas. ⚠️ Continua sendo um modelo só e uma janela só.
+
+### 🔴 O Achado AD ⛔ NÃO mordeu — e agora se sabe onde está o gatilho
+
+O plano previa que as mensagens 1 e 4, que mandam uma linha de `import`, pudessem puxar
+`produtos.py` e `categorizacao.py` para a conversa. ✅ **Não puxaram.** O log das quatro tarefas
+mostra exatamente **dois** `Added ... to the chat`: o alvo e o módulo de teste.
+
+⭐ **A diferença para a 011 é a FORMA do nome.** Lá a mensagem dizia `` `banco.py` ``, `` `seed.py` ``
+— nome de **arquivo**, com extensão. Aqui ela diz `from nfe_parser.produtos import ...` — caminho
+de **módulo**, pontilhado. 📋 O Aider resolve o primeiro contra o repositório e ⛔ não o segundo.
+
+⚠️ **Um ponto, não uma lei.** Mas é uma saída barata quando um import for inevitável: escreva o
+caminho do módulo, ⛔ nunca o nome do arquivo.
+
+### ⚠️ A tarefa 2 fez uma segunda chamada, com 8,6k — ACIMA do `num_ctx`
+
+Ela ficou **verde na primeira** (7 passed). A segunda chamada é do encerramento do Aider, e o log
+termina em `Summarization failed ... cannot schedule new futures after shutdown`. ⛔ Não afetou o
+resultado, e fica **registrado como fato, sem conclusão**.
 
 ## 7. P4 — revisão, cobertura, estilo
 
-*(preenchido no P4)*
+✅ **Nenhuma docstring publicada se perdeu.** O `whole` reescreveu três arquivos que já tinham
+código — até 5.975 B — e a docstring de `_processar_evento`, a de `nota_para_json`, a de
+`de_centavos` e o cabeçalho de `serializacao.py` voltaram palavra por palavra. ⭐ **Achado R, quinta
+story seguida.**
+
+### O que a revisão achou
+
+| # | Defeito | De quem |
+| - | ------- | ------- |
+| 1 | 🔴 **O C3.1 não exercitava o ramo que a docstring dele dizia** — ver §7 da spec | 📋 meu, no P2 |
+| 2 | Dois comentários sumiram de `importar` (`# 2. Abre o .zip`, `# Trata como um arquivo XML avulso`) | 📋 meu: a mensagem mandou trocar o bloco por código que não os tinha |
+| 3 | O `conexao.commit()` entrou **depois** do comentário `# 4. Devolve o importacao_id`, que passou a rotular a linha errada | 🤖 do modelo |
+| 4 | O import novo colou no bloco da stdlib, sem linha em branco | 🤖 do modelo — o `ruff` resolveu |
+
+⚠️ **O modelo local não escreveu docstring nenhuma. Oitava story seguida.** As de
+`resolver_produto_do_item`, `classificar_produtos_pendentes`, os dois cabeçalhos de módulo novos e a
+ampliação das de `persistir_nota` e `_itens_da_nota` entraram todas aqui.
+
+### Cobertura, depois do C3.8
+
+| Módulo | Cobertura |
+| ------ | --------- |
+| `persistencia.py` | **100%** |
+| `serializacao.py` | **100%** |
+| `importador.py` | **100%** *(era 96% antes do C3.8)* |
+| `varredura.py` | **100%** |
+
+✅ `ruff format` e `ruff check --fix` sobre `src/ tests/` — ⛔ nunca `.`, que reformataria os blocos
+de código dos `.md` das tarefas. **354 testes verdes.**
 
 ## 8. O que pode dar errado
 
