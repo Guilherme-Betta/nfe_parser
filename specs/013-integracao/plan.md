@@ -51,15 +51,18 @@ ele está afirmando o que diz afirmar.
 
 > `sent ≈ 0,66k + bytes(alvo + teste + mensagem) / 3,4` · janela `num_ctx: 8192`
 
-⚠️ **O tamanho dos testes é estimativa** até o P2 fechar (5.000 B por módulo, contra 1.8k–5.6k dos
-módulos já publicados). 📋 A linha fica conferida com o primeiro `Tokens: sent` real.
+⭐ **A tabela abaixo está MEDIDA**: os testes existem (P2 fechado) e o tamanho da saída é o do
+protótipo *(Achado V)*. ⛔ Nada aqui é estimativa, exceto a própria fórmula.
 
-| # | alvo | mensagem | teste (est.) | soma | **`sent` previsto** | folga p/ saída |
-| - | ---- | -------- | ------------ | ---- | ------------------- | -------------- |
-| 1 | 2.475 | 4.341 | ~5.000 | 11.816 | **~4,1k** | ~4,1k |
-| 2 | 5.395 | 3.970 | ~5.000 | 14.365 | **~4,9k** | ~3,3k |
-| 3 | 5.975 | 5.401 | ~5.000 | 16.376 | **~5,5k** | ~2,7k |
-| 4 | 0 🆕 | 4.571 | ~5.000 | 9.571 | **~3,5k** | ~4,7k |
+| # | alvo | mensagem | teste | soma | `sent` | saída | **total vs. 8.192** |
+| - | ---- | -------- | ----- | ---- | ------ | ----- | ------------------- |
+| 1 | 2.475 | 4.341 | 6.963 | 13.779 | ~4,71k | 2.883 B → ~0,85k | **~5,6k** ✅ |
+| 2 | 5.395 | 3.970 | 6.363 | 15.728 | ~5,29k | 5.714 B → ~1,68k | **~7,0k** ✅ |
+| 3 | 5.975 | 5.401 | 6.131 | 17.507 | ~5,81k | 6.088 B → ~1,79k | **~7,6k** ⚠️ |
+| 4 | 0 🆕 | 4.571 | 7.361 | 11.932 | ~4,17k | 751 B → ~0,22k | **~4,4k** ✅ |
+
+🔴 **Os oráculos saíram 27% maiores que a estimativa do P1** (6,1k–7,4k, contra 5,0k chutados). É o
+insumo que mais pesa depois do alvo, e ⛔ não dá para encolhê-lo sem encolher o contrato.
 
 ⭐ **As quatro cabem com folga larga.** Contra a fórmula antiga (teto ~8.100 B de insumo), **três das
 quatro seriam declaradas impossíveis** — e a 013 teria sido reorganizada contra uma régua errada, que
@@ -83,8 +86,9 @@ conferido **entre as tarefas**.
 
 ### ⚠️ A tarefa 3 é a mais apertada, e tem plano B
 
-A saída dela é o `importador.py` inteiro reescrito — ~6.200 B, ~1,8k tokens de saída sobre ~5,5k de
-entrada. 📋 A mensagem já foi enxugada de 6.373 para 5.401 bytes por causa disso.
+Medida: **~7,6k de 8.192**, ~590 tokens de folga (7%). 📋 Duas coisas já foram feitas por causa dela:
+a mensagem foi enxugada de 6.373 para 5.401 bytes, e o **C3.6 foi cortado do oráculo** — ele afirmava
+os contadores, que `test_importacao_contadores.py` já afirma. ⭐ As duas juntas compraram ~600 tokens.
 
 ⛔ **Se ela falhar com `did not conform to the edit format` e `sent` alto**, o plano B é tirar a
 dívida **d** da tarefa: ela é a única opcional das quatro *(§288 do recorte: "pague se já estiver com
@@ -111,7 +115,53 @@ e a saída encolheria.
 
 ## 5. P2 — os oráculos
 
-*(preenchido no P2)*
+Quatro módulos novos, **29 testes**, um módulo por tarefa *(Achado F)*. ⚠️ Nenhum passa de 8 testes
+*(Achado N)*. Mais a alteração de **duas linhas** em `test_itens_no_json.py` *(D12)*.
+
+🔴 **O vermelho certo, conferido antes de qualquer implementação:** 16 vermelhos, 13 verdes e um
+`ModuleNotFoundError` em `test_varredura_pendentes.py` — que é o vermelho esperado de módulo que ainda
+não existe, ⛔ e não `No module named pytest`.
+
+⭐ **Os 13 verdes são informação, não ruído:** são as guardas de regressão (C3.1, C3.5) e os
+critérios que o código de hoje já satisfaz. ⚠️ **O C3.3 é o caso interessante: ele passa POR ACIDENTE**,
+porque `persistir_nota` ainda commita. Depois da tarefa 1 ele fica vermelho, e só a tarefa 3 o acende
+de novo — 📋 previsto na §2, e ⛔ não é regressão quando aparecer no `verify.py` entre as tarefas.
+
+### 📋 Metade 1 — satisfazível *(Achado S)*
+
+Protótipo de referência → suíte inteira → **354 passed** (324 publicados + 30 novos), ⛔ zero
+regressão → apagado → `git status` com só os oráculos e a spec.
+
+⭐ **A armadilha da 011 foi desarmada antes de morder:** a cópia do protótipo ficou **fora do repo**,
+no scratchpad, e o script de mutação restaura num `finally`.
+
+### 🔴 Metade 2 — mordente *(Achado U)*
+
+📋 **A previsão foi escrita ANTES de rodar.** Dez mutações, e as dez bateram.
+
+| M | Mutação | Previsto | Acendeu |
+| - | ------- | -------- | ------- |
+| M1 | despachante sempre por texto | C1.1, C1.3 | ✅ as duas |
+| M2 | devolve o `commit()` a `persistir_nota` | C1.5 | ✅ só ele |
+| M3 | não grava `produto_id` | C1.1, C1.2, C1.4, C1.7 — ⚠️ **e C1.3 NÃO** | ✅ exato, C1.3 verde |
+| M4 | `LEFT JOIN` → `JOIN` | C2.2, C2.3, C2.6 | ✅ + 3 publicados |
+| M5 | as duas chaves somem da saída | C2.2, C2.3 + `test_itens_no_json` | ✅ + C2.1, C2.4, C2.5 |
+| M6 | `persistir_nota` volta para dentro do `try` | C3.2 | ✅ só ele |
+| M7 | tira o `commit()` de `importar` | C3.3 | ✅ só ele |
+| M8 | pendente vira `categoria_id IS NULL` | C4.2 | ✅ só ele |
+| M9 | `ORDER BY id DESC` → `ASC` | C4.6 | ✅ só ele |
+| M10 | conta os visitados, não os resgatados | C4.5, C4.7 | ✅ as duas |
+
+⭐ **A M3 é a que ensina alguma coisa.** A previsão dizia que a **C1.3 ficaria VERDE** mesmo com o
+`produto_id` nunca gravado — porque ela compara o produto dos dois itens, e `None == None` é
+verdadeiro. E ficou. 🔴 **Um oráculo que compara dois resultados não prova que qualquer um dos dois
+existe.** A C1.3 só vale porque a C1.1 afirma a existência ao lado dela; sozinha, ela seria oca.
+
+⚠️ **Duas ressalvas honestas sobre a rodada:**
+- A previsão de cada mutação listava só os testes **do módulo novo**. A M4 e a M5 também acenderam
+  testes **publicados** — acerto por baixo, ⛔ não erro, mas a previsão era mais estreita que o efeito.
+- A M5 foi escrita como *"omite a chave quando é `None`"* e implementada como *"as duas chaves somem
+  sempre"*. ⚠️ O que rodou foi a segunda, e por isso acendeu mais que o previsto.
 
 ## 6. P3 — um comando só
 

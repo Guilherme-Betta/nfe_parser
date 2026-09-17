@@ -247,8 +247,12 @@ modelo local — ele recebe testes por `--read`.
 | C3.3 | `importar` **commita** o lote: outra conexão ao mesmo arquivo enxerga a nota |
 | C3.4 | cada arquivo é classificado **uma** vez por `classificar_xml` *(dívida d)* |
 | C3.5 | as duas passadas continuam: evento que vem **antes** da nota no `.zip` ainda se aplica |
-| C3.6 | os contadores de `importacoes` continuam batendo |
 | C3.7 | `ValueError` levantado por `aplicar_cancelamento` ⛔ **não** vira `'invalida'`: sobe |
+
+⚠️ **O C3.6 foi CORTADO no P2, e a numeração não foi reaproveitada.** Ele afirmaria os contadores
+de `importacoes`, que `test_importacao_contadores.py` já afirma — e a tarefa 3 é a mais apertada da
+story na janela. ⭐ O oráculo publicado roda no `verify.py` **entre as tarefas**, que é onde a
+regressão apareceria de qualquer jeito.
 
 ### C4 — a varredura resgata os pendentes — `tests/test_varredura_pendentes.py`
 

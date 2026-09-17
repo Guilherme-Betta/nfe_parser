@@ -23,6 +23,11 @@ CHAVE = "35260499999999000199550010000000011000000017"
 CHAVE_SEM_ITEM = "35260499999999000199550010000000033000000031"
 CHAVE_AUSENTE = "35260499999999000199550010000000099000000099"
 
+# ⚠️ ALTERADA NA STORY 013, de proposito e declarado no P1 dela (D12): a tarefa
+# 2 acrescenta `categoria_slug` e `categoria` NO FIM do item. A spec 02 manda a
+# saida crescer, entao acrescentar chave e contrato novo -- nao e quebra. O
+# `assert list(item) == CHAVES_DO_ITEM` la embaixo e igualdade ESTRITA e
+# ORDENADA, e era ele o risco R2 do recorte.
 CHAVES_DO_ITEM = [
     "n_item",
     "descricao",
@@ -34,6 +39,8 @@ CHAVES_DO_ITEM = [
     "valor_unitario",
     "valor_linha_centavos",
     "valor_linha",
+    "categoria_slug",
+    "categoria",
 ]
 
 CHAVES_DA_NOTA = [
