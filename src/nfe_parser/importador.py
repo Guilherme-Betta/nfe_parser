@@ -9,10 +9,8 @@ from nfe_parser.extrator import extrair_nota
 from nfe_parser.persistencia import persistir_nota
 
 
-def _processar_arquivo(conexao, importacao_id, nome, conteudo_bytes) -> None:
+def _processar_arquivo(conexao, importacao_id, nome, conteudo_bytes, texto, classificacao) -> None:
     arquivo_hash = hashlib.sha256(conteudo_bytes).hexdigest()
-    texto = conteudo_bytes.decode("utf-8", errors="replace")
-    classificacao = classificar_xml(texto)
     resultado = None
     chave = None
     detalhe = None
@@ -20,11 +18,12 @@ def _processar_arquivo(conexao, importacao_id, nome, conteudo_bytes) -> None:
     if classificacao == "nfe":
         try:
             extraido = extrair_nota(texto)
-            resultado = persistir_nota(conexao, extraido, importacao_id)
-            chave = extraido["nota"]["chave"]
         except ValueError as e:
             resultado = "invalida"
             detalhe = str(e)
+        else:
+            resultado = persistir_nota(conexao, extraido, importacao_id)
+            chave = extraido["nota"]["chave"]
     elif classificacao == "nao_suportado_sat":
         resultado = "nao_suportado_sat"
     elif classificacao == "invalida":
@@ -38,7 +37,7 @@ def _processar_arquivo(conexao, importacao_id, nome, conteudo_bytes) -> None:
     )
 
 
-def _processar_evento(conexao, importacao_id, nome, conteudo_bytes) -> None:
+def _processar_evento(conexao, importacao_id, nome, conteudo_bytes, texto) -> None:
     """Aplica um evento de cancelamento e registra a linha dele no log do lote.
 
     So e chamada na SEGUNDA passada de `importar`, quando todas as notas do
@@ -47,20 +46,20 @@ def _processar_evento(conexao, importacao_id, nome, conteudo_bytes) -> None:
     """
 
     arquivo_hash = hashlib.sha256(conteudo_bytes).hexdigest()
-    texto = conteudo_bytes.decode("utf-8", errors="replace")
     chave = None
     detalhe = None
 
     try:
         evento = extrair_evento(texto)
-        resultado = aplicar_cancelamento(conexao, evento)
-        chave = evento["ch_nfe"]
     except ValueError as e:
         # Evento que nao abre e `invalida`, o mesmo tratamento que uma nota que
         # nao abre recebe. Sem este `except` a excecao sobe e derruba o lote
         # inteiro -- inclusive as notas boas, que nao tem culpa nenhuma.
         resultado = "invalida"
         detalhe = str(e)
+    else:
+        resultado = aplicar_cancelamento(conexao, evento)
+        chave = evento["ch_nfe"]
 
     # INSERT em `importacao_arquivos`
     conexao.execute(
@@ -84,33 +83,33 @@ def importar(conexao, caminho, origem: str | None = None) -> int:
     eventos = []
 
     if caminho.suffix.lower() == ".zip":
-        # 2. Abre o .zip
         with zipfile.ZipFile(caminho, "r") as arquivo_zip:
             for membro in arquivo_zip.namelist():
                 if not membro.lower().endswith(".xml") or membro.endswith("/"):
                     continue
                 bytes_content = arquivo_zip.read(membro)
                 texto = bytes_content.decode("utf-8", errors="replace")
-                if classificar_xml(texto) == "evento":
-                    eventos.append((membro, bytes_content))
+                classificacao = classificar_xml(texto)
+                if classificacao == "evento":
+                    eventos.append((membro, bytes_content, texto))
                 else:
-                    notas.append((membro, bytes_content))
+                    notas.append((membro, bytes_content, texto, classificacao))
     else:
-        # Trata como um arquivo XML avulso
         bytes_content = caminho.read_bytes()
         texto = bytes_content.decode("utf-8", errors="replace")
-        if classificar_xml(texto) == "evento":
-            eventos.append((caminho.name, bytes_content))
+        classificacao = classificar_xml(texto)
+        if classificacao == "evento":
+            eventos.append((caminho.name, bytes_content, texto))
         else:
-            notas.append((caminho.name, bytes_content))
+            notas.append((caminho.name, bytes_content, texto, classificacao))
 
     # PRIMEIRA passada -- so a lista `notas`
-    for nome, conteudo_bytes in notas:
-        _processar_arquivo(conexao, importacao_id, nome, conteudo_bytes)
+    for nome, conteudo_bytes, texto, classificacao in notas:
+        _processar_arquivo(conexao, importacao_id, nome, conteudo_bytes, texto, classificacao)
 
     # SEGUNDA passada -- so a lista `eventos`, depois de todas as notas estarem no banco
-    for nome, conteudo_bytes in eventos:
-        _processar_evento(conexao, importacao_id, nome, conteudo_bytes)
+    for nome, conteudo_bytes, texto in eventos:
+        _processar_evento(conexao, importacao_id, nome, conteudo_bytes, texto)
 
     # 3. UPDATE em `importacoes`
     finalizado_em = datetime.now(UTC).isoformat()
@@ -153,4 +152,5 @@ def importar(conexao, caminho, origem: str | None = None) -> int:
     )
 
     # 4. Devolve o importacao_id
+    conexao.commit()
     return importacao_id

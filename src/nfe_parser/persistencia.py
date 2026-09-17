@@ -1,5 +1,12 @@
 import sqlite3
 from datetime import UTC, datetime
+from nfe_parser.produtos import resolver_produto_por_gtin, resolver_produto_por_texto
+
+
+def resolver_produto_do_item(conexao, item, emit_cnpj):
+    if item["gtin"]:
+        return resolver_produto_por_gtin(conexao, item["gtin"], item["descricao"])
+    return resolver_produto_por_texto(conexao, item["descricao"], emit_cnpj)
 
 
 def persistir_nota(
@@ -66,8 +73,10 @@ def persistir_nota(
         "valor_unitario",
         "valor_linha",
         "criado_em",
+        "produto_id",
     ]
     for item in itens:
+        produto_id = resolver_produto_do_item(conexao, item, nota["emit_cnpj"])
         valores_itens = [
             nota["chave"],
             item["n_item"],
@@ -80,12 +89,10 @@ def persistir_nota(
             item["valor_unitario"],
             item["valor_linha"],
             datetime.now(UTC).isoformat(),
+            produto_id,
         ]
         placeholders = ", ".join("?" for _ in campos_itens)
         query_itens = f"INSERT INTO itens ({', '.join(campos_itens)}) VALUES ({placeholders})"
         conexao.execute(query_itens, valores_itens)
-
-    # Commitando as mudanças
-    conexao.commit()
 
     return "nova"

@@ -100,9 +100,13 @@ def _itens_da_nota(conexao, chave: str) -> list[dict]:
     segundo ja esta na nota que contem a lista.
     """
     cursor = conexao.execute(
-        "SELECT n_item, descricao, cprod, ncm, gtin, quantidade, unidade,"
-        " valor_unitario, valor_linha"
-        " FROM itens WHERE nota_chave = ? ORDER BY n_item",
+        "SELECT i.n_item, i.descricao, i.cprod, i.ncm, i.gtin, i.quantidade,"
+        " i.unidade, i.valor_unitario, i.valor_linha,"
+        " c.slug AS categoria_slug, c.nome AS categoria"
+        " FROM itens i"
+        " LEFT JOIN produtos p ON p.id = i.produto_id"
+        " LEFT JOIN categorias c ON c.id = p.categoria_id"
+        " WHERE i.nota_chave = ? ORDER BY i.n_item",
         (chave,),
     )
     colunas = [d[0] for d in cursor.description]
@@ -123,6 +127,8 @@ def _itens_da_nota(conexao, chave: str) -> list[dict]:
                 "valor_unitario": item["valor_unitario"],
                 "valor_linha_centavos": centavos,
                 "valor_linha": de_centavos(centavos),
+                "categoria_slug": item["categoria_slug"],
+                "categoria": item["categoria"],
             }
         )
     return itens
