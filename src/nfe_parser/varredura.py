@@ -25,10 +25,10 @@ varredura dentro da importacao, TODA importacao em banco nao semeado explodiria.
 Quem decide varrer e quem tem taxonomia carregada.
 """
 
-from nfe_parser.categorizacao import classificar_produto
+from nfe_parser.classificacao_llm import classificar_produto_com_llm
 
 
-def classificar_produtos_pendentes(conexao) -> int:
+def classificar_produtos_pendentes(conexao, llm=None) -> int:
     """Roda a cascata sobre todo produto PENDENTE. Devolve quantos sairam de la.
 
     🔴 PENDENTE E `origem IS NULL`, e nunca `categoria_id IS NULL`. E o mesmo erro
@@ -69,7 +69,7 @@ def classificar_produtos_pendentes(conexao) -> int:
         ).fetchone()
         ncm = linha[0] if linha else None
 
-        classificar_produto(conexao, produto_id, ncm)
+        classificar_produto_com_llm(conexao, produto_id, ncm, llm)
         origem = conexao.execute(
             "SELECT origem FROM produtos WHERE id = ?", (produto_id,)
         ).fetchone()[0]
