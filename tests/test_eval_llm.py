@@ -109,6 +109,12 @@ def test_linha_sem_categoria_na_taxonomia_fica_fora_da_acuracia():
     assert None not in resultado["por_categoria"]
     assert None not in resultado["matriz"]
 
+    # ⭐ Acrescentado no P4 (spec §8): a cobertura de ramos mostrou que nenhuma
+    # linha fora da taxonomia tinha RESPOSTA do LLM. Sem isto, `no_bucket` podia
+    # contar todas as linhas de fora, e nada acendia.
+    respondida = avaliar([("OUTRO ITEM SEM LUGAR", None)], ["bebidas"])
+    assert respondida["fora_da_taxonomia"] == {"total": 1, "no_bucket": 0}
+
 
 # --- C4.8 -------------------------------------------------------------------
 def test_tamanhos_diferentes_levantam_e_nada_avaliado_da_acuracia_none():

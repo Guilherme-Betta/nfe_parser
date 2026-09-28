@@ -121,11 +121,70 @@ exato**: acender a mais também reprova. **Quinze mutações, quinze bateram.**
 acontece **quando o LLM não muda nada** — e uma varredura que ignora o parâmetro satisfaz as duas. 🔴
 **Só a C3.1 prova que o `llm` chega ao degrau**; sem ela, as outras duas seriam ocas.
 
-## 6. P3 — um comando só
+## 6. P3 — um comando só, que virou quatro
 
-*(a preencher depois da rodada)*
+✅ **4 de 4 verdes, todas 🤖**, suíte completa verde no fim (**381**). ⚠️ Mas ⛔ não numa rodada só:
+o computador caiu no meio da tarefa 3, e a tarefa 3 parou uma vez. O registro inteiro, com as quatro
+execuções, está em `passo3-registro.md`.
 
-## 7. O que entra FORA do loop, no P4
+### ⭐ A fórmula de orçamento, mais três pontos com `whole`
+
+| # | previsto | **`sent` real** | erro |
+| - | -------- | --------------- | ---- |
+| 1 | 3,39k | **3,5k** | +3,2% |
+| 2 | 3,55k | **3,6k** | +1,4% |
+| 4 | 3,11k | **3,2k** | +2,9% |
+
+⚠️ Os três erraram **para menos** desta vez — o contrário da 013. Continua dentro de 9%.
+
+### 🔴 Achado novo: o Achado AD dispara pela RESPOSTA, quando o alvo cita arquivos
+
+A tarefa 3 veio **certa** e ⛔ não foi aplicada. O `whole` obriga o modelo a devolver o arquivo
+inteiro, a docstring publicada da varredura cita cinco arquivos pelo nome, e o Aider os puxou da
+**resposta** para a conversa (17k tokens). O remédio foi `--edit-format diff` só nesta tarefa.
+
+📋 **A regra prática que sai daqui:** alvo **publicado** cuja docstring cita nome de arquivo `.py` ⛔
+não vai com `whole`. Com `diff`, custou ~2k a mais de `sent` (5,5k contra 3,54k previstos), e coube.
+
+### ⚠️ O crash
+
+O `rodar_passo3.py` só grava o registro no fim. Uma rodada interrompida perde o registro das tarefas
+já verdes — ⭐ os commits sobrevivem, os números não. Reconstruídos da saída de terminal, que por
+sorte estava num arquivo.
+
+## 7. P4 — revisão, cobertura, estilo
+
+✅ **A revisão do código inteiro não achou defeito de lógica.** Os quatro arquivos são o protótipo
+quase linha a linha, e as 15 mutações do P2 continuam valendo sobre eles.
+
+| # | O quê | De quem |
+| - | ----- | ------- |
+| 1 | 🔴 **C3.4:** a guarda `or not descricao` não tinha teste, e a cobertura de ramos dava 100% — ver §8 da spec | 📋 meu, no P2 |
+| 2 | 🔴 **C4.7:** linha fora da taxonomia com resposta do LLM não tinha teste — a cobertura de ramos achou | 📋 meu, no P2 |
+| 3 | `# PASSO 1` … `# PASSO 6` em `classificacao_llm.py`, copiados da estrutura da mensagem | 🤖 — viraram docstring |
+| 4 | laço que relia o dicionário três vezes (`PLC0206`) | 🤖 — `.items()` |
+
+⭐ **A lição do item 1 é nova:** a 013 aprendeu que a cobertura acha o que a mutação e a revisão não
+acham. Aqui foi o contrário — ⛔ **cobertura de ramos não enxerga os dois lados de um `or`.** Quem
+achou foi ler o código com a spec do lado.
+
+⚠️ **O modelo local não escreveu docstring nenhuma. Nona story seguida.**
+
+| Módulo | Linhas | Ramos |
+| ------ | ------ | ----- |
+| `llm.py` | 100% | 100% |
+| `classificacao_llm.py` | 100% | 100% |
+| `varredura.py` | 100% | 100% |
+| `eval_llm.py` | 100% | 100% *(era 98% antes do C4.7)* |
+
+✅ `ruff format` e `ruff check --fix` sobre `src/ tests/` e o script novo. **382 testes verdes.**
+
+### O eval de verdade
+
+`scripts/rodar_eval.py` rodou o gold do Gui contra dois modelos locais, com `LLM_LIMIAR=0`. ⛔ Os
+números ficam no repositório privado — trazem as descrições dos produtos. 🛑 **A decisão é do Gui.**
+
+## 7b. O que entrou FORA do loop, no P4
 
 | | Por quê fora |
 | - | ------------ |

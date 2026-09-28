@@ -284,7 +284,9 @@ O gold do Gui, com 19 produtos, já mostrou quatro coisas antes de qualquer núm
   Frango, Tomate, Feijão, Leite, Desodorante). No CSV eles viram o nível que existe; o rótulo original
   fica guardado. ⭐ É sinal de produto: o Gui quer categorias mais finas.
 - 🔴 **Categorias que faltam:** molho, sono/dilatador nasal, smoothie, algo para mochila. É a
-  ressalva `adicionar_categoria` de novo, agora com exemplos reais.
+  ressalva `adicionar_categoria` de novo, agora com exemplos reais. ⚠️ No CSV, só **molho** e
+  **mochila** ficaram com `esperado` vazio: para sono e smoothie o grupo existe (`saude`,
+  `restaurante-e-delivery`), e a regra da conversão é "o nível mais fundo do rótulo que existe".
 - ⚠️ **Tags** ("Online", "Desnatado") — fora da spec 02 (§5). E "comprado na internet" é atributo da
   **compra**, não do produto: o mesmo item pode vir da loja e do app.
 - ⚠️ **Delivery × Restaurante não está no texto do item.** Um "COMBO" de restaurante não diz
@@ -299,3 +301,37 @@ E do desenho:
   bucket. Só acontece se alguém chamar a cascata num produto `llm` à mão — a varredura não o faz.
 - ⚠️ **O acerto do eval é exato** (D11). "Acerto no grupo" (previu `mercado`, esperado
   `mercado-laticinios`) seria outra métrica, e ⛔ não foi inventada aqui.
+- ⚠️ **`LLM_LIMIAR` não é conferido contra 0..1.** Um limiar `2` recusaria toda resposta, e o LLM
+  ficaria ligado sem nunca classificar nada — sem erro. Barato de acrescentar; ⛔ não pedido.
+
+---
+
+## 8. Contratos acrescentados FORA do loop *(no P4)*
+
+### C3.4 — produto sem `descricao_exemplo` ⛔ não é enviado ao LLM
+
+🔴 **Achado pela revisão, e ⛔ NÃO pela cobertura.** A guarda da D6 é o lado direito de um `or`
+(`if origem is not None or not descricao`), e a cobertura de **ramos** mede a linha do `if` — não
+cada lado dele. Deu **100%** em `classificacao_llm.py` com o lado direito nunca exercitado.
+
+📋 **Provado por mutação antes de escrever o teste:** apagar `or not descricao` deixava a suíte
+inteira **verde**. Com o C3.4, acende só ele. ⭐ Mora em `test_varredura_llm.py` (4 testes), e ⛔ não
+no do degrau, que já tem 8 *(Achado N)*.
+
+### C4.7 ampliado — linha fora da taxonomia **com resposta** do LLM
+
+🔴 **Achado pela cobertura de ramos:** `eval_llm.py` em 98%, com o ramo `32->34` descoberto. O gold
+sintético só tinha linha fora da taxonomia que o LLM mandou ao bucket; `no_bucket` podia contar
+**todas** as linhas de fora e nada acendia.
+
+📋 **Provado por mutação:** `if previsto is None` → `if True` ficava verde. Com a ampliação, acende o
+C4.7.
+
+### O que também entrou no P4, e ⛔ não é contrato
+
+- `scripts/rodar_eval.py` — a cola entre as quatro peças e um Ollama de verdade. ⛔ Sem teste: sem
+  Ollama não há o que testar, e com Ollama o resultado depende do modelo.
+- As docstrings dos três módulos novos, e a correção de duas publicadas: a de `classificar_produto`
+  (a "linha de diff" da §2) e o cabeçalho de `varredura.py`.
+- ⚠️ **Os números do eval com o gold do Gui NÃO estão aqui**, porque trazem as descrições dos produtos.
+  Estão no repositório privado do workflow.

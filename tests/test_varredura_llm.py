@@ -43,7 +43,9 @@ def conexao(tmp_path):
             (BUCKET, "uncategorized", "Nao Classificado", 1),
         ],
     )
-    con.execute("INSERT INTO ncm_ancora (prefixo, categoria_id) VALUES (?, ?)", (NCM_QUEIJO, QUEIJO))
+    con.execute(
+        "INSERT INTO ncm_ancora (prefixo, categoria_id) VALUES (?, ?)", (NCM_QUEIJO, QUEIJO)
+    )
     con.execute(
         "INSERT INTO notas (chave, modelo, serie, numero, dh_emi, emit_nome, emit_cnpj,"
         " emit_municipio, emit_uf, valor_total, forma_pagamento, xml_raw, criado_em)"
@@ -55,11 +57,12 @@ def conexao(tmp_path):
     con.close()
 
 
-def _produto_com_item(con, ncm):
+def _produto_com_item(con, ncm, descricao_exemplo="REFRIG COLA PET 2L"):
     produto_id = con.execute(
         "INSERT INTO produtos (identidade_origem, gtin, descricao_exemplo, criado_em,"
-        " atualizado_em) VALUES ('gtin', '7891111111111', 'REFRIG COLA PET 2L',"
-        " '2000-01-01T00:00:00+00:00', '2000-01-01T00:00:00+00:00')"
+        " atualizado_em) VALUES ('gtin', '7891111111111', ?,"
+        " '2000-01-01T00:00:00+00:00', '2000-01-01T00:00:00+00:00')",
+        (descricao_exemplo,),
     ).lastrowid
     con.execute(
         "INSERT INTO itens (nota_chave, n_item, descricao, cprod, ncm, gtin, quantidade,"
@@ -103,3 +106,18 @@ def test_llm_que_nao_sabe_deixa_no_bucket_e_nao_conta(conexao):
     assert classificar_produtos_pendentes(conexao, llm=LlmFalso(None)) == 0
     assert _campo(conexao, produto_id, "categoria_id") == BUCKET
     assert _campo(conexao, produto_id, "origem") is None
+
+
+# --- C3.4 -- acrescentado no P4 (spec §8) ------------------------------------
+def test_produto_sem_descricao_nao_e_enviado_ao_llm(conexao):
+    """D6: sem `descricao_exemplo` nao ha o que perguntar. Achado pela revisao, e
+    ⛔ NAO pela cobertura: a guarda e o lado direito de um `or`, e a cobertura de
+    ramos mede a linha do `if`, nao cada lado dele. O `llm` falso responderia com
+    uma categoria valida — sem a guarda, o produto sairia do bucket com uma
+    resposta a uma pergunta que nunca teve conteudo."""
+    produto_id = _produto_com_item(conexao, None, descricao_exemplo=None)
+    llm = LlmFalso(("bebidas", 0.9))
+
+    assert classificar_produtos_pendentes(conexao, llm=llm) == 0
+    assert _campo(conexao, produto_id, "origem") is None
+    assert llm.chamadas == []

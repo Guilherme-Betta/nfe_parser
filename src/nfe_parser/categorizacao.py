@@ -2,7 +2,8 @@
 
 Implementa o paragrafo 4 de `specs/02_spec_classificacao.md`, passos 1, 2 e 4 —
 o MVP que a propria spec declara: "base (memoria+NCM+bucket) e o MVP e funciona
-sem LLM". ⛔ O passo 3 (LLM) e a story 012 e NAO existe aqui.
+sem LLM". ⛔ O passo 3 (LLM) NAO existe aqui, e nao vai existir: a story 012 o
+pos em `classificacao_llm.py`, por composicao sobre `classificar_produto`.
 
 A story 008 respondeu "QUAL produto e este item". Este modulo responde a outra
 metade: "que categoria e este produto". Classifica-se o PRODUTO, nunca a linha
@@ -124,8 +125,13 @@ def classificar_produto(conexao, produto_id, ncm):
 
     Os tres degraus estao escritos em sequencia, e nao como lista de regras no
     nivel do modulo. ⭐ Sao tres passos fixos sem ponto de extensao externo: a
-    indirecao custaria mais do que economiza, e a story 012 acrescenta o degrau
-    do LLM editando esta funcao, que e uma linha de diff.
+    indirecao custaria mais do que economiza.
+
+    ⚠️ Esta docstring prometia que a story 012 acrescentaria o degrau do LLM
+    editando esta funcao, "uma linha de diff". Nao aconteceu: com o
+    `--edit-format whole` do kit, a linha custa o arquivo inteiro, e a tarefa nao
+    cabia na janela do modelo local. O degrau mora em `classificacao_llm.py`, que
+    chama esta funcao e so pergunta ao LLM quando a `origem` continua NULL.
 
     🔴 O passo 1 olha a `origem`, nunca o `categoria_id`. Ver o cabecalho do
     modulo: confundir os dois prenderia no bucket todo produto que caisse la.

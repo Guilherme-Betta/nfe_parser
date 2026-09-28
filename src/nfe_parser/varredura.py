@@ -15,6 +15,11 @@ sem nota nenhuma no banco.
 ⭐ Entao este e o modulo "que os liga": ele conhece `produtos`, conhece `itens`, e
 chama a cascata. ⛔ Ele NAO reimplementa degrau nenhum dela.
 
+⭐ Desde a story 012 ele chama a cascata COM o degrau do LLM
+(`classificar_produto_com_llm`), e passa adiante o `llm` que receber. Sem `llm`,
+o comportamento e exatamente o da 013: o LLM e opt-in, e quem o liga e quem
+chama a varredura.
+
 ⚠️ Nenhuma funcao daqui chama `conexao.commit()` — mesma regra de `produtos.py`,
 `categorizacao.py`, `seed.py`, `taxonomia.py` e, desde a 013, `persistencia.py`.
 
