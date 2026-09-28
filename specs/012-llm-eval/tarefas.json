@@ -1,0 +1,33 @@
+{
+  "story": "012-llm-eval",
+  "tarefas": [
+    {
+      "id": "1",
+      "titulo": "llm.py: a conversa com o Ollama e o contrato da resposta",
+      "alvo": "src/nfe_parser/llm.py",
+      "teste": "tests/test_llm_contrato.py",
+      "mensagem": "specs/012-llm-eval/tarefas/tarefa-01.md"
+    },
+    {
+      "id": "2",
+      "titulo": "classificacao_llm.py: o degrau do LLM, por composicao sobre a cascata da 009",
+      "alvo": "src/nfe_parser/classificacao_llm.py",
+      "teste": "tests/test_degrau_llm.py",
+      "mensagem": "specs/012-llm-eval/tarefas/tarefa-02.md"
+    },
+    {
+      "id": "3",
+      "titulo": "a varredura passa o llm adiante",
+      "alvo": "src/nfe_parser/varredura.py",
+      "teste": "tests/test_varredura_llm.py",
+      "mensagem": "specs/012-llm-eval/tarefas/tarefa-03.md"
+    },
+    {
+      "id": "4",
+      "titulo": "eval_llm.py: o harness que mede o LLM contra um gold",
+      "alvo": "src/nfe_parser/eval_llm.py",
+      "teste": "tests/test_eval_llm.py",
+      "mensagem": "specs/012-llm-eval/tarefas/tarefa-04.md"
+    }
+  ]
+}
