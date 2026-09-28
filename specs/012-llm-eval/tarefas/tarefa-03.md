@@ -1,7 +1,7 @@
 O arquivo `src/nfe_parser/varredura.py` JA EXISTE e tem UM import e UMA funcao,
 `classificar_produtos_pendentes`.
 
-Voce vai devolver o arquivo INTEIRO. Sao TRES mudancas nele, e mais nada.
+Sao TRES mudancas nele, e mais nada. Edite SO as tres linhas abaixo; o resto do arquivo nao se toca.
 
 
 MUDANCA 1 -- TROQUE O IMPORT
