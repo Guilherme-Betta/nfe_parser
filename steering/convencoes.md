@@ -1,8 +1,7 @@
 # Convencoes — NF-e Despesas (`nfe_parser`)
 
-> Preenchido no bootstrap. Serve ao item 3 da rubrica de qualidade da Fase 2:
-> "nomes em portugues ou ingles, mas CONSISTENTES com o resto do repo".
-> O kit nao tem opiniao sobre qual — so exige que seja uma so.
+> Nomes em portugues ou ingles tanto faz; o que importa e que sejam UMA lingua so, consistente com o
+> resto do repo. Este arquivo fixa qual.
 
 ## Idioma do codigo
 
@@ -13,24 +12,28 @@
 - **Mensagens de commit:** **portugues**.
 
 > O `CONTRIBUTING.md` diz que codigo e commits "podem misturar PT/EN". Aqui a
-> regra e mais apertada de proposito: **portugues, so**. Misturar e legitimo
-> para humanos, mas o modelo local escolhe pelo exemplo mais proximo — dar
-> duas opcoes produz um repo com metade de cada.
+> regra e mais apertada de proposito: **portugues, so**. Quem escreve codigo —
+> pessoa ou modelo — imita o exemplo mais proximo, e dar duas opcoes produz um
+> repo com metade de cada.
 
 ## Estilo
 
-- **Linter:** `ruff`, `line-length = 100` (do `pyproject.toml`). Roda dentro do
-  `verify`, entao nao e sugestao: e portao.
-- **Tamanho maximo de funcao:** ~50 linhas (item 2 da rubrica de qualidade).
+- **Linter:** `ruff check`, `line-length = 100` (do `pyproject.toml`).
+- **Formatador:** `ruff format`. Os dois rodam dentro do `verify`, entao nao sao
+  sugestao: sao portao de commit.
+- **Tamanho maximo de funcao:** ~50 linhas.
 - **Sem dependencia nova** fora da tabela de `steering/stack.md`.
 - **Sem `print` em codigo de biblioteca** — o nucleo devolve dados, quem
   imprime e a borda.
+- **Comentario explica o PORQUE e a ARMADILHA**, nunca a historia: qual story,
+  quem decidiu e quando moram nas specs e no git. No codigo, a historia envelhece
+  sem ninguem perceber e vira frase falsa com cara de verdadeira.
 
 ## Padroes especificos deste projeto
 
-Estas sao as regras que, **se nao virarem assercao num teste, o modelo viola em
-silencio**. A Fase 0 pegou exatamente isso: a spec pedia exatidao decimal,
-nenhum teste cobriu, o modelo truncou e passou.
+Estas sao as regras que, **se nao virarem assercao num teste, quem implementa
+viola em silencio**. A Fase 0 pegou exatamente isso: a spec pedia exatidao
+decimal, nenhum teste cobriu, a implementacao truncou e passou.
 
 | Regra | Onde vale |
 | ----- | --------- |
@@ -40,7 +43,8 @@ nenhum teste cobriu, o modelo truncou e passou.
 | Datas = **ISO-8601 com offset**, como no XML | `dh_emi`, `cancelado_em`, `criado_em` |
 | GTIN ausente ("SEM GTIN") = **NULL**, nao string vazia | `itens.gtin` |
 | `xProd` guardado **cru** | `itens.descricao` — normalizar e da classificacao |
-| **Nenhum arquivo derruba o lote** | invalido/orfao/SAT viram linha no log, nao excecao |
+| **Nenhum arquivo derruba o lote** | invalido/incompleto/orfao/SAT viram linha no log, nao excecao |
+| **O lote e uma transacao** | `importar` commita no fim e desfaz tudo se algo levantar; ninguem abaixo dele commita |
 | DDL **idempotente** (`CREATE TABLE IF NOT EXISTS`) | reprocessar o mesmo zip deixa o banco identico |
 
 ## Privacidade — regra dura, repo publico
@@ -50,17 +54,11 @@ Fixtures so **anonimizadas**, em `tests/fixtures/`.
 
 > ⚠️ O `verify` **nao verifica isto** — nenhum comando dele sabe distinguir um
 > CNPJ real de um fake. E buraco conhecido, registrado em `verificacao.md`, e a
-> defesa e o `.gitignore` mais revisao humana do passo 4 do loop.
+> defesa e o `.gitignore` mais revisao humana.
 
 ## Commits
 
-- Um commit por unidade logica.
-- Os commits do modelo local saem assinados como `Aider (qwen2.5-coder:14b)` —
-  isso e proposital e obrigatorio (ver `bootstrap.md`, portao 4).
-- ⚠️ Neste clone, `git config user.name` **e o Aider**. Um commit feito por voce
-  ou pelo Claude aqui sai assinado como o modelo, e ai a autoria fica errada no
-  histórico. Para commitar como humano, sobrescreva na hora:
-
-```powershell
-git -c user.name="Guilherme Betta" -c user.email="gbetta.guilherme@gmail.com" commit -m "..."
-```
+- Um commit por unidade logica, com o `verify` verde.
+- A mensagem explica o PORQUE da mudanca, nao so o que mudou.
+- Teste novo de comportamento e commitado ANTES (ou junto, mas provado vermelho
+  no codigo anterior) da implementacao que o faz passar.

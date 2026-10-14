@@ -21,43 +21,44 @@ So despesas, so BRL, sem lancamento manual.
 | Preciso de... | Vai em |
 | ------------- | ------ |
 | stack, versoes, dependencias | `steering/stack.md` |
-| convencoes de nome e estilo | `steering/convencoes.md` |
-| o que o `verify` checa, e por que | `steering/verificacao.md` |
-| o contrato de cada feature | `specs/NNN-nome/spec.md` |
-| o backlog fatiado da feature | `specs/NNN-nome/plan.md` |
-| o porque das decisoes originais (fotos antigas, nao atualizadas) | `docs/historico/` |
+| convencoes de nome, estilo e commit | `steering/convencoes.md` |
+| o que o `verify` checa, e o que ele deixa passar | `steering/verificacao.md` |
+| o contrato de cada componente (fonte da verdade) | `specs/0N_spec_*.md` (01 a 06) |
+| como os nucleos 01 e 02 foram fatiados e decididos | `specs/NNN-nome/` (stories 001 a 013) |
+| o porque das decisoes originais (fotos antigas) | `docs/historico/` |
+| como o codigo era escrito ate 2026-10-14 | `docs/historico/experimento-modelo-local/` |
 
-## O workflow deste projeto — loop de 4 passos
+## Como o trabalho e feito
 
-O codigo e escrito por um **modelo local** (Ollama + Aider), com o Claude no
-papel de Scrum Master. Kit completo em `claude-scrum-kit/`.
+Desde 2026-10-14 o codigo e escrito com o Claude, direto. O modelo local
+(Ollama + Aider) que implementou as stories 001–013 nao e mais usado.
 
-| # | Passo | Quem |
-| - | ----- | ---- |
-| 1 | `spec.md` com criterios de aceitacao **testaveis** | Claude |
-| 2 | escrever os **testes** a partir dos criterios, e **commitar** | Claude |
-| 3 | implementar ate os testes passarem, em loop | **modelo local** |
-| 4 | revisar o diff acumulado, que ja passa nos testes | Claude |
+| # | Passo |
+| - | ----- |
+| 1 | criterios de aceitacao **testaveis** na spec (nova, ou ajuste de uma 01–06) |
+| 2 | os **testes**, a partir dos criterios — provados VERMELHOS no codigo atual, pelo motivo certo |
+| 3 | a implementacao, ate o `verify` ficar verde |
+| 4 | a revisao do diff |
 
-⚠️ **A ordem do passo 2 nao e estilo, e defesa.** Os testes sao congelados por
-commit ANTES de a implementacao existir, e entram no Aider via `--read` (le,
-nao edita). Se o modelo puder editar o teste, ele edita o teste para faze-lo
-passar — e o caminho mais curto para o objetivo dado.
+⚠️ **Teste antes da implementacao nao e estilo, e defesa.** Teste escrito depois
+tende a confirmar o que o codigo ja faz, inclusive o erro. Se uma mudanca
+precisa alterar um teste existente, o commit diz por que — e a alteracao ou e so
+de forma (nome, import), ou e uma mudanca de contrato declarada.
+
+⚠️ Os cabecalhos dos testes das stories 001–013 dizem que "o modelo local recebe
+este arquivo como LEITURA (`--read`)". E registro de como cada teste foi
+produzido, nao o workflow atual.
 
 ## Regras que nao se negociam neste repo
 
-1. **O Aider nunca roda na `main`**, nunca com working tree sujo, e nunca no
-   diretorio de trabalho normal — sempre em clone descartavel ou `worktree`.
-2. **Tarefa que nao cabe em ~300 linhas de codigo relevante e quebrada** antes
-   de ir ao modelo local. O orcamento e 8192 tokens, e nao ha alarme quando
-   estoura: o Ollama trunca em silencio.
-3. **`/clear` entre tarefas.** Nao e recomendacao — tres turnos ja estouram os
-   8k, e o estouro nao aparece em lugar nenhum.
-4. **Um pedido, um defeito.** Dois defeitos no mesmo pedido fazem o modelo
-   emitir blocos sobrepostos e corromper o arquivo.
+1. **`verify` verde antes de todo commit.** Ele roda o mesmo que o CI, mais o
+   formato.
+2. **A `main` so recebe trabalho por decisao explicita do Gui.** Um merge
+   publicado so se desfaz com `push --force`.
+3. **Dependencia nova so com decisao do Gui** — ver `steering/stack.md`.
 
 ## Comandos
 
 ```bash
-python scripts/verify.py     # o oraculo. 0 = tudo verde
+python scripts/verify.py     # pytest + ruff check + ruff format --check. 0 = tudo verde
 ```

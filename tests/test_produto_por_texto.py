@@ -11,7 +11,6 @@ Criterios e o porque de cada um: `specs/008-identidade-produto/spec.md` §4, C3.
 ⚠️ As colunas sao lidas PELO NOME, nunca a linha inteira — risco R1 do recorte.
 """
 
-
 from nfe_parser.produtos import normalizar_descricao, resolver_produto_por_texto
 
 CNPJ = "12345678000199"

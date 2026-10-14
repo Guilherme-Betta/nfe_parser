@@ -25,8 +25,7 @@ Python · FastAPI · Jinja2/HTMX · SQLite · Docker. Parsing com `nfelib`. Libs
 ```bash
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
-pytest
-ruff check .
+python scripts/verify.py   # testes + lint + formato; o mesmo que o CI cobra
 ```
 
 Config por variavel de ambiente (ver `.env.example`): caminho do banco e Ollama (opcional) pra classificacao por LLM.
@@ -39,12 +38,12 @@ Config por variavel de ambiente (ver `.env.example`): caminho do banco e Ollama 
 
 ```
 specs/                 # o contrato — uma spec por componente (01→06 = ordem de build)
-specs/NNN-nome/        #   ...e cada componente fatiado em stories (spec + plano + tarefas)
+specs/NNN-nome/        #   ...e as stories 001-013, registro de como os nucleos foram feitos
 src/nfe_parser/        # pacote da aplicacao
 tests/                 # testes + fixtures ANONIMIZADAS
-scripts/               # verify.py (roda a suite), eval do LLM, automacao do workflow
+scripts/               # verify.py (portao de commit: testes + lint + formato) e o eval do LLM
 steering/              # regras vigentes: stack, convencoes, o que o verify checa
-docs/historico/        # reports de design originais — fotos antigas, nao atualizadas
+docs/historico/        # fotos antigas: reports de design e o experimento com o modelo local
 .github/workflows/     # CI (lint + testes)
 ```
 

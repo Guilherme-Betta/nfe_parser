@@ -1,58 +1,33 @@
 # Verificacao — o que o `verify` checa NESTE projeto, e por que
 
-> ★ Este arquivo existe porque o `scripts/verify.py` e o **juiz** de toda a
-> arquitetura: o modelo local itera ate ele passar, e o diff e aceito porque
-> ele passou. Quem le so o codigo do verify ve O QUE ele roda; este arquivo
-> registra POR QUE aquilo e suficiente para dizer "esta bom".
+> ★ `python scripts/verify.py` e o portao de commit: nada e commitado com ele vermelho. Quem le so o
+> codigo do verify ve O QUE ele roda; este arquivo registra POR QUE aquilo e suficiente — e o que
+> ele deixa passar.
 
 ## O que o `verify` roda
 
 | # | Comando | Para que |
 | - | ------- | -------- |
-| 1 | `{sys.executable} -m pytest -q` | a suite. E o contrato das invariantes do §5 da spec 01 |
+| 1 | `{sys.executable} -m pytest -q` | a suite: o contrato das specs, transformado em assercao |
+| 2 | `{sys.executable} -m ruff check --no-cache .` | o mesmo lint que o CI roda |
+| 3 | `{sys.executable} -m ruff format --check --no-cache src tests scripts` | o formato adotado (ver abaixo); o CI nao cobra |
 
-**So isso.** O `ruff` esteve aqui e **saiu em 2026-09-08**, na primeira story.
+**O objetivo e "verde aqui = verde no CI".** O verify e o CI mais o formato — com uma excecao que
+nenhum comando local fecha (o `EXE001`, abaixo).
 
-**Por que `sys.executable` e nao a string `"python"`.** `"python"` seria
-resolvido pelo PATH. Com a `.venv` nao ativada, isso e o Python global da
-juicey — que **nao tem pytest**. O oraculo reprovaria todo diff com
-"No module named pytest", e a culpa pareceria ser do modelo local. Foi um
-defeito real do kit, encontrado neste shakedown e corrigido na fonte.
+> Historico: de 2026-09-08 a 2026-10-14 o verify rodava **so o pytest**. O `ruff` tinha saido
+> porque o modelo local que implementava as stories nao conseguia expressar uma correcao de espaco
+> em branco no formato de edicao do Aider. Sem o modelo local, o motivo deixou de existir. Ver
+> `docs/historico/experimento-modelo-local/`.
 
-### Por que o `ruff` saiu do oraculo (medido, nao teorizado)
+**Por que `sys.executable` e nao a string `"python"`.** `"python"` seria resolvido pelo PATH. Com a
+`.venv` nao ativada, isso e o Python global da juicey — que **nao tem pytest**. O verify reprovaria
+tudo com "No module named pytest", e a culpa pareceria ser do codigo.
 
-A versao original deste arquivo defendia que o verify devia **espelhar o CI**
-(`ruff` + `pytest`), com os testes ANTES do lint para que as 3 reflexoes do
-Aider fossem gastas em corretude. **A story 001 mostrou que o argumento tinha um
-buraco.**
+### ⛔ O lint roda com `--no-cache`, sempre
 
-O que aconteceu, na integra:
-
-1. O modelo local acertou a implementacao **no primeiro turno** — 8 testes
-   verdes, incluindo os tres do caminho de erro.
-2. O `ruff` reprovou com **I001**: faltava uma linha em branco no bloco de
-   import.
-3. O modelo gastou as **tres** reflexoes tentando consertar isso, e nas tres
-   emitiu blocos `SEARCH/REPLACE` com o texto **identico dos dois lados**.
-   `Only 3 reflections allowed, stopping.`
-
-**A ordem nao protegeu nada.** Ela so decide qual falha o modelo ve primeiro;
-quando os testes passam de primeira, o lint herda o orcamento de reflexoes
-inteiro. O raciocinio "testes antes do lint" estava certo e era irrelevante.
-
-**E o modelo nao estava sendo teimoso — ele nao conseguia expressar o conserto.**
-Uma mudanca so de espaco em branco e praticamente inexprimivel no formato
-`diff`: `SEARCH` e `REPLACE` ficam com a mesma aparencia. Isso e novo em relacao
-a tabela de `edit-format` da Fase 0, que so cobria reorganizacao de linhas.
-
-**A regra que fica:** o oraculo do modelo local julga **corretude**. Estilo e do
-passo 4 — `ruff check --fix` resolveu este caso em **um segundo**, contra tres
-reflexoes desperdicadas.
-
-### ⛔ Ao rodar o lint no passo 4, use `--no-cache`
-
-Descoberto em 2026-09-08, logo depois da story 001. **O `ruff` deu verde local e vermelho no CI,
-com o arquivo identico.** Dois mecanismos empilhados:
+Descoberto em 2026-09-08. **O `ruff` deu verde local e vermelho no CI, com o arquivo identico.** Dois
+mecanismos empilhados:
 
 **1. A classificacao de import depende de o modulo EXISTIR no disco.** O `ruff` decide se
 `nfe_parser` e "primeira parte" (bloco separado) ou "terceiro" (junto com o `pytest`) resolvendo o
@@ -63,9 +38,8 @@ import contra os arquivos. Provado:
 | `src/nfe_parser/banco.py` **ausente** | `All checks passed` |
 | `src/nfe_parser/banco.py` **presente** | `I001` |
 
-**Isto morde exatamente o loop do kit.** O passo 2 escreve e commita os testes **antes** de a
-implementacao existir. O lint que passa naquele momento pode reprovar depois, **sem ninguem tocar
-no arquivo de teste** — foi o que aconteceu aqui.
+Isto morde quem escreve o teste ANTES da implementacao: o lint que passa naquele momento pode
+reprovar depois, **sem ninguem tocar no arquivo de teste**.
 
 **2. O cache do `ruff` nao sabe disso.** Ele e indexado pelo arquivo analisado; um arquivo NOVO
 aparecendo em outro lugar muda a resposta certa para um arquivo INALTERADO, e o cache continua
@@ -76,13 +50,12 @@ servindo a resposta velha. Provado no mesmo arquivo, no mesmo commit:
 | `ruff check tests/test_banco.py` (com cache) | `All checks passed` |
 | `ruff check --no-cache tests/test_banco.py` | `Found 1 error` |
 
-**A regra:** no passo 4, sempre `ruff check --fix --no-cache .`. O CI nunca tem cache — se voce
-confiar no cache local, ele descobre por voce, tarde.
+O CI nunca tem cache — se voce confiar no cache local, ele descobre por voce, tarde.
 
 ### ⛔ Lint do CI roda em Linux; o Windows nao ve tudo
 
-Descoberto em 2026-09-12. O CI continuou **vermelho** depois do conserto do `I001`, e a causa era
-um segundo erro que **nunca apareceu na maquina local**:
+Descoberto em 2026-09-12. O CI ficou **vermelho** com um erro que **nunca apareceu na maquina
+local**:
 
 ```
 EXE001 Shebang is present but file is not executable
@@ -91,71 +64,40 @@ EXE001 Shebang is present but file is not executable
 
 **Por que nao aparece no Windows.** O `EXE001` le o **bit de execucao** do arquivo. Isso e metadado
 de sistema de arquivos POSIX; no Windows ele nao existe, entao o `ruff` pula a regra em silencio.
-Mesmo commit, mesma versao do `ruff` (0.16.7), mesmo `--no-cache`:
 
 | Onde | `ruff check .` |
 | ---- | -------------- |
 | Windows (juicey), checkout limpo | `All checks passed` |
 | Linux (CI), mesmo commit | `EXE001`, exit 1 |
 
-**Esta e uma classe nova, pior que a do cache.** O `--no-cache` conserta um verde velho; aqui nao
-existe comando local que revele o problema. O unico detector e o proprio CI.
+O `--no-cache` conserta um verde velho; aqui **nao existe comando local que revele o problema**.
+O unico detector e o proprio CI.
 
-**O conserto escolhido: tirar o shebang, nao marcar o bit.** Marcar (`git update-index --chmod=+x`)
-tambem fecha o `EXE001`, mas exige lembrar do comando em **todo script novo** — passo manual,
-invisivel no Windows, e que o modelo local **nao consegue expressar** num `SEARCH/REPLACE` (ele
-edita conteudo, nao permissao). Tirar o shebang faz os dois ambientes concordarem sempre.
-
-**A regra:** neste projeto, **script `.py` nao leva shebang**. Nada e executado direto — o kit, o
-`test-cmd` do Aider e a documentacao chamam todos `python scripts/verify.py`. Se algum dia um
-arquivo precisar mesmo ser executavel, marque o bit no git **e** anote aqui, porque o lint local
-nunca vai cobrar.
+**A regra:** neste projeto, **script `.py` nao leva shebang**. Nada e executado direto — tudo e
+chamado como `python scripts/<nome>.py`. Se algum dia um arquivo precisar mesmo ser executavel,
+marque o bit no git (`git update-index --chmod=+x`) **e** anote aqui, porque o lint local nunca vai
+cobrar.
 
 **Corolario para ler o CI:** um email do GitHub Actions dizendo *"N annotations"* pode ser N erros
-de lint de verdade. Em 2026-09-08 foram lidos como "erro + resumo"; eram **dois erros** (`EXE001` e
-`I001`), e so um foi consertado. Va no log do job antes de concluir.
+de lint de verdade. Va no log do job antes de concluir.
 
-### O `ruff format` foi ADOTADO em 2026-09-13 (Achado K)
+### O `ruff format` e adotado desde 2026-09-13
 
-Ate esta data o projeto usava `ruff check` e **nunca tinha decidido** sobre o
-`ruff format`. O estado "nem adotado, nem recusado" garantia que a pergunta
-voltasse em toda story e que a resposta dependesse de quem revisava naquele dia.
+Aplicado de uma vez no commit isolado `157ce83`, puro de formatacao, para poder ser ignorado no
+`git blame`. Desde entao o layout nao se discute em revisao: o formatador decide.
 
-**A decisao: adotado.** Aplicado de uma vez no commit isolado `157ce83`
-(7 arquivos reformatados, 26 ja conformes; `ruff check` e os 66 testes verdes
-antes e depois). O commit e puro de formatacao **de proposito**, para poder ser
-excluido por hash da contagem de autoria (criterio 3 da Fase 2) e do `git blame`.
+⚠️ **Efeito colateral que surpreende:** o `ruff format` tambem reescreve blocos de codigo Python
+**dentro de arquivos `.md`**. E por isso que o verify o restringe a `src`, `tests` e `scripts`: as
+specs antigas tem blocos fora do formato, e reformata-los reescreveria registro historico.
 
-**A razao e a mesma que tirou o `ruff` do oraculo** (secao acima): o modelo local
-nao consegue expressar um conserto de espaco em branco num `SEARCH/REPLACE` — a
-story 001 provou isso queimando as tres reflexoes. Se estilo nao pode ser
-negociado com o modelo, entao ele tem de ser **imposto por comando**, e um
-formatador deterministico e a forma mais barata disso. Ninguem mais julga layout
-em revisao nenhuma.
-
-**A regra do passo 4, na integra:**
-
-```bash
-ruff format --no-cache .            # impoe o layout
-ruff check --fix --no-cache .       # so entao procura problemas
-```
-
-**Onde ele NAO entra, e por que:**
-
-| Lugar | Decisao |
-| ----- | ------- |
-| `scripts/verify.py` (o oraculo) | **Nao.** Mesma razao do `ruff check`: o modelo local queimaria reflexoes num conserto que ele nao consegue escrever |
-| CI (GitHub Actions) | **Nao, por enquanto.** Mexer no CI durante o shakedown adiciona uma classe nova de vermelho para revisar — foi o mesmo motivo que manteve o `mypy` fora. Com o passo 4 rodando o formatador sempre, a cobranca do CI seria redundante num projeto de um dono so |
-
-⚠️ **Efeito colateral que surpreende:** o `ruff format` tambem reescreve blocos
-de codigo Python **dentro de arquivos `.md`**. Dois dos 7 arquivos reformatados
-eram specs da story 002. Toda spec nova ja nasce sujeita a isso.
+O CI **nao** roda o `ruff format`. Com o verify cobrando, a checagem no CI seria redundante num
+projeto de um dono so.
 
 ## Por que isso e suficiente aqui
 
-E o nucleo `parser` e um componente onde teste basta: entrada = XML, saida =
-linhas no SQLite e um JSON de contadores. Nao ha UI, nao ha rede, nao ha
-concorrencia. Tudo o que a spec 01 §5 exige e verificavel com fixtures fixas.
+Os dois nucleos prontos — parser (spec 01) e classificacao (spec 02) — sao componentes onde teste
+basta: entrada = XML e chamadas de funcao, saida = linhas no SQLite e JSON. Nao ha UI, nao ha rede
+no caminho testado (o LLM entra por uma funcao injetada), nao ha concorrencia.
 
 ## Buracos conhecidos
 
@@ -163,22 +105,15 @@ A pergunta honesta: **o que poderia estar quebrado e mesmo assim passar?**
 
 | O que o verify NAO pega | Por que aceitamos, por enquanto |
 | ----------------------- | ------------------------------- |
-| **Comportamento sem teste.** `pytest` so verifica o que alguem escreveu | E o passo 2 do loop que fecha isso: os testes vem da spec e sao **commitados antes** da implementacao. O buraco vira "spec incompleta", que e visivel |
-| **Dado pessoal real numa fixture.** Nenhum comando distingue um CNPJ real de um fake | Repo publico: risco alto. Defesa = `.gitignore` (`*.xml` fora de `tests/fixtures/`) + revisao humana no passo 4. **Nao delegar ao modelo local** |
-| **Lint.** O `ruff` nao roda mais aqui | ⭐ **O buraco mais importante desta tabela.** Codigo pode passar no verify e reprovar no CI. Quem fecha e o **passo 4**: a revisao roda `ruff format --no-cache .` e depois `ruff check --fix --no-cache .` antes de aceitar o diff. ⚠️ O `--no-cache` nao e opcional — ver a secao acima |
-| **Erros de tipo.** Sem `mypy`/`pyright` | O projeto nao adotou type checker; adicionar um agora mudaria o CI, que esta fora do escopo do shakedown |
-| **Cobertura.** Um teste vazio passa | Sem `--cov` nem minimo exigido; a rubrica de qualidade do passo 4 e quem olha |
-| **Python 3.14 local × 3.11 no CI** | A juicey so tem 3.14. Codigo que dependa de detalhe de 3.14 passa aqui e quebra no CI. Aceito: o shakedown mede o modelo local, nao a matriz de versoes |
-| **Regras de lint que dependem de POSIX** | O `EXE001` le o bit de execucao, que nao existe no Windows. O `ruff` pula em silencio aqui e reprova no CI. Nao ha comando local que detecte; so o CI |
-| **Performance.** Lote grande pode ficar lento | Fora do §5 da spec. Nenhum criterio de aceitacao fala de tempo |
+| **Comportamento sem teste.** `pytest` so verifica o que alguem escreveu | Os testes vem da spec e sao **commitados antes** da implementacao. O buraco vira "spec incompleta", que e visivel |
+| **Teste fraco.** Um teste que confere pouco aprova codigo errado em silencio | Ao escrever um teste novo, conferir que ele FALHA no codigo antigo pelo motivo certo, e nao so que passa no novo |
+| **Dado pessoal real numa fixture.** Nenhum comando distingue um CNPJ real de um fake | Repo publico: risco alto. Defesa = `.gitignore` (`*.xml` fora de `tests/fixtures/`) + revisao humana |
+| **Regras de lint que dependem de POSIX** | O `EXE001` le o bit de execucao, que nao existe no Windows. Nao ha comando local que detecte; so o CI |
+| **Python 3.14 local × 3.11 no CI** | A juicey so tem 3.14. Codigo que dependa de detalhe de 3.12+ passa aqui e quebra no CI |
+| **Erros de tipo.** Sem `mypy`/`pyright` | O projeto nao adotou type checker |
+| **Cobertura.** Um teste vazio passa | Sem `--cov` nem minimo exigido; a revisao e quem olha |
+| **Performance.** Lote grande pode ficar lento | Nenhum criterio de aceitacao fala de tempo |
 
-> ⚠️ **Um teste fraco nao falha ruidosamente — ele aprova codigo errado em
-> silencio.** Medido na Fase 0: um teste de idempotencia que conferia so
-> `COUNT(*)` teria aprovado uma implementacao que sobrescrevia os valores.
-> Buraco conhecido e registrado e muito melhor que buraco descoberto depois.
-
-## Estado do portao
-
-- [x] `python scripts/verify.py` roda e **PASSA** num checkout limpo
-      *(invariante 2 do kit: o bootstrap nao termina sem isso)*
-      — verde em 2026-09-08: `verify: OK -- 1 passo(s), tudo verde.` (8 testes)
+> ⚠️ **Um teste fraco nao falha ruidosamente — ele aprova codigo errado em silencio.** Medido na
+> Fase 0: um teste de idempotencia que conferia so `COUNT(*)` teria aprovado uma implementacao que
+> sobrescrevia os valores.

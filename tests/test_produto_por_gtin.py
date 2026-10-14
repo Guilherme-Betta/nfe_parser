@@ -11,7 +11,6 @@ recorte: a story 012 passa a gravar `origem` e `confianca`, e a 009 o
 story que nao mexeu em nada disto.
 """
 
-
 from nfe_parser.produtos import resolver_produto_por_gtin
 
 GTIN = "7891234567890"
