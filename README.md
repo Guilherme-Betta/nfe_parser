@@ -2,7 +2,9 @@
 
 Ferramenta self-hosted pra **visualizar despesas a partir de notas fiscais eletronicas** (NF-e/NFC-e), com granularidade de **item** (produto a produto), classificacao automatica e orcamento. Nasce publica porque a granularidade que a NF-e carrega e subaproveitada pelas ferramentas prontas.
 
-> ⚠️ **Status: em construcao.** As specs por componente estao prontas (`specs/`) e a implementacao esta comecando. Ainda **nao ha app funcional** — este repositorio e o esqueleto + o contrato.
+> ⚠️ **Status: em construcao — ainda sem app pra rodar.** Os dois nucleos estao prontos e testados: o **parser** (spec 01) e a **classificacao** (spec 02), entregues story a story em `specs/001-*` … `specs/013-*`. Falta a camada que vira app: **API/UI web** (spec 03), **orcamento** (04), **visualizacao** (05) e **deploy** (06). Por enquanto e uma biblioteca Python exercitada pela suite de testes.
+>
+> Ja funciona (como codigo, sem tela): importar `.zip` ou `.xml` de NF-e 55 / NFC-e 65 pro SQLite, com dedup por chave e cancelamento; saida em JSON; identidade de produto; classificacao deterministica (memoria → NCM → bucket) com taxonomia seed editavel; LLM opt-in via Ollama, com harness de eval.
 
 ## O que e (MVP)
 
@@ -37,8 +39,12 @@ Config por variavel de ambiente (ver `.env.example`): caminho do banco e Ollama 
 
 ```
 specs/                 # o contrato — uma spec por componente (01→06 = ordem de build)
+specs/NNN-nome/        #   ...e cada componente fatiado em stories (spec + plano + tarefas)
 src/nfe_parser/        # pacote da aplicacao
 tests/                 # testes + fixtures ANONIMIZADAS
+scripts/               # verify.py (roda a suite), eval do LLM, automacao do workflow
+steering/              # regras vigentes: stack, convencoes, o que o verify checa
+docs/historico/        # reports de design originais — fotos antigas, nao atualizadas
 .github/workflows/     # CI (lint + testes)
 ```
 
