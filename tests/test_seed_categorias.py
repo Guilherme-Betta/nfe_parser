@@ -9,7 +9,6 @@ Congelado por commit ANTES da implementacao; o modelo local le (`--read`).
 
 import pytest
 
-from nfe_parser.banco import abrir_banco
 from nfe_parser.seed import carregar_categorias
 
 # O filho vem ANTES do pai de proposito: a ordem da lista nao pode importar.
@@ -19,13 +18,6 @@ SEED = [
     {"slug": "vestuario", "nome": "Vestuario"},
     {"slug": "uncategorized", "nome": "Nao Classificado", "is_bucket": True},
 ]
-
-
-@pytest.fixture
-def conexao(tmp_path):
-    con = abrir_banco(tmp_path / "nfe.db")
-    yield con
-    con.close()
 
 
 def _linha(con, slug):

@@ -15,7 +15,6 @@ import sqlite3
 
 import pytest
 
-from nfe_parser.banco import abrir_banco
 from nfe_parser.migracoes import versao_do_banco
 
 TABELAS_NOVAS = {"categorias", "ncm_ancora", "produtos", "tags", "produto_tags"}
@@ -24,13 +23,6 @@ TABELAS_DA_SPEC_01 = {"importacoes", "notas", "itens", "importacao_arquivos"}
 
 DH = "2026-01-02T10:00:00-03:00"
 CNPJ = "12345678000199"
-
-
-@pytest.fixture
-def conexao(tmp_path):
-    con = abrir_banco(tmp_path / "nfe.db")
-    yield con
-    con.close()
 
 
 def _nomes(con, tipo):

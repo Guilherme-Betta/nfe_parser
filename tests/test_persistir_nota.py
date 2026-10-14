@@ -18,7 +18,6 @@ from pathlib import Path
 
 import pytest
 
-from nfe_parser.banco import abrir_banco
 from nfe_parser.extrator import extrair_nota
 from nfe_parser.persistencia import persistir_nota
 
@@ -29,14 +28,6 @@ CHAVE_1ITEM = "35260499999999000199550010000000011000000017"
 # Colunas NOT NULL do DDL da story 001. C1.5 confere que nenhuma sai NULL.
 NOT_NULL_NOTAS = ("chave", "modelo", "dh_emi", "valor_total", "xml_raw", "criado_em")
 NOT_NULL_ITENS = ("nota_chave", "n_item", "descricao", "quantidade", "valor_linha", "criado_em")
-
-
-@pytest.fixture
-def conexao(tmp_path):
-    """Um banco novo por teste, fechado no fim."""
-    con = abrir_banco(tmp_path / "nfe.db")
-    yield con
-    con.close()
 
 
 def _extraido(nome):

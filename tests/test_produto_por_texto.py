@@ -11,21 +11,12 @@ Criterios e o porque de cada um: `specs/008-identidade-produto/spec.md` §4, C3.
 ⚠️ As colunas sao lidas PELO NOME, nunca a linha inteira — risco R1 do recorte.
 """
 
-import pytest
 
-from nfe_parser.banco import abrir_banco
 from nfe_parser.produtos import normalizar_descricao, resolver_produto_por_texto
 
 CNPJ = "12345678000199"
 OUTRO_CNPJ = "98765432000111"
 DH = "2026-01-02T10:00:00-03:00"
-
-
-@pytest.fixture
-def conexao(tmp_path):
-    con = abrir_banco(tmp_path / "nfe.db")
-    yield con
-    con.close()
 
 
 def _campo(con, produto_id, coluna):

@@ -20,9 +20,6 @@ import hashlib
 import zipfile
 from pathlib import Path
 
-import pytest
-
-from nfe_parser.banco import abrir_banco
 from nfe_parser.importador import importar
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -37,13 +34,6 @@ EVENTO_MINIMO = (
 )
 
 CHAVE_1ITEM = "35260499999999000199550010000000011000000017"
-
-
-@pytest.fixture
-def conexao(tmp_path):
-    con = abrir_banco(tmp_path / "nfe.db")
-    yield con
-    con.close()
 
 
 def _texto(nome):

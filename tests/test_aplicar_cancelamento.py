@@ -16,19 +16,11 @@ Criterios em `specs/005-cancelamento-duas-passadas/spec.md` §3, bloco C2.
 
 import pytest
 
-from nfe_parser.banco import abrir_banco
 from nfe_parser.cancelamento import aplicar_cancelamento
 
 CHAVE_A = "35260499999999000199550010000000011000000017"
 CHAVE_B = "35260499999999000199650010000000021000000025"
 CHAVE_AUSENTE = "35260499999999000199550019999999991000000099"
-
-
-@pytest.fixture
-def conexao(tmp_path):
-    con = abrir_banco(tmp_path / "nfe.db")
-    yield con
-    con.close()
 
 
 def _nota(conexao, chave):

@@ -21,14 +21,6 @@ CHAVE = "0" * 44
 DH = "2026-01-02T10:00:00-03:00"
 
 
-@pytest.fixture
-def conexao(tmp_path):
-    """Um banco novo por teste, fechado no fim."""
-    con = abrir_banco(tmp_path / "nfe.db")
-    yield con
-    con.close()
-
-
 def _nomes(con, tipo):
     linhas = con.execute("SELECT name FROM sqlite_master WHERE type = ?", (tipo,))
     return {linha[0] for linha in linhas}

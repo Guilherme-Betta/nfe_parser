@@ -11,9 +11,6 @@ codigo impede um slug errado. Este arquivo e quem paga essa conta.
 
 import json
 
-import pytest
-
-from nfe_parser.banco import abrir_banco
 from nfe_parser.categorizacao import classificar_produto
 from nfe_parser.seed import _CAMINHO_PADRAO, carregar_ncm_ancora, carregar_seed_padrao
 
@@ -25,13 +22,6 @@ SLUGS = {cat["slug"] for cat in CATEGORIAS}
 # Um NCM que o mapa NAO alcanca: moveis de madeira. Nem `94`, nem `9403`,
 # nem `94036000` estao no arquivo — e e disso que o resgate precisa.
 NCM_FORA_DO_MAPA = "94036000"
-
-
-@pytest.fixture
-def conexao(tmp_path):
-    con = abrir_banco(tmp_path / "nfe.db")
-    yield con
-    con.close()
 
 
 def test_a_forma_do_seed_bate_com_o_report(conexao):

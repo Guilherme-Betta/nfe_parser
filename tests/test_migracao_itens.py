@@ -28,13 +28,6 @@ CHAVE = "0" * 44
 DH = "2026-01-02T10:00:00-03:00"
 
 
-@pytest.fixture
-def conexao(tmp_path):
-    con = abrir_banco(tmp_path / "nfe.db")
-    yield con
-    con.close()
-
-
 def _colunas(con, tabela):
     return [linha[1] for linha in con.execute(f"PRAGMA table_info({tabela})")]
 

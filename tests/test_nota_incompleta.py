@@ -31,7 +31,6 @@ from pathlib import Path
 
 import pytest
 
-from nfe_parser.banco import abrir_banco
 from nfe_parser.extrator import extrair_nota
 from nfe_parser.importador import importar
 
@@ -43,13 +42,6 @@ REMOCOES = {
     "sem_vNF": r"<vNF>.*?</vNF>",
     "sem_prod": r"<prod>.*?</prod>",
 }
-
-
-@pytest.fixture
-def conexao(tmp_path):
-    con = abrir_banco(tmp_path / "nfe.db")
-    yield con
-    con.close()
 
 
 def _zip(tmp_path, nome, membros):

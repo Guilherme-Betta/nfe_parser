@@ -23,17 +23,9 @@ quatro ficam vermelhos. Teste que nunca se viu falhar nao e guarda, e decoracao.
 
 import pytest
 
-from nfe_parser.banco import abrir_banco
 from nfe_parser.produtos import resolver_produto_por_gtin, resolver_produto_por_texto
 
 CNPJ = "12345678000199"
-
-
-@pytest.fixture
-def conexao(tmp_path):
-    con = abrir_banco(tmp_path / "nfe.db")
-    yield con
-    con.close()
 
 
 def _quantas_linhas(con):

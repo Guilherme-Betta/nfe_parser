@@ -18,18 +18,10 @@ from pathlib import Path
 
 import pytest
 
-from nfe_parser.banco import abrir_banco
 from nfe_parser.extrator import extrair_nota
 from nfe_parser.persistencia import persistir_nota
 
 FIXTURES = Path(__file__).parent / "fixtures"
-
-
-@pytest.fixture
-def conexao(tmp_path):
-    con = abrir_banco(tmp_path / "nfe.db")
-    yield con
-    con.close()
 
 
 def _extraido(nome):

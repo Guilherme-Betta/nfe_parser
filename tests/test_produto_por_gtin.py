@@ -11,20 +11,11 @@ recorte: a story 012 passa a gravar `origem` e `confianca`, e a 009 o
 story que nao mexeu em nada disto.
 """
 
-import pytest
 
-from nfe_parser.banco import abrir_banco
 from nfe_parser.produtos import resolver_produto_por_gtin
 
 GTIN = "7891234567890"
 OUTRO_GTIN = "7899876543210"
-
-
-@pytest.fixture
-def conexao(tmp_path):
-    con = abrir_banco(tmp_path / "nfe.db")
-    yield con
-    con.close()
 
 
 def _campo(con, produto_id, coluna):

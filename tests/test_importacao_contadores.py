@@ -17,9 +17,6 @@ Criterios em `specs/004-lote-zip-dedup/spec.md` §3, bloco C6.
 import zipfile
 from pathlib import Path
 
-import pytest
-
-from nfe_parser.banco import abrir_banco
 from nfe_parser.importador import importar
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -41,13 +38,6 @@ CONTADORES = (
     "cancelamentos_aplicados",
     "nao_suportadas",
 )
-
-
-@pytest.fixture
-def conexao(tmp_path):
-    con = abrir_banco(tmp_path / "nfe.db")
-    yield con
-    con.close()
 
 
 def _texto(nome):

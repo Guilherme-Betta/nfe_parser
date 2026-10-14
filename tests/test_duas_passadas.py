@@ -18,8 +18,6 @@ Criterios em `specs/005-cancelamento-duas-passadas/spec.md` §3, bloco C3.
 import zipfile
 from pathlib import Path
 
-import pytest
-
 from nfe_parser.banco import abrir_banco
 from nfe_parser.importador import importar
 
@@ -44,13 +42,6 @@ def _evento(chave=CHAVE_1ITEM):
         f"<chNFe>{chave}</chNFe><dhEvento>2026-04-10T10:00:00-03:00</dhEvento>"
         "<tpEvento>110111</tpEvento></infEvento></evento></procEventoNFe>"
     )
-
-
-@pytest.fixture
-def conexao(tmp_path):
-    con = abrir_banco(tmp_path / "nfe.db")
-    yield con
-    con.close()
 
 
 def _texto(nome):
