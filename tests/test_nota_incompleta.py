@@ -67,7 +67,7 @@ def _fixture(nome):
 
 def _incompleta(padrao):
     """A nota de 1 item sem o bloco que `padrao` casa."""
-    xml, removidos = re.subn(padrao, "", _fixture("nfe_55_1item.xml"), flags=re.S)
+    xml, removidos = re.subn(padrao, "", _fixture("nfe_55_1item.xml"), flags=re.DOTALL)
     assert removidos == 1, "a fixture mudou; a remocao tem de achar o bloco exatamente uma vez"
     return xml
 
