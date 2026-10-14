@@ -74,6 +74,5 @@ def aplicar_cancelamento(conexao, evento: dict) -> str:
         "UPDATE notas SET status = 'cancelada', cancelado_em = ? WHERE chave = ? AND status = 'ok'"
     )
     conexao.execute(query_update, (cancelado_em, ch_nfe))
-    conexao.commit()
 
     return "cancelamento_aplicado"

@@ -87,6 +87,22 @@ def _processar_evento(conexao, importacao_id, nome, conteudo_bytes, texto) -> No
 
 
 def importar(conexao, caminho, origem: str | None = None) -> int:
+    """Importa um `.zip` ou um `.xml` avulso e devolve o id da importacao.
+
+    🔴 O lote e UMA transacao, e quem a abre e fecha e esta funcao. O
+    `with conexao:` do `sqlite3` faz as duas metades: se o bloco termina, COMMIT;
+    se algo levanta la dentro, ROLLBACK — e a excecao continua subindo.
+    ⛔ Ele NAO fecha a conexao; so decide o destino da transacao.
+
+    Sem o ROLLBACK, uma excecao no meio do lote deixava a transacao aberta com a
+    metade ja gravada, e o proximo `commit()` daquela conexao a gravava junto.
+    """
+
+    with conexao:
+        return _importar_lote(conexao, caminho, origem)
+
+
+def _importar_lote(conexao, caminho, origem) -> int:
     caminho = Path(caminho)
     # 1. INSERT em `importacoes`
     if origem is None:
@@ -170,10 +186,6 @@ def importar(conexao, caminho, origem: str | None = None) -> int:
             importacao_id,
         ),
     )
-
-    # O lote e uma transacao so, e quem a abriu foi esta funcao. ⛔ Nao se
-    # commita dentro dos lacos: um `.zip` ou entra inteiro ou nao entra.
-    conexao.commit()
 
     # 4. Devolve o importacao_id
     return importacao_id
