@@ -2,7 +2,7 @@
 
 Componente diferenciador. Recebe `itens` do parser e responde *"que categoria é esse produto?"* por uma cascata determinística-primeiro. **API-first** (JSON, não HTML). Faça o mais simples que passe no §6; pare nas fronteiras (§5).
 
-Decisões travadas: seed da taxonomia final (§9 do report); bucket = **"Não Classificado"** (`slug=uncategorized`); mapa NCM→categoria **curado no MVP**; **base (memória+NCM+bucket) é o MVP e funciona sem LLM** — LLM é opt-in atrás de eval.
+Decisões travadas: seed da taxonomia final (§9 do `docs/historico/report_projeto_nfe.md`); bucket = **"Não Classificado"** (`slug=uncategorized`); mapa NCM→categoria **curado no MVP**; **base (memória+NCM+bucket) é o MVP e funciona sem LLM** — LLM é opt-in atrás de eval.
 
 ## 1. Escopo
 

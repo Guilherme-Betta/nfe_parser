@@ -1,6 +1,6 @@
 # Spec — `parser + modelo de dados`
 
-Núcleo de ingestão do app NF-e. Lê `report_projeto_nfe.md` como contexto; esta spec é o contrato deste componente só. **API-first** (fala JSON, não HTML). Faça o mais simples que passe nos critérios do §5 — sem abstrações além disso, pare nas fronteiras (§4).
+Núcleo de ingestão do app NF-e. Lê `docs/historico/report_projeto_nfe.md` como contexto; esta spec é o contrato deste componente só. **API-first** (fala JSON, não HTML). Faça o mais simples que passe nos critérios do §5 — sem abstrações além disso, pare nas fronteiras (§4).
 
 Decisões travadas: guardar o XML original na nota; inválidas/não-parseáveis vão num log separado, não em `notas`.
 

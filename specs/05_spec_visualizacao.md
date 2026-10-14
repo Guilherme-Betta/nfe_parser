@@ -1,6 +1,6 @@
 # Spec — `visualização`
 
-Camada de **consulta e gráficos**: o usuário monta as próprias visões dos gastos (estilo Cashew), não um dashboard fixo. Lê `report_projeto_nfe.md` (§7) como contexto; esta spec é o contrato. **API-first** (JSON, não HTML) — as agregações vivem num núcleo que responde JSON; a página desenha em cima. Monta no app shell da `ingestão/UI`. Faça o mais simples que passe no §7; pare nas fronteiras (§6).
+Camada de **consulta e gráficos**: o usuário monta as próprias visões dos gastos (estilo Cashew), não um dashboard fixo. Lê `docs/historico/report_projeto_nfe.md` (§7) como contexto; esta spec é o contrato. **API-first** (JSON, não HTML) — as agregações vivem num núcleo que responde JSON; a página desenha em cima. Monta no app shell da `ingestão/UI`. Faça o mais simples que passe no §7; pare nas fronteiras (§6).
 
 Decisões travadas (§7 do report): visões do MVP = **gasto por mês · por categoria · por loja · top produtos · evolução de preço de um produto no tempo**; tudo **read-only**; dinheiro em **centavos (int)** (o front formata pra R$). Roadmap = comparativo planejado×real, visões salvas, front React. Honestidade (§5): casar produto **entre lojas** por texto é *best-effort* — o app **sinaliza**, não finge precisão.
 

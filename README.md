@@ -12,7 +12,7 @@ Ferramenta self-hosted pra **visualizar despesas a partir de notas fiscais eletr
 - **Orcamento** por categoria/mes e **visualizacao** que o usuario monta (gasto por mes/categoria/loja, top produtos, preco no tempo).
 - So despesas, so BRL.
 
-Fora do MVP (roadmap): entrada manual, multiusuario, EN, download via SEFAZ, scan de QR, comparativo planejado×real. Ver `specs/` e o report de design.
+Fora do MVP (roadmap): entrada manual, multiusuario, EN, download via SEFAZ, scan de QR, comparativo planejado×real. Ver `specs/` e o report de design original em `docs/historico/`.
 
 ## Stack
 

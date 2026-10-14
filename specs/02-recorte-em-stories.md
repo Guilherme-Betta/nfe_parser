@@ -260,7 +260,7 @@ uma decisão sua sobre números.
 
 | # | Insumo | Estado real |
 | - | ------ | ----------- |
-| I1 | **A taxonomia seed** | ✅ existe: **§5** do `Self_Hosting/notas_fiscais/report_nfe_central.md` — 10 categorias de nível 1 e 32 subcategorias, mais o bucket |
+| I1 | **A taxonomia seed** | ✅ existe: **§5** do `docs/historico/report_nfe_central.md` — 10 categorias de nível 1 e 32 subcategorias, mais o bucket |
 | I2 | **O mapa NCM→categoria curado** | ⛔ **não existe.** O §9 do mesmo report o lista como pendência: *"construir na fase de build — dados do Claude + revisão do Gui"* |
 
 ⚠️ **Duas correções de rota que o planejamento encontrou:**
@@ -273,6 +273,11 @@ uma decisão sua sobre números.
 
 ⚠️ **E o report está fora dos dois repositórios** (mora em `Self_Hosting/`). O seed precisa entrar
 no clone como dado versionado antes da 010 — hoje ele não é rastreável pelo `git` do projeto.
+
+> 🗓️ **Nota posterior (14/10/2026):** os dois reports agora estão versionados em `docs/historico/`.
+> E a **correção 1 acima foi um engano de leitura**: a spec 02 foi escrita contra o
+> `report_projeto_nfe.md`, onde o §9 **é** a taxonomia. A seção só pareceu errada porque este
+> planejamento leu o `report_nfe_central.md`, que renumerou as seções. A correção 2 vale nos dois.
 
 ---
 

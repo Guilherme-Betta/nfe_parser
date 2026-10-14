@@ -25,6 +25,7 @@ So despesas, so BRL, sem lancamento manual.
 | o que o `verify` checa, e por que | `steering/verificacao.md` |
 | o contrato de cada feature | `specs/NNN-nome/spec.md` |
 | o backlog fatiado da feature | `specs/NNN-nome/plan.md` |
+| o porque das decisoes originais (fotos antigas, nao atualizadas) | `docs/historico/` |
 
 ## O workflow deste projeto — loop de 4 passos
 

@@ -1,6 +1,6 @@
 # Spec — `deploy`
 
-Empacota o app pra rodar **self-hosted em Docker** e o publica pro público. Lê `report_projeto_nfe.md` (§8, §10) como contexto; esta spec é o contrato. Não implementa feature nenhuma — só embala, configura, persiste e publica o que os outros componentes entregam. Faça o mais simples que funcione (§6); pare nas fronteiras (§5).
+Empacota o app pra rodar **self-hosted em Docker** e o publica pro público. Lê `docs/historico/report_projeto_nfe.md` (§8, §10) como contexto; esta spec é o contrato. Não implementa feature nenhuma — só embala, configura, persiste e publica o que os outros componentes entregam. Faça o mais simples que funcione (§6); pare nas fronteiras (§5).
 
 Decisões travadas (§8 do report): **web app em Docker**; **publicar `docker-compose` + imagem oficial**; instância do Gui roda no **`juicey`** (Windows), e a classificação alcança o **Ollama do host** via `host.docker.internal:11434`, **URL por env var**. Stack fixada: **Python + FastAPI + SQLite + Docker**. **Repo público** (§0): nenhum dado pessoal ou segredo na imagem, no compose ou em fixtures.
 

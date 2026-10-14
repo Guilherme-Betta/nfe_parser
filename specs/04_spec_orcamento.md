@@ -1,6 +1,6 @@
 # Spec — `orçamento`
 
-Consumidor do núcleo: define **tetos de gasto por categoria/mês** e calcula o **realizado** contra eles. Lê `report_projeto_nfe.md` (§6) como contexto; esta spec é o contrato. **API-first** (JSON, não HTML). Monta no app shell da `ingestão/UI`. Faça o mais simples que passe no §7; pare nas fronteiras (§6).
+Consumidor do núcleo: define **tetos de gasto por categoria/mês** e calcula o **realizado** contra eles. Lê `docs/historico/report_projeto_nfe.md` (§6) como contexto; esta spec é o contrato. **API-first** (JSON, não HTML). Monta no app shell da `ingestão/UI`. Faça o mais simples que passe no §7; pare nas fronteiras (§6).
 
 Decisões travadas (§6 do report): **MVP = budget por categoria, período mensal; só despesas; só BRL.** Roadmap = por subcategoria, metas, recorrência, contas/carteiras, comparativo multi-período planejado×real. Dinheiro em **centavos (int)**, como no resto do app.
 

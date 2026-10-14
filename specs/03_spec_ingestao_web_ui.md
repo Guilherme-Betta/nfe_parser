@@ -1,6 +1,6 @@
 # Spec — `ingestão-web / UI`
 
-Camada web do app NF-e: **shell da aplicação** + **pipeline de importação** + **UI server-rendered**. Amarra `parser` e `classificação` num app HTTP. Lê `report_projeto_nfe.md` como contexto; esta spec é o contrato deste componente. **API-first**: a lógica já existe nos núcleos JSON — aqui a UI é **cliente** do próprio JSON, não dona de lógica. Faça o mais simples que passe no §7; pare nas fronteiras (§6).
+Camada web do app NF-e: **shell da aplicação** + **pipeline de importação** + **UI server-rendered**. Amarra `parser` e `classificação` num app HTTP. Lê `docs/historico/report_projeto_nfe.md` como contexto; esta spec é o contrato deste componente. **API-first**: a lógica já existe nos núcleos JSON — aqui a UI é **cliente** do próprio JSON, não dona de lógica. Faça o mais simples que passe no §7; pare nas fronteiras (§6).
 
 Decisões travadas: **framework = FastAPI + Jinja2/HTMX** (§8 do report — núcleo JSON com FastAPI, UI fina server-rendered por cima; troca por React depois mexe só na camada de cima). Este componente é **dono da migração versionada e do seed**, da **config por env var**, e da **orquestração parser→classificação**. Ingestão do MVP = **upload de zip (lote inteiro) ou XML avulso pela UI**.
 
