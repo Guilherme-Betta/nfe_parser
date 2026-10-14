@@ -1,13 +1,14 @@
 """A conversa com o LLM: montar a pergunta, mandar ao Ollama, e decidir em que acreditar.
 
-Implementa o passo 3 da cascata da spec 02 (§4) do lado do MODELO. ⛔ Este modulo
+Implementa o degrau 3 da cascata da spec 02 (§4) do lado do MODELO. ⛔ Este modulo
 nao sabe o que e um banco: ele recebe uma descricao e uma lista de slugs, e
-devolve um slug ou `None`. Quem grava e `classificacao_llm.py`.
+devolve `(slug, confianca)` ou `None`. Quem confere no banco e grava e
+`categorizacao.py`.
 
 ⭐ O contrato que sai daqui e uma funcao `llm(descricao, slugs)`, e ele e o que
-torna o LLM OPT-IN: quem nao constroi um `llm` nao tem LLM nenhum, e toda a
-cascata se comporta como na story 013. Nenhum modulo le variavel de ambiente
-sozinho no meio da classificacao.
+torna o LLM OPT-IN: quem nao constroi um `llm` nao tem LLM nenhum, e a cascata
+fica so com NCM e bucket. Nenhum modulo le variavel de ambiente sozinho no meio
+da classificacao.
 
 🔴 `None` quer dizer "nao sei", venha de onde vier: o modelo disse `nao_sei`,
 inventou categoria, mandou JSON quebrado, ou respondeu com pouca confianca.
@@ -125,7 +126,7 @@ def perguntar_ao_ollama(prompt, url, modelo):
 def criar_llm(url, modelo, limiar):
     """Fecha URL, modelo e limiar numa funcao `llm(descricao, slugs)`.
 
-    ⭐ E o formato que o degrau (`classificacao_llm.py`), a varredura e o eval
+    ⭐ E o formato que a cascata (`categorizacao.py`), a varredura e o eval
     esperam. Nos testes, qualquer funcao Python com essa assinatura serve — e e
     isso que permite testar o degrau sem Ollama nenhum.
     """

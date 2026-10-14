@@ -15,7 +15,7 @@ anota com que argumentos foi chamada. ⛔ Nenhum Ollama.
 import pytest
 
 from nfe_parser.banco import abrir_banco
-from nfe_parser.classificacao_llm import classificar_produto_com_llm
+from nfe_parser.categorizacao import classificar_produto
 
 QUEIJO, BEBIDAS, BUCKET = 3, 4, 9
 
@@ -73,7 +73,7 @@ def _campo(con, produto_id, coluna):
 def test_sem_llm_o_resultado_e_o_da_cascata(conexao):
     produto_id = _produto(conexao)
 
-    assert classificar_produto_com_llm(conexao, produto_id, NCM_QUE_NAO_CASA) == BUCKET
+    assert classificar_produto(conexao, produto_id, NCM_QUE_NAO_CASA) == BUCKET
     assert _campo(conexao, produto_id, "categoria_id") == BUCKET
     assert _campo(conexao, produto_id, "origem") is None
 
@@ -83,7 +83,7 @@ def test_ncm_que_casa_nao_chama_o_llm(conexao):
     produto_id = _produto(conexao)
     llm = LlmFalso(("bebidas", 0.99))
 
-    assert classificar_produto_com_llm(conexao, produto_id, NCM_QUE_CASA, llm) == QUEIJO
+    assert classificar_produto(conexao, produto_id, NCM_QUE_CASA, llm) == QUEIJO
     assert _campo(conexao, produto_id, "origem") == "ncm"
     assert llm.chamadas == []
 
@@ -93,7 +93,7 @@ def test_origem_manual_nao_chama_o_llm_e_nada_e_escrito(conexao):
     produto_id = _produto(conexao, categoria_id=QUEIJO, origem="manual")
     llm = LlmFalso(("bebidas", 0.99))
 
-    assert classificar_produto_com_llm(conexao, produto_id, NCM_QUE_NAO_CASA, llm) == QUEIJO
+    assert classificar_produto(conexao, produto_id, NCM_QUE_NAO_CASA, llm) == QUEIJO
     assert _campo(conexao, produto_id, "categoria_id") == QUEIJO
     assert _campo(conexao, produto_id, "atualizado_em") == ANTIGO
     assert llm.chamadas == []
@@ -105,7 +105,7 @@ def test_produto_no_bucket_ganha_a_categoria_do_llm(conexao):
     produto_id = _produto(conexao)
     llm = LlmFalso(("bebidas", 0.87))
 
-    assert classificar_produto_com_llm(conexao, produto_id, NCM_QUE_NAO_CASA, llm) == BEBIDAS
+    assert classificar_produto(conexao, produto_id, NCM_QUE_NAO_CASA, llm) == BEBIDAS
     assert _campo(conexao, produto_id, "categoria_id") == BEBIDAS
     assert _campo(conexao, produto_id, "origem") == "llm"
     assert _campo(conexao, produto_id, "confianca") == pytest.approx(0.87)
@@ -115,7 +115,7 @@ def test_produto_no_bucket_ganha_a_categoria_do_llm(conexao):
 def test_llm_que_nao_sabe_deixa_no_bucket(conexao):
     produto_id = _produto(conexao)
 
-    assert classificar_produto_com_llm(conexao, produto_id, None, LlmFalso(None)) == BUCKET
+    assert classificar_produto(conexao, produto_id, None, LlmFalso(None)) == BUCKET
     assert _campo(conexao, produto_id, "categoria_id") == BUCKET
     assert _campo(conexao, produto_id, "origem") is None
 
@@ -129,7 +129,7 @@ def test_slug_que_nao_e_categoria_valida_nao_e_gravado(conexao):
     for n, slug in enumerate(("cafeteria", "uncategorized")):
         produto_id = _produto(conexao, gtin=f"789111111111{n}")
 
-        resultado = classificar_produto_com_llm(conexao, produto_id, None, LlmFalso((slug, 0.99)))
+        resultado = classificar_produto(conexao, produto_id, None, LlmFalso((slug, 0.99)))
 
         assert resultado == BUCKET, slug
         assert _campo(conexao, produto_id, "categoria_id") == BUCKET, slug
@@ -141,7 +141,7 @@ def test_o_llm_recebe_a_descricao_e_os_slugs_sem_o_bucket_em_ordem(conexao):
     produto_id = _produto(conexao)
     llm = LlmFalso(None)
 
-    classificar_produto_com_llm(conexao, produto_id, None, llm)
+    classificar_produto(conexao, produto_id, None, llm)
 
     assert llm.chamadas == [("REFRIG COLA PET 2L", ["bebidas", "queijo-minas"])]
 
@@ -153,7 +153,7 @@ def test_o_degrau_nao_commita(conexao):
     produto_id = _produto(conexao)
     conexao.commit()
 
-    classificar_produto_com_llm(conexao, produto_id, None, LlmFalso(("bebidas", 0.9)))
+    classificar_produto(conexao, produto_id, None, LlmFalso(("bebidas", 0.9)))
     conexao.rollback()
 
     assert _campo(conexao, produto_id, "categoria_id") is None

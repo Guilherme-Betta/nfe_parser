@@ -89,7 +89,7 @@ def apagar_categoria(conexao, slug):
         )
 
     conexao.execute(
-        "UPDATE produtos SET categoria_id = ?, origem = NULL, atualizado_em = ?"
+        "UPDATE produtos SET categoria_id = ?, origem = NULL, confianca = NULL, atualizado_em = ?"
         " WHERE categoria_id = ?",
         (categoria_do_bucket(conexao), datetime.now(UTC).isoformat(), categoria_id),
     )
