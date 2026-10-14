@@ -1,5 +1,20 @@
+"""Importar um lote — um `.zip` ou um `.xml` avulso — para o banco.
+
+Cada arquivo vira UMA linha em `importacao_arquivos`, com o desfecho dele no
+campo `resultado`, e o lote vira uma linha em `importacoes`, com os contadores.
+
+🔴 Nenhum arquivo derruba o lote por causa do CONTEUDO (C4 da spec 004): XML que
+nao abre, nota incompleta, SAT e evento orfao viram linha no log, nao excecao.
+O que SOBE e derruba o lote e erro de gravacao — e ai o lote inteiro e desfeito.
+
+⭐ DUAS PASSADAS: primeiro as notas, depois os eventos de cancelamento. E o que
+permite aplicar um evento que veio ANTES da sua nota dentro do `.zip`: quando a
+segunda passada comeca, todas as notas do lote ja estao no banco.
+"""
+
 import hashlib
 import zipfile
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -9,81 +24,14 @@ from nfe_parser.extrator import extrair_nota
 from nfe_parser.persistencia import persistir_nota
 
 
-def _processar_arquivo(conexao, importacao_id, nome, conteudo_bytes, texto, classificacao) -> None:
-    """Processa UMA nota do lote e registra a linha dela no log.
+@dataclass(frozen=True)
+class _Arquivo:
+    """Um XML do lote, ja decodificado e com o tipo descoberto."""
 
-    ⚠️ `texto` e `classificacao` chegam PRONTOS, e nao sao recalculados aqui.
-    Quem roteia entre nota e evento em `importar` ja precisou decodificar e
-    classificar cada arquivo; refazer as duas contas era a divida `d`.
-
-    ⛔ `conteudo_bytes` continua vindo junto mesmo assim: o `sha256` e do
-    ARQUIVO, nao do texto decodificado — `errors="replace"` pode trocar bytes
-    invalidos, e o hash deixaria de identificar o que entrou.
-    """
-
-    arquivo_hash = hashlib.sha256(conteudo_bytes).hexdigest()
-    resultado = None
-    chave = None
-    detalhe = None
-
-    if classificacao == "nfe":
-        # 🔴 O `else` nao e estilo: e o que mantem `persistir_nota` FORA do
-        # `try`. Dentro dele, um erro de gravacao — ou da resolucao de produto,
-        # que entrou no fluxo na story 013 — sairia registrado como "XML
-        # invalido", e um lote inteiro apontaria para o lugar errado. Erro aqui
-        # SOBE e derruba a importacao, que e o desfecho honesto.
-        try:
-            extraido = extrair_nota(texto)
-        except ValueError as e:
-            resultado = "invalida"
-            detalhe = str(e)
-        else:
-            resultado = persistir_nota(conexao, extraido, importacao_id)
-            chave = extraido["nota"]["chave"]
-    elif classificacao == "nao_suportado_sat":
-        resultado = "nao_suportado_sat"
-    elif classificacao == "invalida":
-        resultado = "invalida"
-        detalhe = "Conteúdo inválido"
-
-    # INSERT em `importacao_arquivos`
-    conexao.execute(
-        "INSERT INTO importacao_arquivos (importacao_id, arquivo, arquivo_hash, chave, resultado, detalhe) VALUES (?, ?, ?, ?, ?, ?)",
-        (importacao_id, nome, arquivo_hash, chave, resultado, detalhe),
-    )
-
-
-def _processar_evento(conexao, importacao_id, nome, conteudo_bytes, texto) -> None:
-    """Aplica um evento de cancelamento e registra a linha dele no log do lote.
-
-    So e chamada na SEGUNDA passada de `importar`, quando todas as notas do
-    lote ja estao no banco -- e o que permite aplicar um evento que veio antes
-    da sua nota dentro do `.zip`.
-    """
-
-    arquivo_hash = hashlib.sha256(conteudo_bytes).hexdigest()
-    chave = None
-    detalhe = None
-
-    # Mesmo `else` de `_processar_arquivo`, pelo mesmo motivo: evento que NAO
-    # ABRE e invalido, mas falhar ao APLICAR o cancelamento e outra coisa.
-    try:
-        evento = extrair_evento(texto)
-    except ValueError as e:
-        # Evento que nao abre e `invalida`, o mesmo tratamento que uma nota que
-        # nao abre recebe. Sem este `except` a excecao sobe e derruba o lote
-        # inteiro -- inclusive as notas boas, que nao tem culpa nenhuma.
-        resultado = "invalida"
-        detalhe = str(e)
-    else:
-        resultado = aplicar_cancelamento(conexao, evento)
-        chave = evento["ch_nfe"]
-
-    # INSERT em `importacao_arquivos`
-    conexao.execute(
-        "INSERT INTO importacao_arquivos (importacao_id, arquivo, arquivo_hash, chave, resultado, detalhe) VALUES (?, ?, ?, ?, ?, ?)",
-        (importacao_id, nome, arquivo_hash, chave, resultado, detalhe),
-    )
+    nome: str
+    conteudo: bytes  # os bytes ORIGINAIS: e deles que sai o hash do log
+    texto: str
+    tipo: str  # o que `classificar_xml` devolveu: "nfe", "evento", "invalida"...
 
 
 def importar(conexao, caminho, origem: str | None = None) -> int:
@@ -94,98 +42,160 @@ def importar(conexao, caminho, origem: str | None = None) -> int:
     se algo levanta la dentro, ROLLBACK — e a excecao continua subindo.
     ⛔ Ele NAO fecha a conexao; so decide o destino da transacao.
 
-    Sem o ROLLBACK, uma excecao no meio do lote deixava a transacao aberta com a
-    metade ja gravada, e o proximo `commit()` daquela conexao a gravava junto.
+    Sem o ROLLBACK, uma excecao no meio do lote deixaria a transacao aberta com a
+    metade ja gravada, e o proximo `commit()` daquela conexao a gravaria junto.
     """
 
-    with conexao:
-        return _importar_lote(conexao, caminho, origem)
-
-
-def _importar_lote(conexao, caminho, origem) -> int:
     caminho = Path(caminho)
-    # 1. INSERT em `importacoes`
-    if origem is None:
-        origem = str(caminho)
-    iniciado_em = datetime.now(UTC).isoformat()
-    cursor = conexao.execute(
-        "INSERT INTO importacoes (origem, iniciado_em) VALUES (?, ?)", (origem, iniciado_em)
-    )
-    importacao_id = cursor.lastrowid
 
-    notas = []
-    eventos = []
+    with conexao:
+        importacao_id = conexao.execute(
+            "INSERT INTO importacoes (origem, iniciado_em) VALUES (?, ?)",
+            (origem if origem is not None else str(caminho), datetime.now(UTC).isoformat()),
+        ).lastrowid
 
-    if caminho.suffix.lower() == ".zip":
-        # 2. Abre o .zip
-        with zipfile.ZipFile(caminho, "r") as arquivo_zip:
-            for membro in arquivo_zip.namelist():
-                if not membro.lower().endswith(".xml") or membro.endswith("/"):
-                    continue
-                bytes_content = arquivo_zip.read(membro)
-                texto = bytes_content.decode("utf-8", errors="replace")
-                classificacao = classificar_xml(texto)
-                if classificacao == "evento":
-                    eventos.append((membro, bytes_content, texto))
-                else:
-                    notas.append((membro, bytes_content, texto, classificacao))
-    else:
-        # Trata como um arquivo XML avulso
-        bytes_content = caminho.read_bytes()
-        texto = bytes_content.decode("utf-8", errors="replace")
-        classificacao = classificar_xml(texto)
-        if classificacao == "evento":
-            eventos.append((caminho.name, bytes_content, texto))
-        else:
-            notas.append((caminho.name, bytes_content, texto, classificacao))
+        arquivos = [_decodificar(nome, conteudo) for nome, conteudo in _ler_lote(caminho)]
+        notas = [arquivo for arquivo in arquivos if arquivo.tipo != "evento"]
+        eventos = [arquivo for arquivo in arquivos if arquivo.tipo == "evento"]
 
-    # PRIMEIRA passada -- so a lista `notas`
-    for nome, conteudo_bytes, texto, classificacao in notas:
-        _processar_arquivo(conexao, importacao_id, nome, conteudo_bytes, texto, classificacao)
+        for arquivo in notas:
+            resultado, chave, detalhe = _processar_nota(conexao, importacao_id, arquivo)
+            _registrar(conexao, importacao_id, arquivo, resultado, chave, detalhe)
 
-    # SEGUNDA passada -- so a lista `eventos`, depois de todas as notas estarem no banco
-    for nome, conteudo_bytes, texto in eventos:
-        _processar_evento(conexao, importacao_id, nome, conteudo_bytes, texto)
+        for arquivo in eventos:
+            resultado, chave, detalhe = _processar_evento(conexao, arquivo)
+            _registrar(conexao, importacao_id, arquivo, resultado, chave, detalhe)
 
-    # 3. UPDATE em `importacoes`
-    finalizado_em = datetime.now(UTC).isoformat()
+        _fechar_importacao(conexao, importacao_id)
+
+    return importacao_id
+
+
+def _ler_lote(caminho):
+    """Entrega `(nome, bytes)` de cada XML do lote, seja ele `.zip` ou avulso.
+
+    ⭐ E aqui, e SO aqui, que `.zip` e `.xml` avulso sao diferentes; dai em
+    diante o caminho de codigo e um so (C5 da spec 004).
+
+    Uma funcao com `yield` e um GERADOR: ela entrega um item de cada vez a quem a
+    percorre, em vez de montar a lista inteira antes de devolver.
+
+    ⚠️ No `.zip`, membro que nao termina em `.xml` (maiuscula ou minuscula) e
+    entrada de diretorio sao ignorados: nao viram linha nem entram na contagem.
+    """
+
+    if caminho.suffix.lower() != ".zip":
+        yield caminho.name, caminho.read_bytes()
+        return
+
+    with zipfile.ZipFile(caminho) as arquivo_zip:
+        for membro in arquivo_zip.namelist():
+            if membro.lower().endswith(".xml") and not membro.endswith("/"):
+                yield membro, arquivo_zip.read(membro)
+
+
+def _decodificar(nome, conteudo):
+    texto = conteudo.decode("utf-8", errors="replace")
+    return _Arquivo(nome, conteudo, texto, classificar_xml(texto))
+
+
+def _processar_nota(conexao, importacao_id, arquivo):
+    """Grava uma nota do lote. Devolve `(resultado, chave, detalhe)` para o log.
+
+    🔴 `persistir_nota` fica FORA do `try`, e nao e estilo. Dentro dele, um erro de
+    gravacao — ou da resolucao de produto — sairia registrado como "XML
+    invalido", e o log apontaria para o lugar errado. Erro de gravacao SOBE e
+    derruba o lote, que e o desfecho honesto.
+    """
+
+    if arquivo.tipo == "nao_suportado_sat":
+        return "nao_suportado_sat", None, None
+    if arquivo.tipo == "invalida":
+        return "invalida", None, "Conteúdo inválido"
+
+    try:
+        extraido = extrair_nota(arquivo.texto)
+    except ValueError as e:
+        return "invalida", None, str(e)
+
+    resultado = persistir_nota(conexao, extraido, importacao_id)
+    return resultado, extraido["nota"]["chave"], None
+
+
+def _processar_evento(conexao, arquivo):
+    """Aplica um evento de cancelamento. Devolve `(resultado, chave, detalhe)`.
+
+    Mesma regra de `_processar_nota`: evento que nao ABRE e `'invalida'`, como
+    uma nota que nao abre — sem isso a excecao derrubaria o lote inteiro,
+    inclusive as notas boas. Mas falhar ao APLICAR o cancelamento e outra coisa,
+    e por isso `aplicar_cancelamento` fica fora do `try`.
+    """
+
+    try:
+        evento = extrair_evento(arquivo.texto)
+    except ValueError as e:
+        return "invalida", None, str(e)
+
+    return aplicar_cancelamento(conexao, evento), evento["ch_nfe"], None
+
+
+def _registrar(conexao, importacao_id, arquivo, resultado, chave, detalhe):
+    """Grava a linha do arquivo no log do lote.
+
+    ⛔ O hash e dos BYTES originais, nao do texto decodificado: `errors="replace"`
+    pode trocar bytes invalidos, e o hash deixaria de identificar o que entrou.
+    """
+
     conexao.execute(
-        """
-        UPDATE importacoes
-        SET
-            finalizado_em = ?,
-            total_arquivos = (
-                SELECT COUNT(*) FROM importacao_arquivos WHERE importacao_id = ?
-            ),
-            notas_novas = (
-                SELECT COUNT(*) FROM importacao_arquivos WHERE importacao_id = ? AND resultado = 'nova'
-            ),
-            duplicadas = (
-                SELECT COUNT(*) FROM importacao_arquivos WHERE importacao_id = ? AND resultado = 'duplicada'
-            ),
-            invalidas = (
-                SELECT COUNT(*) FROM importacao_arquivos WHERE importacao_id = ? AND resultado = 'invalida'
-            ),
-            nao_suportadas = (
-                SELECT COUNT(*) FROM importacao_arquivos WHERE importacao_id = ? AND resultado = 'nao_suportado_sat'
-            ),
-            cancelamentos_aplicados = (
-                SELECT COUNT(*) FROM importacao_arquivos
-                WHERE importacao_id = ? AND resultado = 'cancelamento_aplicado'
-            )
-        WHERE id = ?
-        """,
+        "INSERT INTO importacao_arquivos"
+        " (importacao_id, arquivo, arquivo_hash, chave, resultado, detalhe)"
+        " VALUES (?, ?, ?, ?, ?, ?)",
         (
-            finalizado_em,
             importacao_id,
-            importacao_id,
-            importacao_id,
-            importacao_id,
-            importacao_id,
-            importacao_id,
-            importacao_id,
+            arquivo.nome,
+            hashlib.sha256(arquivo.conteudo).hexdigest(),
+            chave,
+            resultado,
+            detalhe,
         ),
     )
 
-    # 4. Devolve o importacao_id
-    return importacao_id
+
+def _fechar_importacao(conexao, importacao_id):
+    """Grava `finalizado_em` e os contadores do lote, contados a partir do log.
+
+    ⚠️ `cancelamento_orfao` entra no total mas nao tem contador proprio: o
+    esquema da spec 01 nao tem coluna para ele.
+    """
+
+    por_resultado = dict(
+        conexao.execute(
+            "SELECT resultado, COUNT(*) FROM importacao_arquivos"
+            " WHERE importacao_id = ? GROUP BY resultado",
+            (importacao_id,),
+        )
+    )
+
+    conexao.execute(
+        """
+        UPDATE importacoes SET
+          finalizado_em = :finalizado_em,
+          total_arquivos = :total_arquivos,
+          notas_novas = :notas_novas,
+          duplicadas = :duplicadas,
+          invalidas = :invalidas,
+          nao_suportadas = :nao_suportadas,
+          cancelamentos_aplicados = :cancelamentos_aplicados
+        WHERE id = :id
+        """,
+        {
+            "id": importacao_id,
+            "finalizado_em": datetime.now(UTC).isoformat(),
+            "total_arquivos": sum(por_resultado.values()),
+            "notas_novas": por_resultado.get("nova", 0),
+            "duplicadas": por_resultado.get("duplicada", 0),
+            "invalidas": por_resultado.get("invalida", 0),
+            "nao_suportadas": por_resultado.get("nao_suportado_sat", 0),
+            "cancelamentos_aplicados": por_resultado.get("cancelamento_aplicado", 0),
+        },
+    )
