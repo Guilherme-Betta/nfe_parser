@@ -25,8 +25,8 @@ def aplicar_migracoes(conexao, migracoes=None) -> int:
     """Roda as migracoes que faltam, em ordem, e devolve a versao final.
 
     O parametro `migracoes` existe para os testes injetarem uma lista propria:
-    exercitar o registro real amarraria o oraculo de uma tarefa ao numero de
-    migracoes que as tarefas seguintes acrescentam.
+    exercitar o registro real amarraria esses testes ao numero de migracoes que
+    existirem, e toda migracao nova os quebraria.
 
     Cada migracao roda dentro da SUA transacao, com a gravacao da versao junto.
     Isso nao e zelo: se a versao avancasse sem a migracao ter terminado, a
@@ -64,7 +64,8 @@ def aplicar_migracoes(conexao, migracoes=None) -> int:
 def _migracao_01_esquema_classificacao(conexao):
     """Cria as tabelas do paragrafo 2 de `specs/02_spec_classificacao.md`.
 
-    Nenhuma linha de dado: o seed da taxonomia e outra story.
+    Nenhuma linha de dado: quem preenche a taxonomia e o seed (`seed.py`), que ⛔
+    NAO e migracao — ele precisa poder rodar de novo, e migracao roda uma vez so.
 
     Os dois indices sao PARCIAIS, e o `WHERE` de cada um e a razao de ele
     existir: a identidade de um produto e o GTIN quando ele tem GTIN, e o par
@@ -125,7 +126,8 @@ def _migracao_02_produto_id_em_itens(conexao):
     """Liga cada item ao seu produto. O unico ponto nao-idempotente da spec 02.
 
     A coluna nasce NULL em todas as linhas antigas, e essa e a resposta honesta:
-    ninguem sabe ainda qual produto e cada item. Quem preenche e outra story.
+    ninguem sabe qual produto e cada item. Quem preenche e `persistencia.py`, para
+    os itens importados daqui em diante; ⛔ nao ha backfill dos antigos.
 
     ⛔ Nao ha `IF NOT EXISTS` para `ADD COLUMN` no SQLite, e nao deve haver
     `try/except` em volta: o controle de versao ja garante a chamada unica, e um
@@ -139,7 +141,7 @@ def _migracao_02_produto_id_em_itens(conexao):
 def _migracao_03_lapide_de_categorias(conexao):
     """Guarda o slug de cada categoria que o usuario apagou. A "lapide".
 
-    Sem ela, apagar categoria nao e definitivo: o seed da story 010 insere o que
+    Sem ela, apagar categoria nao e definitivo: o seed (`seed.py`) insere o que
     falta, e uma categoria apagada e, para ele, uma categoria que falta. Ela
     voltaria no proximo `carregar_seed_padrao` — com `id` novo e sem os produtos
     que tinha, sendo prestativa e desfazendo uma decisao de quem usa o programa.

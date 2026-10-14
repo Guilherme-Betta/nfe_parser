@@ -1,8 +1,8 @@
 """Identidade de produto: descobrir QUAL produto e cada item de nota fiscal.
 
 Implementa o paragrafo 3 de `specs/02_spec_classificacao.md`. ⛔ Nao diz nada
-sobre o que o produto E — categoria e a story seguinte, e `categoria_id` nasce
-NULL em toda linha criada aqui.
+sobre o que o produto E — categoria e de `categorizacao.py`, e `categoria_id`
+nasce NULL em toda linha criada aqui.
 
 A tabela `itens` guarda um evento de compra por linha: a descricao crua do
 `xProd`, o `gtin` quando existe. Para perguntar "quanto gastei em arroz este
@@ -24,9 +24,8 @@ coluna `identidade_origem` existe para avisar quem consome qual dos dois casos
 produziu aquela linha.
 
 ⚠️ Nenhuma funcao daqui chama `conexao.commit()`. Quem abriu a transacao e que a
-fecha. E deliberado: a divida tecnica de `persistir_nota` commitar por conta
-propria ja esta anotada para a story 013, e nao se paga uma divida abrindo outra
-igual ao lado.
+fecha: resolver o produto e gravar o item que aponta para ele tem de entrar ou
+nao entrar JUNTOS.
 """
 
 import unicodedata

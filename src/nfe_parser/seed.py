@@ -1,37 +1,32 @@
 """Carrega a taxonomia e o mapa NCM curado — o dado de que a cascata vive.
 
-A story 009 escreveu a cascata; esta escreve o que ela consulta. Sem o seed, o
-`categoria_do_bucket` levanta `LookupError` e o passo 4 da classificacao nao
-existe — a mensagem daquele erro aponta para esta story pelo numero.
+Sem o seed, `categoria_do_bucket` levanta `LookupError` e o degrau do bucket da
+cascata nao existe.
 
-🔴 O contrato central e a IDEMPOTENCIA, e ela nao e enfeite. A D3 da 009 diz que
-produto no bucket e REPROCESSAVEL, e a razao de isso valer a pena e esta aqui:
-crescer o mapa NCM e carregar de novo resgata quem caiu no bucket. Um seed que
-so pudesse rodar uma vez — numa migracao, por exemplo — tornaria esse resgate
-impossivel em todo banco que ja existisse. E por isso que a 010 NAO acrescenta
-migracao, e o banco continua em `user_version = 2`.
+🔴 O contrato central e a IDEMPOTENCIA, e ela nao e enfeite. Produto no bucket e
+REPROCESSAVEL, e a razao de isso valer a pena e esta aqui: crescer o mapa NCM e
+carregar de novo resgata quem caiu no bucket. Um seed que so pudesse rodar uma
+vez — numa migracao, por exemplo — tornaria esse resgate impossivel em todo
+banco que ja existisse. E por isso que o seed ⛔ NAO e uma migracao.
 
 ⭐ A chave de identidade e o `slug`, e ele e DADO, nao calculado do nome. Se
 fosse calculado, renomear uma categoria mudaria o slug, e o carregador inseriria
 uma linha NOVA em vez de renomear a antiga: os produtos continuariam apontando
-para a velha, e a taxonomia teria duas. ⛔ Isso quebraria de frente o requisito
-da 011 — "renomear mantem vinculos, o id e estavel". A prova de que a regra
-calculada nao fecharia sozinha esta no proprio seed: o bucket se chama "Nao
-Classificado" e o slug dele e `uncategorized`, fixado pela spec de produto.
+para a velha, e a taxonomia teria duas. ⛔ Isso quebraria o requisito "renomear
+mantem vinculos, o id e estavel". A prova de que a regra calculada nao fecharia
+sozinha esta no proprio seed: o bucket se chama "Nao Classificado" e o slug dele
+e `uncategorized`, fixado pela spec de produto.
 
 🔴 O SEED E UMA BASE DEFAULT, NAO O DONO DA TABELA. Ele INSERE o que falta e
-⛔ NUNCA toca no que ja existe. Decisao do Gui, 15/09/2026, na abertura da story
-011: *"o seed serve so como base default, mas o usuario consegue remover, editar
-e adicionar categorias; isso deveria ser definitivo, com a seed sendo meramente
-um helpful placeholder"*.
+⛔ NUNCA toca no que ja existe. O usuario pode remover, editar e adicionar
+categorias (`taxonomia.py`), e a edicao dele e DEFINITIVA: o arquivo de dados e
+so um ponto de partida.
 
-⚠️ A versao 010 deste modulo fazia `ON CONFLICT(slug) DO UPDATE SET nome = ...`
-e reescrevia o `parent_id` em toda rodada. Isso estava certo enquanto o arquivo
-de dados era o UNICO autor de `categorias` — e deixou de estar no instante em que
-a 011 deu ao usuario um segundo teclado sobre a mesma tabela. Medido em banco
-real antes de mudar: rodar o seed de novo desfazia o renomear E o mover.
+⚠️ Por isso nao ha `ON CONFLICT(slug) DO UPDATE` em `carregar_categorias`. Ele
+faria sentido se o arquivo de dados fosse o UNICO autor de `categorias`; com o
+usuario como segundo autor, rodar o seed de novo desfaria o renomear E o mover.
 
-⛔ E ele continua sem apagar nada. Tirar uma categoria do arquivo de dados nao a
+⛔ E ele nao apaga nada. Tirar uma categoria do arquivo de dados nao a
 apaga do banco: apagar e `taxonomia.apagar_categoria`, que tem regra propria para
 os produtos e as ancoras pendurados.
 
@@ -64,25 +59,25 @@ def carregar_categorias(conexao, categorias):
 
     🔴 Rodar de novo com a mesma lista nao muda NADA no banco, e essa e a forma
     forte da idempotencia. A forma fraca — inserir ou sobrescrever — tambem
-    deixava o banco igual, mas so quando ninguem tinha editado nada. Ver o
+    deixaria o banco igual, mas so enquanto ninguem tivesse editado nada. Ver o
     cabecalho do modulo: o usuario e o segundo autor desta tabela, e entre os
     dois quem ganha e ele.
 
     ⭐ O preco dessa escolha, e ele e real: corrigir um nome errado no arquivo de
-    dados deixa de ter efeito em banco que ja rodou o seed. Isso e aceitavel
-    porque existe `taxonomia.renomear_categoria`, que e por onde a correcao passa
-    a ser feita. ⛔ O que NAO era aceitavel era o contrario: o arquivo desfazendo,
-    calado, o que a pessoa tinha editado.
+    dados nao tem efeito em banco que ja rodou o seed. Isso e aceitavel porque
+    existe `taxonomia.renomear_categoria`, que e por onde a correcao e feita.
+    ⛔ O que NAO seria aceitavel e o contrario: o arquivo desfazendo, calado, o
+    que a pessoa editou.
 
     🔴 SAO DUAS PASSADAS, e e isso que torna a ORDEM DA LISTA irrelevante. Se o
     `parent` fosse resolvido na mesma passada que insere, um filho que aparecesse
-    antes do pai nao o encontraria. ⭐ A fixture do oraculo poe `mercado-frutas`
-    antes de `mercado` de proposito: uma fixture "arrumada" deixaria a versao de
-    uma passada so passar inteira.
+    antes do pai nao o encontraria. ⭐ O teste poe `mercado-frutas` antes de
+    `mercado` de proposito: uma lista "arrumada" deixaria a versao de uma passada
+    so passar inteira.
 
-    ⚠️ A segunda passada roda so sobre os RECEM-INSERIDOS. Era ela que desfazia o
-    "mover": o `UPDATE ... SET parent_id` incondicional devolvia toda categoria
-    para o pai que o arquivo declara, toda vez.
+    ⚠️ A segunda passada roda so sobre os RECEM-INSERIDOS. Se rodasse sobre todos,
+    desfaria o "mover": um `UPDATE ... SET parent_id` incondicional devolveria
+    toda categoria para o pai que o arquivo declara, toda vez.
 
     ⭐ Categoria cujo `parent` esta na lapide e pulada junto, em silencio. Levantar
     ali quebraria o seed inteiro, para sempre, por causa de uma remocao legitima —
@@ -92,7 +87,7 @@ def carregar_categorias(conexao, categorias):
     🔴 O invariante do bucket conta NO BANCO, nao na lista recebida, e a diferenca
     tem um caso concreto: duas listas carregadas em sequencia, cada uma com o seu
     bucket, deixam o banco com dois — e contar a lista diria 1 nas duas vezes. E
-    o estado do banco que a 009 consulta, entao e ele que precisa valer.
+    o estado do banco que a cascata consulta, entao e ele que precisa valer.
 
     ⚠️ Dois buckets nao dao erro em lugar nenhum: `categoria_do_bucket` faz
     `SELECT ... WHERE is_bucket = 1` seguido de `fetchone()` e devolve um QUALQUER
@@ -150,7 +145,7 @@ def carregar_ncm_ancora(conexao, ancoras):
     isso que o deixa revisavel por um humano.
 
     🔴 A largura 2, 4 ou 8 nao e regra de gosto; e consequencia mecanica do
-    codigo da 009. O `buscar_categoria_por_ncm` consulta exatamente `ncm[:8]`,
+    codigo da cascata. `buscar_categoria_por_ncm` consulta exatamente `ncm[:8]`,
     `ncm[:4]` e `ncm[:2]`. Um prefixo de 5 ou 6 digitos ficaria gravado,
     visivel, parecendo mapeamento, e NUNCA casaria com nada. ⛔ Dado morto e
     mudo e pior que erro: recusar na entrada e o unico jeito de ele ter sintoma.
@@ -177,9 +172,9 @@ def carregar_ncm_ancora(conexao, ancoras):
     continua levantando.
 
     ⚠️ ⛔ Aqui o `ON CONFLICT ... DO UPDATE` FICA, ao contrario de
-    `carregar_categorias`. Nao ha incoerencia: ninguem edita ancora pela story
-    011, entao nao existe edicao de gente para preservar — e crescer o mapa NCM
-    e exatamente o que resgata produto preso no bucket (D3 da 009, D6 da 010).
+    `carregar_categorias`. Nao ha incoerencia: nenhuma funcao de `taxonomia.py`
+    edita ancora, entao nao existe edicao de gente para preservar — e crescer o
+    mapa NCM e exatamente o que resgata produto preso no bucket.
     """
 
     sepultados = _slugs(conexao, "SELECT slug FROM categorias_apagadas")

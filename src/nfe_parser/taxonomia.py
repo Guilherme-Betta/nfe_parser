@@ -14,14 +14,13 @@ visto o `id` nascer. O `id` continua sendo o que `produtos.categoria_id` e
 tabela precisa ser reescrito, e o vinculo sobrevive sozinho. Apagar e o unico
 caso em que o vinculo MUDA, e por isso e a unica funcao longa daqui.
 
-⚠️ Nenhuma funcao deste modulo chama `conexao.commit()`. Mesma regra de
-`produtos.py`, `categorizacao.py` e `seed.py`, e aqui ela ganha um motivo
-proprio: `apagar_categoria` faz quatro escritas em sequencia, e commitar no meio
-deixaria o banco com os produtos ja no bucket e a categoria ainda de pe, se a
-ultima falhasse.
+⚠️ Nenhuma funcao deste modulo chama `conexao.commit()`, e aqui a regra ganha um
+motivo proprio: `apagar_categoria` faz quatro escritas em sequencia, e commitar
+no meio deixaria o banco com os produtos ja no bucket e a categoria ainda de pe,
+se a ultima falhasse.
 
 ⛔ Este modulo NAO cria categoria. O paragrafo 4 lista tres operacoes, e criar
-nao e uma delas — ver a secao 8 da spec da 011.
+nao e uma delas.
 """
 
 from datetime import UTC, datetime
@@ -39,12 +38,13 @@ def apagar_categoria(conexao, slug):
     produtos, ancoras, lapide, e SO ENTAO a categoria.
 
     🔴 Os produtos vao para o bucket com `origem = NULL`, INCLUSIVE os que
-    estavam em `'manual'`, e este e o ponto mais fino da story. O que protege um
+    estavam em `'manual'`, e este e o ponto mais fino da funcao. O que protege um
     produto da cascata e a `origem`, nao a categoria (ver o cabecalho de
     `categorizacao.py`). Um `'manual'` preservado deixaria o produto protegido
     DENTRO do bucket, para sempre — preso exatamente onde nada pode ficar preso.
     ⭐ E zerar e a resposta honesta: aquela decisao manual apontava para uma
-    categoria que nao existe mais.
+    categoria que nao existe mais. A `confianca` sai junto, pelo mesmo motivo: ela
+    descrevia uma decisao que deixou de valer.
 
     ⚠️ As ancoras NCM sao APAGADAS junto, e nao reapontadas. `ncm_ancora.
     categoria_id` e `NOT NULL`, entao nao ha como "desapontar" uma ancora. As
@@ -54,7 +54,7 @@ def apagar_categoria(conexao, slug):
     ha pai.
 
     ⛔ Apagar o bucket e RECUSADO: `categoria_do_bucket` levanta quando nao ha
-    linha `is_bucket = 1`, e o passo 4 da cascata morre inteiro.
+    linha `is_bucket = 1`, e o degrau do bucket da cascata morre inteiro.
 
     ⛔ Apagar categoria que tem FILHAS tambem e recusado, e a mensagem diz quantas
     sao e o que fazer antes. Cascatear apagaria curadoria de quem usa o programa
@@ -159,13 +159,14 @@ def renomear_categoria(conexao, slug, nome):
     motivos menores, e cada um bastaria — a lapide casa por slug, e o
     `taxonomia_seed.json` casa as ancoras NCM com a categoria pelo slug.
 
-    ⭐ E o argumento da D1 da story 010 visto do outro lado: slug derivado do nome
-    faria "corrigir um acento" mudar a identidade da linha.
+    ⭐ E o argumento do slug-como-dado (ver o cabecalho de `seed.py`) visto do
+    outro lado: slug derivado do nome faria "corrigir um acento" mudar a
+    identidade da linha.
 
     ⚠️ A guarda do nome vazio vem ANTES de ir ao banco, e existe porque
-    `nome TEXT NOT NULL` ⛔ NAO recusa string vazia. E o mesmo modo de falha do
-    contrato C4 da 009 (`definir_categoria_manual` com categoria vazia): a coluna
-    nao defende, e o dano e mudo. `ValueError`, porque o argumento esta
+    `nome TEXT NOT NULL` ⛔ NAO recusa string vazia. E o mesmo modo de falha de
+    `definir_categoria_manual` com categoria vazia: a coluna nao defende, e o
+    dano e mudo. `ValueError`, porque o argumento esta
     malformado — nao e coisa que falte no banco.
     """
 

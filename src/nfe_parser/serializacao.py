@@ -96,20 +96,21 @@ def _itens_da_nota(conexao, chave: str) -> list[dict]:
     pequeno a ordem de insercao quase sempre coincide com a ordenada, entao o
     defeito passaria despercebido fora de um teste que embaralha de proposito.
 
-    `id`, `nota_chave` e `produto_id` ficam de fora: os dois primeiros porque um e
-    chave artificial do SQLite e o outro ja esta na nota que contem a lista; o
-    terceiro entra na MESMA regra, e por isso a story 013 nao o exportou mesmo
-    tendo passado a grava-lo.
+    `id`, `nota_chave` e `produto_id` ficam de fora: `id` e `produto_id` sao
+    chaves artificiais do SQLite, e `nota_chave` ja esta na nota que contem a
+    lista.
 
     ⭐ A categoria sai em DOIS campos, pelo mesmo idioma do dinheiro acima:
     `categoria_slug` e o identificador estavel, com o qual se agrupa e se faz
-    conta, e `categoria` e o nome, para ler. ⛔ `origem` NAO sai: e o campo a que
-    a story 012 vai acrescentar um valor novo, e expo-lo convidaria quem consome
-    a fechar o conjunto em cima dele.
+    conta, e `categoria` e o nome, para ler. ⛔ `origem` e `confianca` NAO saem:
+    dizem de onde veio a decisao, e nao o que o item e — e o conjunto de valores
+    de `origem` pode crescer, entao expo-lo convidaria quem consome a fechar o
+    conjunto em cima dele.
 
     🔴 OS DOIS `JOIN` SAO `LEFT`, E NENHUM DOS DOIS E ENFEITE. Item sem produto e
-    caso normal e comum: toda nota importada antes da 013 tem `produto_id` NULL,
-    e nao existe backfill. Produto sem categoria tambem e normal. Com `INNER`
+    caso normal: item gravado antes de a importacao resolver produto tem
+    `produto_id` NULL, e nao existe backfill. Produto sem categoria tambem e
+    normal. Com `INNER`
     esses itens SUMIRIAM da saida — a nota perderia linhas em silencio, e a soma
     dos itens deixaria de bater com `valor_total`. As duas chaves novas aparecem
     SEMPRE, valendo `None` quando nao ha o que dizer.

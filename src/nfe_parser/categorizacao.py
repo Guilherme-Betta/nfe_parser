@@ -134,7 +134,7 @@ def categoria_do_bucket(conexao):
     if linha is None:
         raise LookupError(
             "nenhuma categoria com is_bucket = 1;"
-            " o seed da taxonomia (story 010) nao foi carregado neste banco"
+            " o seed da taxonomia (seed.carregar_seed_padrao) nao foi carregado neste banco"
         )
 
     return linha[0]

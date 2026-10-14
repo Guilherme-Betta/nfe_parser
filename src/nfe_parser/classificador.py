@@ -1,7 +1,23 @@
+"""Descobrir que TIPO de documento fiscal um XML e, antes de qualquer parser.
+
+⚠️ "Classificar" aqui e rotear o ARQUIVO, e nao tem relacao com a classificacao
+de PRODUTO em categoria (`categorizacao.py`).
+"""
+
 import xml.etree.ElementTree as ET
 
 
 def classificar_xml(xml_texto: str) -> str:
+    """Devolve `"nfe"`, `"evento"`, `"nao_suportado_sat"` ou `"invalida"`.
+
+    Olha so a raiz do XML e, para nota, o `<mod>`: 55 (NF-e) e 65 (NFC-e) sao
+    notas; qualquer outro modelo e `"invalida"`. A raiz e aceita com ou sem o
+    namespace da NF-e na frente.
+
+    ⭐ Nunca levanta: XML que nem abre tambem e `"invalida"`. E o que deixa o
+    `importar` tratar um arquivo corrompido como linha no log, e nao como erro.
+    """
+
     try:
         root = ET.fromstring(xml_texto)
     except ET.ParseError:
