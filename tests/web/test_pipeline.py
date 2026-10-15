@@ -3,7 +3,7 @@
 from fastapi.testclient import TestClient
 
 from nfe_parser.web.app import criar_app
-from tests.web.apoio import (
+from tests.apoio import (
     ACHOCOLATADO,
     CFE_SAT,
     CHAVE_1ITEM,

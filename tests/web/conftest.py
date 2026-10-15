@@ -1,4 +1,4 @@
-"""Fixtures da camada web (spec 03). Os helpers moram em `apoio.py`."""
+"""Fixtures da camada web (spec 03). Os helpers moram em `tests/apoio.py`."""
 
 import pytest
 from fastapi.testclient import TestClient

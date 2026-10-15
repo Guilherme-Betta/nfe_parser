@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block titulo %}Orçamento {{ o.mes }}{% endblock %}
+{# ⚠️ A palavra do selo de teto ultrapassado so pode aparecer NO selo: o teste confere a ausencia dela #}
+{% block estilo %}
+  .barra { height: 8px; min-width: 120px; background: var(--borda); border-radius: 999px; overflow: hidden; }
+  .barra > span { display: block; height: 100%; background: var(--ok); }
+  .barra > span.acima { background: var(--ruim); }
+  tr.acima td.saldo { color: var(--ruim); font-weight: 600; }
+  tr.resumo td { font-weight: 600; }
+  .mes-nav { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin-bottom: 16px; }
+  details summary { cursor: pointer; color: var(--destaque); }
+  details form { margin-top: 8px; }
+{% endblock %}
+{% block conteudo %}
+<h1>Orçamento</h1>
+<div class="mes-nav">
+  <a href="/orcamento?mes={{ anterior }}">← {{ anterior }}</a>
+  <form class="linha" method="get" action="/orcamento">
+    <label>Mês <input type="month" name="mes" value="{{ o.mes }}"></label>
+    <button type="submit">Ir</button>
+  </form>
+  <a href="/orcamento?mes={{ proximo }}">{{ proximo }} →</a>
+</div>
+{% if erro %}<div class="erro">{{ erro }}</div>{% endif %}
+
+<div class="tabela-rolavel">
+<table>
+  <tr><th>Categoria</th><th class="num">Limite</th><th class="num">Gasto</th>
+      <th class="num">Saldo</th><th>Uso</th><th></th></tr>
+  {% for l in o.linhas %}
+  <tr class="{{ 'acima' if l.estouro else '' }}">
+    <td>{{ l.nome }} {% if l.estouro %}<span class="selo ruim">estouro</span>{% endif %}</td>
+    <td class="num">{{ l.limite | reais if l.limite is not none else "—" }}</td>
+    <td class="num">{{ l.gasto | reais }}</td>
+    <td class="num saldo">{{ l.saldo | reais if l.saldo is not none else "—" }}</td>
+    <td>
+      {% if l.pct is not none %}
+      <div class="barra" title="{{ (l.pct * 100) | round(1) }}% do limite">
+        <span class="{{ 'acima' if l.estouro else '' }}" style="width: {{ ([l.pct, 1] | min) * 100 }}%"></span>
+      </div>
+      {% else %}<span class="suave">sem teto</span>{% endif %}
+    </td>
+    <td>
+      {% if l.orcamento_id %}
+      <details>
+        <summary>editar</summary>
+        <form class="linha" method="post" action="/orcamento/{{ l.orcamento_id }}/limite">
+          <input type="hidden" name="mes" value="{{ o.mes }}">
+          <label>Novo limite (R$) <input name="limite" value="{{ l.limite | reais_editavel }}" inputmode="decimal" required></label>
+          <button type="submit">Salvar</button>
+        </form>
+        <form class="linha" method="post" action="/orcamento/{{ l.orcamento_id }}/apagar">
+          <input type="hidden" name="mes" value="{{ o.mes }}">
+          <button type="submit" class="perigo">Apagar teto</button>
+        </form>
+      </details>
+      {% else %}
+      <form class="linha" method="post" action="/orcamento">
+        <input type="hidden" name="mes" value="{{ o.mes }}">
+        <input type="hidden" name="categoria_slug" value="{{ l.categoria_slug }}">
+        <input name="limite" placeholder="1.234,56" inputmode="decimal" aria-label="Limite em reais" size="8" required>
+        <button type="submit" class="discreto">Definir teto</button>
+      </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+  <tr>
+    <td>Não classificado <span class="suave">— fora de qualquer teto</span></td>
+    <td class="num">—</td>
+    <td class="num">{{ o.nao_classificado.gasto | reais }}</td>
+    <td class="num">—</td>
+    <td colspan="2">{% if o.nao_classificado.gasto %}<a href="/revisar">Revisar →</a>{% endif %}</td>
+  </tr>
+  <tr class="resumo">
+    <td>Total do mês</td>
+    <td class="num">{{ o.totais.limite | reais }}</td>
+    <td class="num">{{ o.totais.gasto | reais }}</td>
+    <td colspan="3"></td>
+  </tr>
+</table>
+</div>
+
+{% if sem_teto %}
+<h2>Novo teto</h2>
+<div class="caixa">
+  <form class="linha" method="post" action="/orcamento">
+    <input type="hidden" name="mes" value="{{ o.mes }}">
+    <label>Categoria
+      <select name="categoria_slug" required>
+        {% for slug, nome in sem_teto %}<option value="{{ slug }}">{{ nome }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Limite (R$) <input name="limite" placeholder="1.234,56" inputmode="decimal" required></label>
+    <button type="submit">Criar</button>
+  </form>
+  <p class="suave">O teto é por categoria principal; o gasto das subcategorias soma nele.</p>
+</div>
+{% endif %}
+{% endblock %}

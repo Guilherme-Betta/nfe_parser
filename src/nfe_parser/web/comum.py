@@ -1,5 +1,6 @@
 """O que a API e as paginas compartilham: conexao por requisicao, upload, dinheiro."""
 
+import re
 import tempfile
 from pathlib import Path
 
@@ -56,6 +57,25 @@ def reais(centavos):
     inteiro, decimal = texto.lstrip("-").split(".")
     milhares = f"{int(inteiro):,}".replace(",", ".")
     return f"{sinal}R$ {milhares},{decimal}"
+
+
+def centavos_de_reais(texto):
+    """`"1.234,56"` (ou `"1234.56"`, `"R$ 80"`) → `123456`. Para o valor DIGITADO na tela.
+
+    ⭐ Com virgula, o formato e o brasileiro: ponto e milhar, virgula e decimal.
+    Sem virgula, o ponto e decimal. Depois disso so sobra `digitos[.d[d]]`, e o
+    resto e recusado — inclusive `1,234`: tres casas nao sao centavo, e adivinhar
+    se era milhar seria pior que pedir de novo.
+
+    ⛔ So texto e inteiro, nunca float: `float("0.29") * 100` da `28.999...`.
+    """
+    limpo = (texto or "").replace("R$", "").strip()
+    if "," in limpo:
+        limpo = limpo.replace(".", "").replace(",", ".", 1)
+    if not re.fullmatch(r"\d+(\.\d{1,2})?", limpo):
+        raise ValueError(f"valor invalido: {texto!r}; use, por exemplo, 1.234,56")
+    reais_, _, centavos = limpo.partition(".")
+    return int(reais_) * 100 + int(centavos.ljust(2, "0"))
 
 
 def decimal_br(texto, minimo=0):

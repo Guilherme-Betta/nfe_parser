@@ -5,7 +5,7 @@ import json
 import pytest
 
 from nfe_parser.serializacao import nota_para_json
-from tests.web.apoio import (
+from tests.apoio import (
     CHAVE_1ITEM,
     CHAVE_3ITENS,
     CHAVE_65,

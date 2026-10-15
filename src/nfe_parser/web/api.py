@@ -7,7 +7,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, UploadFile
 from pydantic import BaseModel
 
-from nfe_parser import consultas, operacoes
+from nfe_parser import consultas, operacoes, orcamento
 from nfe_parser.migracoes import versao_do_banco
 from nfe_parser.serializacao import nota_para_json
 from nfe_parser.web.comum import UploadRecusado, importar_upload, obter_conexao
@@ -17,6 +17,7 @@ roteador = APIRouter(prefix="/api")
 Conexao = Annotated[sqlite3.Connection, Depends(obter_conexao)]
 Pagina = Annotated[int, Query(ge=1)]
 PorPagina = Annotated[int, Query(ge=1, le=200)]
+MES = r"^\d{4}-(0[1-9]|1[0-2])$"
 
 
 @contextmanager
@@ -79,7 +80,7 @@ def ver_importacao(importacao_id: int, conexao: Conexao):
 @roteador.get("/notas")
 def listar_notas(
     conexao: Conexao,
-    mes: Annotated[str | None, Query(pattern=r"^\d{4}-\d{2}$")] = None,
+    mes: Annotated[str | None, Query(pattern=MES)] = None,
     loja_cnpj: str | None = None,
     status: Literal["ok", "cancelada"] | None = None,
     pagina: Pagina = 1,
@@ -151,6 +152,44 @@ def editar_categoria(slug: str, corpo: EdicaoCategoria, conexao: Conexao):
 def apagar_categoria(slug: str, conexao: Conexao):
     with erros_do_nucleo():
         operacoes.apagar_categoria(conexao, slug)
+    return Response(status_code=204)
+
+
+class NovoOrcamento(BaseModel):
+    categoria_slug: str
+    mes: str
+    limite: int
+
+
+class AlteracaoDeLimite(BaseModel):
+    limite: int
+
+
+@roteador.get("/orcamentos")
+def orcamentos_do_mes(conexao: Conexao, mes: Annotated[str, Query(pattern=MES)]):
+    return orcamento.orcamentos_do_mes(conexao, mes)
+
+
+@roteador.post("/orcamentos", status_code=201)
+def criar_orcamento(corpo: NovoOrcamento, conexao: Conexao):
+    with erros_do_nucleo():
+        orcamento_id = operacoes.definir_orcamento(
+            conexao, corpo.categoria_slug, corpo.mes, corpo.limite
+        )
+    return orcamento.orcamento(conexao, orcamento_id)
+
+
+@roteador.patch("/orcamentos/{orcamento_id}")
+def alterar_orcamento(orcamento_id: int, corpo: AlteracaoDeLimite, conexao: Conexao):
+    with erros_do_nucleo():
+        operacoes.alterar_limite(conexao, orcamento_id, corpo.limite)
+    return orcamento.orcamento(conexao, orcamento_id)
+
+
+@roteador.delete("/orcamentos/{orcamento_id}", status_code=204)
+def apagar_orcamento(orcamento_id: int, conexao: Conexao):
+    with erros_do_nucleo():
+        operacoes.apagar_orcamento(conexao, orcamento_id)
     return Response(status_code=204)
 
 

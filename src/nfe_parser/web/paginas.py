@@ -10,7 +10,9 @@ tela de erro por causa de um campo deixado em branco.
 """
 
 import json
+import re
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -18,10 +20,11 @@ from fastapi import APIRouter, Depends, Form, Request, UploadFile
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from nfe_parser import consultas, operacoes
+from nfe_parser import consultas, operacoes, orcamento
 from nfe_parser.serializacao import nota_para_json
 from nfe_parser.web.comum import (
     UploadRecusado,
+    centavos_de_reais,
     decimal_br,
     importar_upload,
     obter_conexao,
@@ -32,6 +35,9 @@ roteador = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 templates.env.filters["reais"] = reais
 templates.env.filters["decimal_br"] = decimal_br
+templates.env.filters["reais_editavel"] = lambda centavos: reais(centavos).replace("R$ ", "")
+
+_MES = re.compile(r"\d{4}-(0[1-9]|1[0-2])")
 
 Conexao = Annotated[sqlite3.Connection, Depends(obter_conexao)]
 
@@ -238,3 +244,106 @@ def mover_categoria(
 @roteador.post("/taxonomia/{slug}/apagar")
 def apagar_categoria(request: Request, slug: str, conexao: Conexao):
     return _editar_taxonomia(request, conexao, lambda: operacoes.apagar_categoria(conexao, slug))
+
+
+# --- orcamento ------------------------------------------------------------------
+
+
+def _mes_ou_atual(mes):
+    """O `mes` pedido, se valido; senao o mes corrente — a tela sempre abre em algum.
+
+    ⚠️ "Corrente" no fuso da MAQUINA (`astimezone()`), nao em UTC: a noite do
+    ultimo dia do mes no Brasil ja e o mes seguinte em UTC. No container, o fuso
+    vem da env var `TZ` (spec 06).
+    """
+    if mes and _MES.fullmatch(mes):
+        return mes
+    return datetime.now().astimezone().strftime("%Y-%m")
+
+
+def _mes_vizinho(mes, passo):
+    """`'2026-01'` com passo -1 → `'2025-12'`. So aritmetica de ano e mes."""
+    indice = int(mes[:4]) * 12 + int(mes[5:7]) - 1 + passo
+    return f"{indice // 12:04d}-{indice % 12 + 1:02d}"
+
+
+def _orcamento(request, conexao, mes, erro=None, status=200):
+    readout = orcamento.orcamentos_do_mes(conexao, mes)
+    com_teto = {linha["categoria_slug"] for linha in readout["linhas"] if linha["limite"]}
+    sem_teto = [
+        (raiz["slug"], raiz["nome"])
+        for raiz in consultas.arvore_categorias(conexao)
+        if not raiz["is_bucket"] and raiz["slug"] not in com_teto
+    ]
+    contexto = {
+        "o": readout,
+        "sem_teto": sem_teto,
+        "anterior": _mes_vizinho(mes, -1),
+        "proximo": _mes_vizinho(mes, 1),
+        "erro": erro,
+    }
+    return _tela(request, "orcamento.html", contexto, status)
+
+
+def _editar_orcamento(request, conexao, mes, acao):
+    """Roda `acao`; sucesso volta ao mes, recusa volta a tela com a mensagem.
+
+    ⭐ `centavos_de_reais` roda DENTRO da `acao`, e o `ValueError` de um valor mal
+    digitado cai no mesmo caminho das recusas do nucleo.
+    """
+    mes = _mes_ou_atual(mes)
+    try:
+        acao()
+    except LookupError as e:
+        return _orcamento(request, conexao, mes, erro=str(e), status=404)
+    except ValueError as e:
+        return _orcamento(request, conexao, mes, erro=str(e), status=400)
+    return RedirectResponse(f"/orcamento?mes={mes}", status_code=303)
+
+
+@roteador.get("/orcamento")
+def ver_orcamento(request: Request, conexao: Conexao, mes: str | None = None):
+    return _orcamento(request, conexao, _mes_ou_atual(mes))
+
+
+@roteador.post("/orcamento")
+def criar_orcamento(
+    request: Request,
+    conexao: Conexao,
+    categoria_slug: Annotated[str, Form()] = "",
+    mes: Annotated[str, Form()] = "",
+    limite: Annotated[str, Form()] = "",
+):
+    return _editar_orcamento(
+        request,
+        conexao,
+        mes,
+        lambda: operacoes.definir_orcamento(
+            conexao, categoria_slug, mes, centavos_de_reais(limite)
+        ),
+    )
+
+
+@roteador.post("/orcamento/{orcamento_id}/limite")
+def alterar_orcamento(
+    request: Request,
+    orcamento_id: int,
+    conexao: Conexao,
+    limite: Annotated[str, Form()] = "",
+    mes: Annotated[str, Form()] = "",
+):
+    return _editar_orcamento(
+        request,
+        conexao,
+        mes,
+        lambda: operacoes.alterar_limite(conexao, orcamento_id, centavos_de_reais(limite)),
+    )
+
+
+@roteador.post("/orcamento/{orcamento_id}/apagar")
+def apagar_orcamento(
+    request: Request, orcamento_id: int, conexao: Conexao, mes: Annotated[str, Form()] = ""
+):
+    return _editar_orcamento(
+        request, conexao, mes, lambda: operacoes.apagar_orcamento(conexao, orcamento_id)
+    )

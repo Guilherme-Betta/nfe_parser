@@ -2,7 +2,7 @@
 
 import pytest
 
-from tests.web.apoio import ACHOCOLATADO, TOMATE, chave, enviar, produto, texto, variante
+from tests.apoio import ACHOCOLATADO, TOMATE, chave, enviar, produto, texto, variante
 
 
 @pytest.fixture

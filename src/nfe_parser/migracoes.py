@@ -167,10 +167,38 @@ def _migracao_03_lapide_de_categorias(conexao):
     """)
 
 
+def _migracao_04_orcamentos(conexao):
+    """O teto de gasto por categoria e mes — spec 04 §2.
+
+    ⭐ `ON DELETE CASCADE`: apagar a categoria apaga os tetos dela. Sem isso, a
+    chave estrangeira impediria `taxonomia.apagar_categoria` de apagar qualquer
+    categoria orcada — e ensinar `taxonomia.py` a conhecer esta tabela misturaria
+    o nucleo da spec 02 com um componente que veio depois. O teto era daquela
+    categoria; o gasto dela vai para o bucket, que nao tem teto.
+
+    ⚠️ As regras de negocio (so nivel 1, nunca o bucket, `limite > 0`) moram em
+    `orcamento.py`, nao em CHECK: "nivel 1" depende de OUTRA linha (o
+    `parent_id` da categoria), e CHECK do SQLite so enxerga a linha que grava.
+    """
+
+    conexao.execute("""
+        CREATE TABLE IF NOT EXISTS orcamentos (
+          id INTEGER PRIMARY KEY,
+          categoria_id INTEGER NOT NULL REFERENCES categorias(id) ON DELETE CASCADE,
+          mes TEXT NOT NULL,
+          limite INTEGER NOT NULL,
+          criado_em TEXT NOT NULL, atualizado_em TEXT NOT NULL,
+          UNIQUE (categoria_id, mes)
+        )
+    """)
+    conexao.execute("CREATE INDEX IF NOT EXISTS idx_orcamentos_mes ON orcamentos(mes)")
+
+
 # A POSICAO E A VERSAO: indice 0 e a migracao v1, indice 1 e a v2. A lista torna
 # impossivel um numero de versao duplicado ou um buraco na sequencia.
 MIGRACOES = [
     _migracao_01_esquema_classificacao,
     _migracao_02_produto_id_em_itens,
     _migracao_03_lapide_de_categorias,
+    _migracao_04_orcamentos,
 ]

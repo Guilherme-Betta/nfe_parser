@@ -97,6 +97,8 @@ specs/NNN-nome/        #   ...e as stories 001-013, registro de como os nucleos 
 src/nfe_parser/        # pacote: parser (spec 01) e classificacao (spec 02)
 src/nfe_parser/consultas.py  # leituras da camada web (SQL puro, sem FastAPI)
 src/nfe_parser/operacoes.py  # quem abre e fecha cada transacao do app web
+src/nfe_parser/gastos.py     # o gasto realizado com rollup — motor das specs 04 e 05
+src/nfe_parser/orcamento.py  # teto por categoria e mes (spec 04)
 src/nfe_parser/web/    # app FastAPI (spec 03): api.py, paginas.py, templates/, static/
 tests/                 # testes + fixtures ANONIMIZADAS; fixtures comuns em conftest.py
 scripts/verify.py      # o portao de commit (pytest + ruff check + ruff format)

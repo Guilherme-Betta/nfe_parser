@@ -2,7 +2,7 @@
 
 import pytest
 
-from tests.web.apoio import ACHOCOLATADO, TOMATE, enviar, produto, texto
+from tests.apoio import ACHOCOLATADO, TOMATE, enviar, produto, texto
 
 
 def _no(arvore, slug):

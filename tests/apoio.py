@@ -1,4 +1,4 @@
-"""Apoio dos testes da camada web (spec 03): XMLs, zips, upload, LLM espiao.
+"""Apoio dos testes que precisam de notas variadas: XMLs, zips, upload, LLM espiao.
 
 ⭐ As notas novas nascem das fixtures anonimizadas por substituicao de texto:
 trocar a chave (que aparece no `Id` e no `chNFe`), o CNPJ, o NCM ou a data. Nada
@@ -9,7 +9,7 @@ import io
 import zipfile
 from pathlib import Path
 
-FIXTURES = Path(__file__).parent.parent / "fixtures"
+FIXTURES = Path(__file__).parent / "fixtures"
 NS = "http://www.portalfiscal.inf.br/nfe"
 
 # nfe_55_1item: 2026-04, TOMATE (sem GTIN, NCM 07 → vegetais)

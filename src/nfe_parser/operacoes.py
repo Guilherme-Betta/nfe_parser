@@ -11,7 +11,7 @@ sozinho, e a classificacao roda DEPOIS, numa segunda transacao (spec 03 §3).
 
 from pathlib import Path
 
-from nfe_parser import taxonomia
+from nfe_parser import orcamento, taxonomia
 from nfe_parser.banco import abrir_banco
 from nfe_parser.categorizacao import definir_categoria_manual
 from nfe_parser.consultas import id_da_categoria
@@ -89,3 +89,18 @@ def editar_categoria(conexao, slug, nome=NAO_MUDA, parent_slug=NAO_MUDA):
 def apagar_categoria(conexao, slug):
     with conexao:
         taxonomia.apagar_categoria(conexao, slug)
+
+
+def definir_orcamento(conexao, categoria_slug, mes, limite):
+    with conexao:
+        return orcamento.definir_orcamento(conexao, categoria_slug, mes, limite)
+
+
+def alterar_limite(conexao, orcamento_id, limite):
+    with conexao:
+        orcamento.alterar_limite(conexao, orcamento_id, limite)
+
+
+def apagar_orcamento(conexao, orcamento_id):
+    with conexao:
+        orcamento.apagar_orcamento(conexao, orcamento_id)

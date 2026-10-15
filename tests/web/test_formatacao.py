@@ -5,7 +5,7 @@
 
 import pytest
 
-from nfe_parser.web.comum import decimal_br, reais
+from nfe_parser.web.comum import centavos_de_reais, decimal_br, reais
 
 
 @pytest.mark.parametrize(
@@ -32,3 +32,26 @@ def test_reais(centavos, esperado):
 )
 def test_decimal_br_tira_zeros_a_direita_e_usa_virgula(texto, minimo, esperado):
     assert decimal_br(texto, minimo) == esperado
+
+
+@pytest.mark.parametrize(
+    ("texto", "esperado"),
+    [
+        ("1.234,56", 123456),
+        ("1234,56", 123456),
+        ("1234.56", 123456),
+        ("R$ 1.234,5", 123450),
+        ("  80 ", 8000),
+        ("0,01", 1),
+        ("1.234.567,89", 123456789),
+    ],
+)
+def test_centavos_de_reais(texto, esperado):
+    assert centavos_de_reais(texto) == esperado
+
+
+@pytest.mark.parametrize("texto", ["", "abc", "1,234", "12,3,4", "-5", "1e3", None])
+def test_centavos_de_reais_recusa_o_que_nao_e_valor(texto):
+    """`1,234` tem 3 casas: nao e centavo, e adivinhar seria pior que recusar."""
+    with pytest.raises(ValueError):
+        centavos_de_reais(texto)

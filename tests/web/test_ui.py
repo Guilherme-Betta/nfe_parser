@@ -2,7 +2,7 @@
 
 import pytest
 
-from tests.web.apoio import CHAVE_3ITENS, TOMATE, chave, enviar, produto, texto, variante
+from tests.apoio import CHAVE_3ITENS, TOMATE, chave, enviar, produto, texto, variante
 
 
 @pytest.fixture
