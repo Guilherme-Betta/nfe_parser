@@ -76,7 +76,8 @@ Para cada produto ainda não resolvido:
 
 - **Realimentação:** humano classifica um produto → `origem='manual'`; reaplica automático aos próximos itens do mesmo produto (resolvem pro mesmo `produtos`).
 - **LLM config:** só Ollama; `OLLAMA_URL` e modelo por **env var desde o dia 1**; limiar de confiança configurável. Base roda sem nada disso.
-- **Edição de taxonomia:** apagar categoria com histórico → produtos vão pro bucket; renomear → mantém vínculos (id estável); mover subcategoria → vínculos seguem (reatribui).
+- **Edição de taxonomia:** apagar categoria com histórico → produtos vão pro bucket; renomear → mantém vínculos (id estável); mover subcategoria → vínculos seguem (reatribui); **criar** categoria nível 1 ou subcategoria (decisão do Gui de 2026-10-15).
+- **A árvore tem no máximo 2 níveis.** Criar ou mover que produza um terceiro nível é recusado: o pai tem de ser nível 1, e categoria com subcategorias não vira subcategoria. O bucket nunca é pai. Terceiro nível = roadmap.
 
 ## 5. Fronteiras (não fazer aqui)
 
@@ -92,6 +93,8 @@ Invariantes:
 - **Identidade:** mesmo GTIN em lojas diferentes → um produto; sem GTIN, mesmo `norm+CNPJ` → um produto e CNPJ diferente → produtos distintos (marcado best-effort).
 - **LLM:** com LLM off a base classifica sem erro; com on, saída fora da lista / `nao_sei` / baixa confiança → bucket (nunca inventa categoria).
 - **Taxonomia:** apagar → bucket; renomear → vínculos intactos; mover → vínculos seguem.
+- **Criar categoria:** `criar_categoria(conexao, nome, parent_slug=None)` devolve o slug. O slug nasce do nome (minúsculas, sem acento, não-alfanumérico vira `-`), prefixado pelo slug do pai — `Molhos` em `mercado` vira `mercado-molhos`. Depois de criado, o slug é dado: renomear não o muda. Recusa (`ValueError`): nome vazio ou sem nenhuma letra/dígito, slug que já existe, pai que é subcategoria, pai que é o bucket. Pai inexistente → `LookupError`.
+- **Dois níveis no mover:** `mover_categoria` recusa (`ValueError`) pai que é subcategoria, e mover para dentro de outra uma categoria que tem subcategorias.
 - **Eval harness** roda sobre um conjunto rotulado (gold humano) e emite acurácia por categoria, matriz de confusão e % que caiu no bucket — é o que decide se o LLM é ligado. Bar de aprovação: chamada do Gui após ver os números.
 - Saídas serializam em JSON; nenhum dado pessoal real nas fixtures.
 
@@ -111,7 +114,7 @@ Invariantes:
 | §2: "controlar por versão de schema" | `PRAGMA user_version`; hoje v3 (v1 = tabelas desta spec, v2 = `itens.produto_id`, v3 = lápide) | registrar |
 | §4: "Para cada produto ainda não resolvido" | "não resolvido" = `origem IS NULL`, o que **inclui** quem está no bucket. Quem percorre é `classificar_produtos_pendentes`, separado da importação (story 013 D1/D5) | registrar |
 | §4: "Realimentação: reaplica automático aos próximos itens" | não há cópia: todo item do mesmo produto aponta para a mesma linha de `produtos`, que já tem a categoria. `origem='memoria'` é respeitado, mas nunca escrito (story 009 D4) | registrar |
-| §4 e specs 03/06: variáveis de ambiente do LLM | divergem entre si — ver §7.3, item 1 | **decisão pendente** |
+| §4 e specs 03/06: variáveis de ambiente do LLM | divergiam entre si — ver §7.3, item 1 | ✅ decidido: vale o código |
 
 ### 7.2 Regras decididas
 
@@ -131,7 +134,7 @@ Invariantes:
   ⚠️ **inclusive os `manual`**, cuja decisão apontava para uma categoria que não existe mais — e sem
   `confianca`. As âncoras NCM da categoria são apagadas, não reapontadas.
 - **Mover** recusa ciclo na árvore; mover para `None` sobe a categoria para o nível 1.
-- **Criar** categoria está fora do escopo: o §4 lista três operações. ⚠️ Ver §7.3, item 3.
+- **Criar** categoria: ver §4 e §6 (decidido em 2026-10-15; antes estava fora do escopo).
 
 **Cascata** (stories 009 e 013)
 - Item sem NCM vai para o bucket; não é erro.
@@ -169,15 +172,13 @@ Invariantes:
 
 ### 7.3 Decisões pendentes — do Gui
 
-1. **Nomes das variáveis de ambiente do LLM.** As specs 03 e 06 dizem `LLM_ATIVO` (default off),
-   `OLLAMA_MODEL` e `LLM_LIMIAR_CONFIANCA`. A story 012 e o código usam `OLLAMA_URL` (a presença
-   dela liga o LLM), `OLLAMA_MODELO` e `LLM_LIMIAR`, sem valor padrão. O `.env.example` segue as
-   specs 03/06 — e por isso **não funciona com o código**. Proposta: alinhar 03, 06 e
-   `.env.example` ao código, que foi decidido depois e é o que está testado.
+1. ✅ **DECIDIDO (Gui, 2026-10-15): vale o código.** `OLLAMA_URL` presente liga o LLM, ausente o
+   desliga; com ela, `OLLAMA_MODELO` e `LLM_LIMIAR` são obrigatórios, sem valor padrão. As specs
+   03 e 06 e o `.env.example` foram alinhados a isso.
 2. **Produto com `origem='llm'` nunca é revisitado.** Se uma âncora NCM chegar depois, ele continua
    com a resposta do LLM, embora o §4 ponha NCM acima do LLM. A varredura só olha `origem IS NULL`.
-3. **Taxonomia mais fina e categorias que faltam.** O gold de 19 produtos mostrou 7 rótulos num
-   terceiro nível que a taxonomia não tem (Sabonete, Iogurte, Frango…) e categorias ausentes
-   (molho, item para mochila). Criar categoria e o terceiro nível estão fora do §4 hoje.
+3. ✅ **DECIDIDO (Gui, 2026-10-15): criar categoria SIM, até 2 níveis; terceiro nível = roadmap.**
+   Ver §4 e §6. (O gold de 19 produtos tinha mostrado 7 rótulos num terceiro nível — Sabonete,
+   Iogurte, Frango… — e categorias ausentes, como molho.)
 4. **`LLM_LIMIAR` fora de 0..1 não é recusado.** Um limiar `2` deixaria o LLM ligado sem nunca
    classificar nada, sem erro.

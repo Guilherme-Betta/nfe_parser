@@ -18,7 +18,7 @@ Dockerfile da imagem oficial, `docker-compose.yml` de referência, config por en
 
 ## 3. Config, persistência e Ollama
 
-- **Só env var** (imagem pública não pode grudar no host do Gui): `APP_DB_PATH`, `LLM_ATIVO` (**default off**), `OLLAMA_URL`, `OLLAMA_MODEL`, `LLM_LIMIAR_CONFIANCA` — as mesmas que a `ingestão/UI` lê no boot.
+- **Só env var** (imagem pública não pode grudar no host do Gui): `APP_DB_PATH`, `OLLAMA_URL` (presente liga o LLM; ausente = **desligado**, o default), `OLLAMA_MODELO` e `LLM_LIMIAR` (obrigatórias quando `OLLAMA_URL` existe, sem valor padrão) — as mesmas que a `ingestão/UI` lê no boot (spec 03 §2; decisão do Gui de 2026-10-15).
 - **Migração no startup** (runner versionado já definido na `ingestão/UI`): sobe → aplica schema/seed → serve. Deploy só garante que roda; não redefine.
 - **Persistência:** SQLite é 1 arquivo em **volume nomeado** → reiniciar/atualizar o container **não perde dados**; backup = copiar o arquivo.
 - **Ollama (juicey):** LLM off por default, então a imagem sobe **sem Ollama**. Ligado, `OLLAMA_URL=http://host.docker.internal:11434` alcança o Ollama do host Windows; documentar no README (e o `extra_hosts` cobre Linux).
