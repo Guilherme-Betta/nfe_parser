@@ -1,0 +1,33 @@
+# Defesa em profundidade: o Dockerfile ja copia so uma lista branca, mas nada destes
+# padroes deve sequer chegar ao contexto do build (spec 06 §2).
+
+# segredos e dados pessoais
+.env
+.env.*
+!.env.example
+*.db
+*.sqlite*
+*.xml
+*.zip
+data/
+dados/
+
+# repositorio e ambiente de dev
+.git
+.github
+.venv
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.playwright-mcp/
+.aider*
+
+# o que nao roda no app
+tests/
+docs/
+specs/
+steering/
+scripts/

@@ -1,0 +1,54 @@
+name: Imagem
+
+# Spec 06 §4. Em todo push e PR: monta a imagem, sobe, confere o health e a imagem limpa.
+# Em tag v*: alem disso, publica no GHCR com a versao da tag e `latest`.
+
+on:
+  push:
+    branches: ["**"]
+    tags:
+      - "v*"
+  pull_request:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGEM: ghcr.io/guilherme-betta/nfe-parser
+
+jobs:
+  imagem:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Montar a imagem
+        run: docker build -t nfe-parser:teste .
+
+      - name: Subir sem Ollama e conferir o health
+        run: |
+          docker run -d --name app -p 8000:8000 nfe-parser:teste
+          for tentativa in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/api/health; then exit 0; fi
+            sleep 2
+          done
+          docker logs app
+          exit 1
+
+      - name: Conferir imagem limpa (sem .env, banco nem nota real)
+        run: |
+          achados=$(docker run --rm --entrypoint sh nfe-parser:teste -c \
+            "find /app /dados \( -name '.env' -o -name '*.db' -o -name '*.sqlite*' -o -name '*.xml' -o -name '*.zip' \) -print")
+          if [ -n "$achados" ]; then echo "Imagem suja:"; echo "$achados"; exit 1; fi
+          echo "imagem limpa"
+
+      - name: Publicar no GHCR (so em tag v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          versao="${GITHUB_REF_NAME#v}"
+          docker tag nfe-parser:teste "$IMAGEM:$versao"
+          docker tag nfe-parser:teste "$IMAGEM:latest"
+          docker push "$IMAGEM:$versao"
+          docker push "$IMAGEM:latest"

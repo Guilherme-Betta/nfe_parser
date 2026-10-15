@@ -1,0 +1,29 @@
+# NF-e Despesas — compose de referencia (spec 06).
+#
+# Subir:   docker compose up -d        → http://localhost:8000
+# Config:  um arquivo .env ao lado deste (ver .env.example). Sem ele, o LLM fica desligado.
+# Backup:  o banco e UM arquivo no volume `nfe-dados` (ver README).
+
+services:
+  app:
+    image: ghcr.io/guilherme-betta/nfe-parser:latest
+    build: .            # `docker compose build` monta a imagem a partir deste repositorio
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - nfe-dados:/dados
+    environment:
+      APP_DB_PATH: /dados/nfe.db
+      TZ: ${TZ:-America/Sao_Paulo}
+      # LLM opt-in: vazio = desligado. Para ligar, defina as tres no .env, por exemplo
+      # OLLAMA_URL=http://host.docker.internal:11434
+      OLLAMA_URL: ${OLLAMA_URL:-}
+      OLLAMA_MODELO: ${OLLAMA_MODELO:-}
+      LLM_LIMIAR: ${LLM_LIMIAR:-}
+    extra_hosts:
+      # No Docker Desktop (Windows/Mac) o nome ja resolve; no Linux, esta linha o cria.
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  nfe-dados:
