@@ -1,4 +1,4 @@
-"""Editar a taxonomia: apagar, mover e renomear categoria.
+"""Editar a taxonomia: criar, apagar, mover e renomear categoria.
 
 Implementa o ultimo bloco do paragrafo 4 de `specs/02_spec_classificacao.md` —
 "apagar categoria com historico → produtos vao pro bucket; renomear → mantem
@@ -19,13 +19,87 @@ motivo proprio: `apagar_categoria` faz quatro escritas em sequencia, e commitar
 no meio deixaria o banco com os produtos ja no bucket e a categoria ainda de pe,
 se a ultima falhasse.
 
-⛔ Este modulo NAO cria categoria. O paragrafo 4 lista tres operacoes, e criar
-nao e uma delas.
+🔴 A ARVORE TEM NO MAXIMO 2 NIVEIS, e criar e mover sao as duas portas por onde
+um terceiro nivel entraria. As duas recusam: o pai tem de ser nivel 1, e uma
+categoria com filhas nao vira filha de ninguem. O bucket nunca e pai — ele e o
+"resto", e um galho embaixo dele seria classificado e nao-classificado ao mesmo
+tempo.
 """
 
+import re
+import unicodedata
 from datetime import UTC, datetime
 
 from nfe_parser.categorizacao import categoria_do_bucket
+
+
+def _slug_de(nome):
+    """`Pão & Café` → `pao-cafe`: sem acento, minusculo, um hifen entre palavras.
+
+    ⭐ O `NFKD` separa a letra do acento (`ã` vira `a` + til), e o `encode` para
+    ASCII com `ignore` joga o til fora. Sem esse passo, o `re.sub` trocaria o `ã`
+    inteiro por hifen e `Pão` viraria `p-o`.
+    """
+
+    sem_acento = unicodedata.normalize("NFKD", nome).encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-z0-9]+", "-", sem_acento.lower()).strip("-")
+
+
+def _pai_valido(conexao, parent_slug):
+    """Devolve o `id` do pai, se ele puder ter filhas. Levanta se nao puder.
+
+    E a regra dos 2 niveis vista do lado do pai, comum a criar e mover.
+    """
+
+    pai = conexao.execute(
+        "SELECT id, parent_id, is_bucket FROM categorias WHERE slug = ?", (parent_slug,)
+    ).fetchone()
+    if pai is None:
+        raise LookupError(f"nao existe categoria com slug {parent_slug!r} para ser o pai")
+    if pai[2]:
+        raise ValueError(f"a categoria {parent_slug!r} e o bucket; o bucket nao tem subcategorias")
+    if pai[1] is not None:
+        raise ValueError(
+            f"a categoria {parent_slug!r} ja e subcategoria; a arvore tem no maximo 2 niveis"
+        )
+    return pai[0]
+
+
+def criar_categoria(conexao, nome, parent_slug=None):
+    """Cria uma categoria nivel 1 (ou subcategoria de `parent_slug`). Devolve o slug.
+
+    🔴 O slug nasce do nome AGORA e, dali em diante, e dado: `renomear_categoria`
+    nunca o recalcula (ver o cabecalho de `seed.py`). O prefixo do pai segue a
+    convencao do arquivo de seed (`mercado-frutas`), e e o que evita que
+    "Outros" em dois pais diferentes colida.
+
+    ⚠️ A guarda do nome olha o SLUG, nao so o nome: `!!!` e um nome nao vazio que
+    da slug vazio, e um slug vazio passaria pelo `NOT NULL` da coluna em
+    silencio.
+
+    ⭐ Slug repetido e conferido antes do INSERT para virar `ValueError` com
+    mensagem; o `UNIQUE` da coluna levantaria `IntegrityError`, que a camada web
+    nao saberia distinguir de um defeito.
+    """
+
+    nome = (nome or "").strip()
+    base = _slug_de(nome)
+    if not base:
+        raise ValueError(f"criar_categoria exige um nome com letra ou digito; recebeu {nome!r}")
+
+    parent_id = None
+    slug = base
+    if parent_slug is not None:
+        parent_id = _pai_valido(conexao, parent_slug)
+        slug = f"{parent_slug}-{base}"
+
+    if conexao.execute("SELECT 1 FROM categorias WHERE slug = ?", (slug,)).fetchone():
+        raise ValueError(f"ja existe categoria com slug {slug!r}")
+
+    conexao.execute(
+        "INSERT INTO categorias (slug, nome, parent_id) VALUES (?, ?, ?)", (slug, nome, parent_id)
+    )
+    return slug
 
 
 def apagar_categoria(conexao, slug):
@@ -120,6 +194,10 @@ def mover_categoria(conexao, slug, novo_parent_slug):
 
     ⭐ O `while` SEMPRE termina: ou chega a uma categoria de nivel 1
     (`parent_id` NULL) ou reencontra a categoria movida.
+
+    🔴 Depois do ciclo vem a regra dos 2 niveis (ver o cabecalho): o novo pai tem
+    de ser nivel 1 e nao o bucket, e quem tem filhas nao desce. A ordem preserva a
+    mensagem de ciclo para quem tenta mover uma categoria para dentro de si.
     """
 
     linha = conexao.execute("SELECT id FROM categorias WHERE slug = ?", (slug,)).fetchone()
@@ -146,6 +224,16 @@ def mover_categoria(conexao, slug, novo_parent_slug):
         atual = conexao.execute(
             "SELECT parent_id FROM categorias WHERE id = ?", (atual,)
         ).fetchone()[0]
+
+    _pai_valido(conexao, novo_parent_slug)
+    filhas = conexao.execute(
+        "SELECT COUNT(*) FROM categorias WHERE parent_id = ?", (categoria_id,)
+    ).fetchone()[0]
+    if filhas:
+        raise ValueError(
+            f"a categoria {slug!r} tem {filhas} subcategoria(s); dentro de {novo_parent_slug!r}"
+            " elas virariam um terceiro nivel"
+        )
 
     conexao.execute("UPDATE categorias SET parent_id = ? WHERE id = ?", (pai[0], categoria_id))
 
