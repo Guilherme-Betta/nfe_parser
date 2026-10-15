@@ -95,9 +95,15 @@ projeto de um dono so.
 
 ## Por que isso e suficiente aqui
 
-Os dois nucleos prontos — parser (spec 01) e classificacao (spec 02) — sao componentes onde teste
-basta: entrada = XML e chamadas de funcao, saida = linhas no SQLite e JSON. Nao ha UI, nao ha rede
-no caminho testado (o LLM entra por uma funcao injetada), nao ha concorrencia.
+Os nucleos — parser (01), classificacao (02), orcamento (04) e as agregacoes dos relatorios (05) —
+sao componentes onde teste basta: entrada = XML e chamadas de funcao, saida = linhas no SQLite e
+JSON. Nao ha rede no caminho testado (o LLM entra por uma funcao injetada), nao ha concorrencia.
+
+A camada web (03) e testada pela `TestClient` do FastAPI: rotas, status, JSON, HTML renderizado e
+o JSON que alimenta os graficos. **O que ela nao ve e o que o navegador faz com isso** — por isso o
+passo "mexeu em tela: subir o app e olhar" do `CLAUDE.md`. Em 2026-10-15 esse passo pegou tres
+defeitos que a suite aprovava: rotulos de loja/produto identicos, eixo de valores ilegivel, e o
+preco no tempo com datas irregulares espacadas por igual.
 
 ## Buracos conhecidos
 
@@ -113,6 +119,9 @@ A pergunta honesta: **o que poderia estar quebrado e mesmo assim passar?**
 | **Erros de tipo.** Sem `mypy`/`pyright` | O projeto nao adotou type checker |
 | **Cobertura.** Um teste vazio passa | Sem `--cov` nem minimo exigido; a revisao e quem olha |
 | **Performance.** Lote grande pode ficar lento | Nenhum criterio de aceitacao fala de tempo |
+| **JavaScript.** `web/static/graficos.js` e o comportamento do HTMX nao rodam em teste nenhum | Sem navegador na suite. A pagina tem a tabela gemea de cada grafico (os numeros sao testados no HTML), e a conferencia e visual, no navegador |
+| **Layout e legibilidade.** Rotulo sobreposto, eixo apertado, tema escuro | Idem: e o passo "subir o app e olhar" |
+| **A imagem Docker.** O `verify` so le o `Dockerfile` e o compose (`tests/test_deploy.py`) | Montar, subir, conferir a imagem limpa e a persistencia roda no workflow `imagem.yml`, no GitHub. Na juicey o Docker Desktop nao sobe |
 
 > ⚠️ **Um teste fraco nao falha ruidosamente — ele aprova codigo errado em silencio.** Medido na
 > Fase 0: um teste de idempotencia que conferia so `COUNT(*)` teria aprovado uma implementacao que

@@ -23,7 +23,8 @@ So despesas, so BRL, sem lancamento manual.
 | stack, versoes, dependencias | `steering/stack.md` |
 | convencoes de nome, estilo e commit | `steering/convencoes.md` |
 | o que o `verify` checa, e o que ele deixa passar | `steering/verificacao.md` |
-| o contrato de cada componente (fonte da verdade) | `specs/0N_spec_*.md` (01 a 06) |
+| o contrato de cada componente (fonte da verdade) | `specs/0N_spec_*.md` (01 a 06 — todas implementadas) |
+| como subir o app, em dev e em Docker | `README.md` |
 | como os nucleos 01 e 02 foram fatiados e decididos | `specs/NNN-nome/` (stories 001 a 013) |
 | o porque das decisoes originais (fotos antigas) | `docs/historico/` |
 | como o codigo era escrito ate 2026-10-14 | `docs/historico/experimento-modelo-local/` |
@@ -36,9 +37,10 @@ Desde 2026-10-14 o codigo e escrito com o Claude, direto. O modelo local
 | # | Passo |
 | - | ----- |
 | 1 | criterios de aceitacao **testaveis** na spec (nova, ou ajuste de uma 01–06) |
-| 2 | os **testes**, a partir dos criterios — provados VERMELHOS no codigo atual, pelo motivo certo |
+| 2 | os **testes**, a partir dos criterios — provados VERMELHOS no codigo atual, pelo motivo certo (modulo novo: contra um esqueleto vazio; teste que passa no vazio prova pouco) |
 | 3 | a implementacao, ate o `verify` ficar verde |
-| 4 | a revisao do diff |
+| 4 | mexeu em tela ou grafico: **subir o app e olhar** antes do commit — o `verify` nao ve layout nem JS |
+| 5 | a revisao do diff |
 
 ⚠️ **Teste antes da implementacao nao e estilo, e defesa.** Teste escrito depois
 tende a confirmar o que o codigo ja faz, inclusive o erro. Se uma mudanca
@@ -55,10 +57,11 @@ produzido, nao o workflow atual.
    formato.
 2. **A `main` so recebe trabalho por decisao explicita do Gui.** Um merge
    publicado so se desfaz com `push --force`.
-3. **Dependencia nova so com decisao do Gui** — ver `steering/stack.md`.
+3. **Dependencia nova so com decisao do Gui** — inclusive JS de front — ver `steering/stack.md`.
 
 ## Comandos
 
 ```bash
 python scripts/verify.py     # pytest + ruff check + ruff format --check. 0 = tudo verde
+APP_DB_PATH=./data/nfe.db uvicorn nfe_parser.web.app:criar_app_do_ambiente --factory   # app em :8000
 ```
