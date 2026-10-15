@@ -39,8 +39,12 @@ Nenhum pacote fora desta tabela. Ela e copia fiel do `pyproject.toml`.
 > enquanto o `nfelib` depender do `xsdata`; se isso mudar, o import quebra sem nenhum aviso antes.
 
 **Da biblioteca padrao**, o que `src/` usa: `sqlite3`, `zipfile`, `hashlib`, `pathlib`,
-`datetime`, `decimal`, `dataclasses`, `json`, `csv`, `os`, `unicodedata`, `urllib.request` e
-`xml.etree.ElementTree`.
+`datetime`, `decimal`, `dataclasses`, `json`, `csv`, `os`, `re`, `unicodedata`, `urllib.request`,
+`tempfile`, `contextlib`, `typing` e `xml.etree.ElementTree`.
+
+**JavaScript de front (componente 03+)** — copiado em `src/nfe_parser/web/static/`, com versao,
+licenca e hash SRI na `LEIA-ME.md` de la. ⛔ Sem CDN: o app self-hosted tem de funcionar sem
+internet (decisao do Gui de 2026-10-15). Hoje: `htmx` 2.0.4.
 
 ### O modelo de arquivo do SQLite — tres fatos que confundem quem vem de outro banco
 
@@ -91,6 +95,9 @@ fixtures **anonimizadas** entram em `tests/fixtures/`.
 specs/                 # o contrato — uma spec por componente (01→06 = ordem de build)
 specs/NNN-nome/        #   ...e as stories 001-013, registro de como os nucleos foram feitos
 src/nfe_parser/        # pacote: parser (spec 01) e classificacao (spec 02)
+src/nfe_parser/consultas.py  # leituras da camada web (SQL puro, sem FastAPI)
+src/nfe_parser/operacoes.py  # quem abre e fecha cada transacao do app web
+src/nfe_parser/web/    # app FastAPI (spec 03): api.py, paginas.py, templates/, static/
 tests/                 # testes + fixtures ANONIMIZADAS; fixtures comuns em conftest.py
 scripts/verify.py      # o portao de commit (pytest + ruff check + ruff format)
 scripts/rodar_eval.py  # mede o LLM contra um gold rotulado

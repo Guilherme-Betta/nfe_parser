@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block titulo %}Importar{% endblock %}
+{% block conteudo %}
+<h1>Importar notas</h1>
+{% if erro %}<div class="erro">{{ erro }}</div>{% endif %}
+<div class="caixa">
+  <form class="linha" method="post" action="/importar" enctype="multipart/form-data">
+    <label>Arquivo .zip (lote) ou .xml (uma nota)
+      <input type="file" name="arquivo" accept=".zip,.xml" required>
+    </label>
+    <button type="submit">Importar</button>
+  </form>
+  <p class="suave">Duplicadas são reconhecidas pela chave e não contam duas vezes.
+    Arquivos ruins vão para o log do lote, sem derrubar o resto.</p>
+</div>
+
+<h2>Últimas importações</h2>
+{% if importacoes %}
+<div class="tabela-rolavel">
+<table>
+  <tr><th>#</th><th>Arquivo</th><th>Quando</th><th class="num">Novas</th>
+      <th class="num">Duplicadas</th><th class="num">Inválidas</th><th class="num">Cancelamentos</th></tr>
+  {% for imp in importacoes %}
+  <tr>
+    <td><a href="/importacoes/{{ imp.importacao_id }}">{{ imp.importacao_id }}</a></td>
+    <td>{{ imp.origem }}</td>
+    <td class="suave">{{ imp.iniciado_em[:16].replace("T", " ") }}</td>
+    <td class="num">{{ imp.contadores.notas_novas }}</td>
+    <td class="num">{{ imp.contadores.duplicadas }}</td>
+    <td class="num">{{ imp.contadores.invalidas }}</td>
+    <td class="num">{{ imp.contadores.cancelamentos_aplicados }}</td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+{% else %}
+<p class="suave">Nenhuma importação ainda.</p>
+{% endif %}
+{% endblock %}

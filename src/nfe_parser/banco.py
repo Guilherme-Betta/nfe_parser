@@ -61,21 +61,36 @@ def criar_esquema(conexao):
     conexao.executescript(ddl)
 
 
-def abrir_banco(caminho):
-    """Abre (criando se preciso) o banco em `caminho` e devolve a conexao pronta.
+def conectar(caminho):
+    """So abre a conexao, com `PRAGMA foreign_keys = ON`. Nao mexe no esquema.
 
     O `PRAGMA foreign_keys = ON` nao e detalhe: no SQLite ele vem DESLIGADO por
     padrao e vale POR CONEXAO, nao pelo arquivo. Sem ele, os REFERENCES do DDL
     sao decorativos e um item orfao entra em silencio.
 
-    A ordem das duas ultimas chamadas tambem nao e estilo. `criar_esquema` poe de
+    ⭐ E o que a camada web usa a cada requisicao: o esquema ja foi garantido uma
+    vez, no startup, por `abrir_banco`.
+
+    ⚠️ `check_same_thread=False` porque o FastAPI pode abrir a conexao numa thread
+    e usa-la noutra, dentro da MESMA requisicao. A protecao que ele desliga e
+    contra conexao COMPARTILHADA entre threads — e aqui cada requisicao tem a sua.
+    """
+
+    conexao = sqlite3.connect(caminho, check_same_thread=False)
+    conexao.execute("PRAGMA foreign_keys = ON")
+    return conexao
+
+
+def abrir_banco(caminho):
+    """Abre (criando se preciso) o banco em `caminho` e devolve a conexao pronta.
+
+    A ordem das duas ultimas chamadas nao e estilo. `criar_esquema` poe de
     pe as tabelas da spec 01, e a migracao v2 faz `ALTER TABLE itens` — num banco
     novo essa tabela so existe depois de `criar_esquema` ter rodado. Invertidas, a
     primeira abertura de um banco novo quebraria.
     """
 
-    conexao = sqlite3.connect(caminho)
-    conexao.execute("PRAGMA foreign_keys = ON")
+    conexao = conectar(caminho)
     criar_esquema(conexao)
     aplicar_migracoes(conexao)
     return conexao

@@ -1,0 +1,21 @@
+<tr id="produto-{{ p.id }}">
+  <td>{{ p.descricao_exemplo }}
+    {% if p.aproximado %}<span class="selo aviso" title="Sem código de barras: o produto foi reconhecido pelo texto, só dentro da loja">casamento aproximado</span>{% endif %}
+  </td>
+  <td>{{ p.categoria or "—" }}
+    {% if salvo %}<span class="selo ok">salvo</span>{% elif p.origem %}<span class="suave">({{ p.origem }})</span>{% endif %}
+  </td>
+  <td class="num">{{ p.n_itens }}</td>
+  <td>
+    <form class="linha" method="post" action="/revisar/{{ p.id }}"
+          hx-post="/revisar/{{ p.id }}" hx-target="#produto-{{ p.id }}" hx-swap="outerHTML">
+      <select name="categoria_slug" aria-label="Nova categoria" required>
+        <option value="">escolha…</option>
+        {% for slug, rotulo in opcoes %}
+        <option value="{{ slug }}" {% if slug == p.categoria_slug %}selected{% endif %}>{{ rotulo }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">Salvar</button>
+    </form>
+  </td>
+</tr>

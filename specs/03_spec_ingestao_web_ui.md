@@ -41,7 +41,7 @@ Categorias são endereçadas por **`slug`**, nunca por `id` — o slug é a chav
 
 ```
 POST   /api/importacoes              multipart `arquivo` (.zip|.xml) → 201 {importacao_id, contadores, classificacao}
-GET    /api/importacoes              as 20 mais recentes: [{importacao_id, origem, iniciado_em, contadores}]
+GET    /api/importacoes              as 20 mais recentes: [{importacao_id, origem, iniciado_em, finalizado_em, contadores}]
 GET    /api/importacoes/{id}         {importacao_id, origem, iniciado_em, finalizado_em, contadores, classificacao,
                                       arquivos: [{arquivo, resultado, chave, detalhe}]}   (arquivos na ordem do log)
 
@@ -77,7 +77,8 @@ Navegação comum a todas as páginas. As páginas chamam as **mesmas** funçõe
 - `/` — formulário de upload (zip/xml) + últimas importações. Enviar roda o pipeline (§3) e redireciona (303) para `/importacoes/{id}`. Extensão errada → a página volta com a mensagem, status 400.
 - `/importacoes/{id}` — contadores, resumo da classificação e tabela por arquivo (nova/duplicada/inválida/cancelamento/SAT).
 - `/notas` — lista com filtros (mês, loja, status) e paginação; `/notas/{chave}` — cabeçalho + itens com categoria.
-- `/revisar` — **fila de não-classificados** (`classificado=false` por padrão). Cada linha tem um seletor de categoria; o HTMX posta em `/revisar/{id}` e troca só a linha. Sem HTMX (requisição comum), o mesmo POST redireciona para `/revisar`.
+- `/revisar` — **fila de não-classificados** (`classificado=false` por padrão; `?todos=true` mostra todos). Cada linha tem um seletor de categoria — **sem o bucket**: classificar à mão no bucket protegeria o produto lá dentro, fora da fila. O HTMX posta em `/revisar/{id}` e troca só a linha. Sem HTMX (requisição comum), o mesmo POST redireciona para `/revisar`. Com LLM ligado, um botão posta em `/revisar/llm`, que roda a varredura com LLM e volta.
+- **Números na tela** em formato brasileiro (`R$ 1.234,56`; `3,33`), por operação de texto sobre centavos e strings decimais — nunca float. O JSON da API não passa por essa formatação.
 - `/taxonomia` — árvore com criar / renomear / mover / apagar (formulários, POST + redirect). Apagar **avisa** quantos produtos vão pro bucket antes de confirmar. Erro do núcleo → a página volta com a mensagem, status 400.
 - **Honestidade (§5 do report):** produto com `identidade_origem='texto'` aparece marcado como *casamento aproximado* em `/revisar` e em `/notas/{chave}`.
 
@@ -97,7 +98,7 @@ Fixtures anonimizadas (repo público — sem CPF/CNPJ/nome real). Testes pela `T
 **Pipeline**
 - C4. Zip com nota boa + XML quebrado + CF-e SAT → 201; contadores certos; os três arquivos no log de `GET /api/importacoes/{id}`.
 - C5. Reimportar o mesmo zip → `notas_novas: 0`, `duplicadas` = notas do zip; contagem de notas no banco não muda.
-- C6. Cancelamento em duas passadas via HTTP: um upload com o evento e outro com a nota, em qualquer ordem dentro do mesmo zip → nota `cancelada`.
+- C6. Cancelamento via HTTP: (a) zip com o evento ANTES da nota → nota `cancelada` (duas passadas); (b) evento num upload posterior ao da nota → nota `cancelada`.
 - C7. Extensão que não é `.zip`/`.xml` → 400 e nenhuma importação gravada.
 - C8. Classificação no import: item com NCM do mapa sai com `origem='ncm'` e a categoria do mapa; item com NCM fora do mapa vai ao bucket; o resumo `classificacao` bate com isso.
 - C9. **LLM não dispara no import**, mesmo com LLM ligado (função espiã não é chamada). `POST /api/llm/classificar` chama o LLM para os pendentes; com LLM desligado → 409.
