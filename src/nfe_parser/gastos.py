@@ -33,41 +33,93 @@ FROM_ITENS = """
 """
 
 
-def filtro_periodo(de=None, ate=None):
-    """O `WHERE` comum a todo gasto: so nota valida, e o intervalo de meses pedido.
+# A categoria pedida e TODA a descendencia dela: filtrar por `mercado` tem de pegar
+# o que esta em `mercado-mercearia` (rollup, spec 05 §3).
+CTE_DESCENDENTES = """
+    descendentes(id) AS (
+      SELECT id FROM categorias WHERE slug = :categoria_slug
+      UNION ALL
+      SELECT c.id FROM categorias c JOIN descendentes d ON c.parent_id = d.id
+    )
+"""
+
+
+def conferir_filtros(conexao, categoria_slug=None, produto_id=None):
+    """Levanta `LookupError` se a categoria ou o produto do filtro nao existem.
+
+    ⭐ Sem isto, um slug com erro de digitacao devolveria "gasto zero" — uma
+    resposta valida que mente. Melhor dizer que o filtro nao casa com nada.
+    """
+    if (
+        categoria_slug
+        and not conexao.execute(
+            "SELECT 1 FROM categorias WHERE slug = ?", (categoria_slug,)
+        ).fetchone()
+    ):
+        raise LookupError(f"nao existe categoria com slug {categoria_slug!r}")
+    if (
+        produto_id is not None
+        and not conexao.execute("SELECT 1 FROM produtos WHERE id = ?", (produto_id,)).fetchone()
+    ):
+        raise LookupError(f"nao existe produto {produto_id}")
+
+
+def filtros_de_gasto(de=None, ate=None, categoria_slug=None, loja_cnpj=None, produto_id=None):
+    """`(WITH, WHERE, parametros)` comuns a todo gasto filtrado.
+
+    O WHERE base e so nota valida; cada filtro acrescenta um pedaco FIXO, com o
+    valor como parametro nomeado — nunca colado no SQL.
 
     ⭐ `de` e `ate` sao `'YYYY-MM'`, e a comparacao de TEXTO funciona porque o
     formato tem largura fixa: `'2026-06' <= '2026-10'` como string e como data.
     """
-    filtros, parametros = ["n.status = 'ok'"], {}
+    ctes, filtros, parametros = [CTE_RAIZ], ["n.status = 'ok'"], {}
     if de:
         filtros.append("substr(n.dh_emi, 1, 7) >= :de")
         parametros["de"] = de
     if ate:
         filtros.append("substr(n.dh_emi, 1, 7) <= :ate")
         parametros["ate"] = ate
-    return filtros, parametros
+    if categoria_slug:
+        ctes.append(CTE_DESCENDENTES)
+        filtros.append("c.id IN (SELECT id FROM descendentes)")
+        parametros["categoria_slug"] = categoria_slug
+    if loja_cnpj:
+        filtros.append("n.emit_cnpj = :loja_cnpj")
+        parametros["loja_cnpj"] = loja_cnpj
+    if produto_id is not None:
+        filtros.append("i.produto_id = :produto_id")
+        parametros["produto_id"] = produto_id
+    return "WITH RECURSIVE " + ", ".join(ctes), " AND ".join(filtros), parametros
 
 
-def gasto_por_categoria(conexao, de=None, ate=None):
+def consultar(conexao, select, sufixo="", **filtros):
+    """Roda `SELECT <select>` sobre os itens filtrados. `sufixo` vem depois do WHERE."""
+    conferir_filtros(conexao, filtros.get("categoria_slug"), filtros.get("produto_id"))
+    com, onde, parametros = filtros_de_gasto(**filtros)
+    return conexao.execute(
+        f"{com} SELECT {select} {FROM_ITENS} WHERE {onde} {sufixo}", parametros
+    ).fetchall()
+
+
+def gasto_por_categoria(conexao, **filtros):
     """O gasto por categoria de NIVEL 1, com rollup, e o nao classificado a parte.
 
     Devolve `{"linhas": [{categoria_slug, nome, gasto}], "nao_classificado": {"gasto"}}`,
-    linhas por slug. So entram categorias com gasto.
+    linhas por slug. So entram categorias com gasto. `filtros`: os de `filtros_de_gasto`.
 
     🔴 "Nao classificado" e: item sem produto, produto sem categoria, e produto no
     BUCKET. O bucket e uma categoria de nivel 1 como outra qualquer para a CTE, e
     sem o `is_bucket` no CASE ele viraria uma linha "Nao Classificado" somada as
     categorias — fingindo que o dinheiro sem categoria cabe num teto.
     """
-    filtros, parametros = filtro_periodo(de, ate)
-    linhas = conexao.execute(
-        f"WITH RECURSIVE {CTE_RAIZ}"
-        " SELECT CASE WHEN c.id IS NULL OR c.is_bucket = 1 THEN NULL ELSE r.raiz_id END,"
-        " SUM(i.valor_linha)"
-        f" {FROM_ITENS} WHERE {' AND '.join(filtros)} GROUP BY 1",
-        parametros,
-    ).fetchall()
+    linhas = consultar(
+        conexao,
+        "CASE WHEN c.id IS NULL OR c.is_bucket = 1 THEN NULL ELSE r.raiz_id END,"
+        " SUM(i.valor_linha)",
+        "GROUP BY 1",
+        **filtros,
+    )
 
     por_raiz = {raiz_id: gasto for raiz_id, gasto in linhas}
     nao_classificado = por_raiz.pop(None, 0)

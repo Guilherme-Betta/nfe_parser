@@ -258,6 +258,14 @@ def id_da_categoria(conexao, slug):
     return linha[0]
 
 
+def lojas(conexao):
+    """`[(cnpj, nome)]` de toda loja com nota, por nome — para o filtro da tela."""
+    return conexao.execute(
+        "SELECT emit_cnpj, MAX(emit_nome) FROM notas WHERE emit_cnpj IS NOT NULL"
+        " GROUP BY emit_cnpj ORDER BY 2, 1"
+    ).fetchall()
+
+
 def contagens(conexao):
     """Quantas linhas ha nas tabelas principais — para o `/api/health`."""
     return {

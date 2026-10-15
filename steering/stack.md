@@ -44,7 +44,7 @@ Nenhum pacote fora desta tabela. Ela e copia fiel do `pyproject.toml`.
 
 **JavaScript de front (componente 03+)** — copiado em `src/nfe_parser/web/static/`, com versao,
 licenca e hash SRI na `LEIA-ME.md` de la. ⛔ Sem CDN: o app self-hosted tem de funcionar sem
-internet (decisao do Gui de 2026-10-15). Hoje: `htmx` 2.0.4.
+internet (decisao do Gui de 2026-10-15). Hoje: `htmx` 2.0.4 e `chart.js` 4.4.1.
 
 ### O modelo de arquivo do SQLite — tres fatos que confundem quem vem de outro banco
 
@@ -99,6 +99,7 @@ src/nfe_parser/consultas.py  # leituras da camada web (SQL puro, sem FastAPI)
 src/nfe_parser/operacoes.py  # quem abre e fecha cada transacao do app web
 src/nfe_parser/gastos.py     # o gasto realizado com rollup — motor das specs 04 e 05
 src/nfe_parser/orcamento.py  # teto por categoria e mes (spec 04)
+src/nfe_parser/relatorios.py # as analises da visualizacao (spec 05), so leitura
 src/nfe_parser/web/    # app FastAPI (spec 03): api.py, paginas.py, templates/, static/
 tests/                 # testes + fixtures ANONIMIZADAS; fixtures comuns em conftest.py
 scripts/verify.py      # o portao de commit (pytest + ruff check + ruff format)

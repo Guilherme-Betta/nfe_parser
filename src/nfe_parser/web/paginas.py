@@ -20,7 +20,7 @@ from fastapi import APIRouter, Depends, Form, Request, UploadFile
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from nfe_parser import consultas, operacoes, orcamento
+from nfe_parser import consultas, operacoes, orcamento, relatorios
 from nfe_parser.serializacao import nota_para_json
 from nfe_parser.web.comum import (
     UploadRecusado,
@@ -347,3 +347,53 @@ def apagar_orcamento(
     return _editar_orcamento(
         request, conexao, mes, lambda: operacoes.apagar_orcamento(conexao, orcamento_id)
     )
+
+
+# --- relatorios -----------------------------------------------------------------
+
+
+def _filtros_da_tela(de, ate, categoria_slug, loja_cnpj, produto_id):
+    """Os filtros do formulario, com vazio e formato invalido virando None."""
+    return {
+        "de": de if de and _MES.fullmatch(de) else None,
+        "ate": ate if ate and _MES.fullmatch(ate) else None,
+        "categoria_slug": categoria_slug or None,
+        "loja_cnpj": loja_cnpj or None,
+        "produto_id": int(produto_id) if produto_id and produto_id.isdigit() else None,
+    }
+
+
+@roteador.get("/relatorios")
+def ver_relatorios(
+    request: Request,
+    conexao: Conexao,
+    de: str | None = None,
+    ate: str | None = None,
+    categoria_slug: str | None = None,
+    loja_cnpj: str | None = None,
+    produto_id: str | None = None,
+):
+    filtros = _filtros_da_tela(de, ate, categoria_slug, loja_cnpj, produto_id)
+    comuns = {chave: valor for chave, valor in filtros.items() if chave != "produto_id"}
+    try:
+        dados = {
+            "mensal": relatorios.gasto_mensal(conexao, **filtros),
+            "categoria": relatorios.gasto_categoria(conexao, **filtros),
+            "loja": relatorios.gasto_loja(conexao, **filtros),
+            "top": relatorios.top_produtos(conexao, **filtros),
+            "preco": (
+                relatorios.preco_no_tempo(conexao, filtros["produto_id"], **comuns)
+                if filtros["produto_id"]
+                else None
+            ),
+        }
+    except LookupError as e:
+        return _nao_encontrado(request, str(e))
+
+    contexto = {
+        "dados": dados,
+        "filtros": filtros,
+        "categorias": _opcoes_de_categoria(conexao),
+        "lojas": consultas.lojas(conexao),
+    }
+    return _tela(request, "relatorios.html", contexto)

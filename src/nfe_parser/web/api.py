@@ -7,7 +7,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, UploadFile
 from pydantic import BaseModel
 
-from nfe_parser import consultas, operacoes, orcamento
+from nfe_parser import consultas, operacoes, orcamento, relatorios
 from nfe_parser.migracoes import versao_do_banco
 from nfe_parser.serializacao import nota_para_json
 from nfe_parser.web.comum import UploadRecusado, importar_upload, obter_conexao
@@ -191,6 +191,60 @@ def apagar_orcamento(orcamento_id: int, conexao: Conexao):
     with erros_do_nucleo():
         operacoes.apagar_orcamento(conexao, orcamento_id)
     return Response(status_code=204)
+
+
+def _filtros_comuns(
+    de: Annotated[str | None, Query(pattern=MES)] = None,
+    ate: Annotated[str | None, Query(pattern=MES)] = None,
+    categoria_slug: str | None = None,
+    loja_cnpj: str | None = None,
+):
+    return {"de": de, "ate": ate, "categoria_slug": categoria_slug, "loja_cnpj": loja_cnpj}
+
+
+def _filtros(comuns: Annotated[dict, Depends(_filtros_comuns)], produto_id: int | None = None):
+    """Os filtros da spec 05 §3, validados pelo FastAPI. O `preco-no-tempo` usa so
+    os comuns: la, `produto_id` e obrigatorio e vem como parametro proprio."""
+    return {**comuns, "produto_id": produto_id}
+
+
+Filtros = Annotated[dict, Depends(_filtros)]
+FiltrosComuns = Annotated[dict, Depends(_filtros_comuns)]
+
+
+@roteador.get("/relatorios/gasto-mensal")
+def gasto_mensal(conexao: Conexao, filtros: Filtros):
+    with erros_do_nucleo():
+        return relatorios.gasto_mensal(conexao, **filtros)
+
+
+@roteador.get("/relatorios/gasto-categoria")
+def gasto_categoria(conexao: Conexao, filtros: Filtros):
+    with erros_do_nucleo():
+        return relatorios.gasto_categoria(conexao, **filtros)
+
+
+@roteador.get("/relatorios/gasto-loja")
+def gasto_loja(conexao: Conexao, filtros: Filtros):
+    with erros_do_nucleo():
+        return relatorios.gasto_loja(conexao, **filtros)
+
+
+@roteador.get("/relatorios/top-produtos")
+def top_produtos(
+    conexao: Conexao,
+    filtros: Filtros,
+    limite: Annotated[int, Query(ge=1, le=100)] = 20,
+    ordenar: Literal["valor", "quantidade"] = "valor",
+):
+    with erros_do_nucleo():
+        return relatorios.top_produtos(conexao, limite, ordenar, **filtros)
+
+
+@roteador.get("/relatorios/preco-no-tempo")
+def preco_no_tempo(conexao: Conexao, produto_id: int, filtros: FiltrosComuns):
+    with erros_do_nucleo():
+        return relatorios.preco_no_tempo(conexao, produto_id, **filtros)
 
 
 @roteador.post("/llm/classificar")
