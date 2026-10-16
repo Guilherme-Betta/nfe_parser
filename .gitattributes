@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# JS de terceiros copiado (web/static): bytes intocados, para o hash SRI da
+# LEIA-ME continuar batendo. Sem isto, o git poderia trocar LF por CRLF.
+src/nfe_parser/web/static/*.js -text

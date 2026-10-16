@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block titulo %}Importação {{ imp.importacao_id }}{% endblock %}
+{% set rotulos = {
+  "nova": ("nova", "ok"), "duplicada": ("duplicada", ""), "invalida": ("inválida", "ruim"),
+  "cancelamento_aplicado": ("cancelamento aplicado", "ok"),
+  "cancelamento_orfao": ("cancelamento órfão", ""), "nao_suportado_sat": ("SAT — não suportado", "")
+} %}
+{% block conteudo %}
+<h1>Importação {{ imp.importacao_id }} <span class="suave">— {{ imp.origem }}</span></h1>
+
+<div class="cartoes">
+  <div class="cartao"><b>{{ imp.contadores.total_arquivos }}</b><span class="suave">arquivos</span></div>
+  <div class="cartao"><b>{{ imp.contadores.notas_novas }}</b><span class="suave">notas novas</span></div>
+  <div class="cartao"><b>{{ imp.contadores.duplicadas }}</b><span class="suave">duplicadas</span></div>
+  <div class="cartao"><b>{{ imp.contadores.invalidas }}</b><span class="suave">inválidas</span></div>
+  <div class="cartao"><b>{{ imp.contadores.cancelamentos_aplicados }}</b><span class="suave">cancelamentos</span></div>
+  <div class="cartao"><b>{{ imp.contadores.nao_suportadas }}</b><span class="suave">SAT (não suportado)</span></div>
+</div>
+
+<h2>Classificação dos produtos das notas novas</h2>
+{% set c = imp.classificacao %}
+<p>{{ c.produtos }} produto(s): {{ c.ncm }} pelo NCM, {{ c.memoria }} já decididos antes,
+  {{ c.llm }} pelo LLM, <b>{{ c.bucket }} sem categoria</b>.
+  {% if c.bucket %}<a href="/revisar">Revisar os sem categoria →</a>{% endif %}</p>
+
+<h2>Arquivos</h2>
+<div class="tabela-rolavel">
+<table>
+  <tr><th>Arquivo</th><th>Resultado</th><th>Chave</th><th>Detalhe</th></tr>
+  {% for a in imp.arquivos %}
+  {% set rotulo = rotulos.get(a.resultado, (a.resultado, "")) %}
+  <tr>
+    <td>{{ a.arquivo }}</td>
+    <td><span class="selo {{ rotulo[1] }}">{{ rotulo[0] }}</span></td>
+    <td class="suave">{% if a.chave %}<a href="/notas/{{ a.chave }}">{{ a.chave }}</a>{% endif %}</td>
+    <td class="suave">{{ a.detalhe or "" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

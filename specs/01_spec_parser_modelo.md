@@ -1,6 +1,6 @@
 # Spec — `parser + modelo de dados`
 
-Núcleo de ingestão do app NF-e. Lê `report_projeto_nfe.md` como contexto; esta spec é o contrato deste componente só. **API-first** (fala JSON, não HTML). Faça o mais simples que passe nos critérios do §5 — sem abstrações além disso, pare nas fronteiras (§4).
+Núcleo de ingestão do app NF-e. Lê `docs/historico/report_projeto_nfe.md` como contexto; esta spec é o contrato deste componente só. **API-first** (fala JSON, não HTML). Faça o mais simples que passe nos critérios do §5 — sem abstrações além disso, pare nas fronteiras (§4).
 
 Decisões travadas: guardar o XML original na nota; inválidas/não-parseáveis vão num log separado, não em `notas`.
 
@@ -87,3 +87,58 @@ Invariantes que os testes verificam:
 - Dedup idempotente; cancelamento aplicado inclusive com evento antes da nota; órfão e inválido não quebram o lote; SAT ignorado com marca.
 - Dinheiro exato ao centavo; quantidade fracionária (kg) preservada; GTIN ausente → NULL.
 - Saídas serializam em JSON; nenhum dado pessoal real nas fixtures.
+
+## 6. Decisões tomadas na implementação — ⚠️ RASCUNHO, a revisar
+
+> **Rascunho de 2026-10-14, ainda NÃO aprovado.** Consolida o que as stories 002–006 e 013, e a
+> refatoração de 2026-10-14, decidiram ao construir este núcleo — decisões que até aqui só existiam
+> nas specs das stories e no código. Ao aprovar, esta seção vira contrato (e o texto das §1–§5 é
+> ajustado onde a §6.1 aponta); as stories voltam a ser só registro.
+
+### 6.1 Onde o texto acima diverge do que foi construído
+
+| As §1–§5 dizem | O código faz | Proposta |
+| -------------- | ------------ | -------- |
+| §3: "Saída: `ResultadoImportacao` (JSON) com contadores + destino de cada arquivo" | `importar()` devolve o `id` da importação. Os contadores ficam em `importacoes`, e o destino de cada arquivo em `importacao_arquivos` (story 004) | trocar o texto pelo que existe |
+| §3: "Leitura mínima do núcleo: `obter_nota(chave)`, `listar_itens(chave)`" | uma função só, `nota_para_json(conexao, chave)`: a nota com os itens dentro, como string JSON, ou `None` se a chave não existe (story 006) | trocar o texto |
+
+### 6.2 Regras decididas
+
+**Importação**
+- **O lote é uma transação.** `importar` grava tudo ou nada: se algo levanta no meio — erro de
+  gravação, não de conteúdo —, o lote inteiro é desfeito e o erro sobe (story 013 D3/D4;
+  refatoração de 2026-10-14).
+- **NF-e que abre mas está incompleta** (sem `pag`, `detPag`, `vNF`, `prod`…) é `invalida`, com o
+  erro em `detalhe`. ⛔ Não é tolerada com campo vazio: esses blocos são obrigatórios no leiaute
+  4.00 (refatoração de 2026-10-14).
+- `.zip` e `.xml` avulso seguem o mesmo caminho. No `.zip`, membros que não terminam em `.xml` e
+  diretórios são ignorados — não viram linha nem entram na contagem.
+- O `arquivo_hash` é o SHA-256 dos **bytes** do arquivo, não do texto decodificado.
+- `cancelamento_orfao` entra no total de arquivos mas não tem contador próprio em `importacoes`.
+
+**Cancelamento** (story 005)
+- Só `tpEvento = 110111` cancela. Outro evento (carta de correção, por exemplo) vira
+  `cancelamento_orfao` e não muda nota nenhuma.
+- Reaplicar o mesmo evento não move `cancelado_em`: o primeiro carimbo vence, e o resultado
+  continua `cancelamento_aplicado`.
+- Evento de nota importada num lote **anterior** também aplica. Evento cujo XML não abre é
+  `invalida`, e o lote segue.
+
+**Saída JSON** (story 006, decisão do Gui de 15/09)
+- **Dinheiro sai em dois campos:** `valor_total_centavos` (int — a fonte de verdade, com o qual se
+  faz conta) e `valor_total` (string `"123.45"` — para ler). Idem `valor_linha_centavos` e
+  `valor_linha`. A string é sempre derivada do inteiro na hora de serializar; somar strings é errado.
+- **Não saem:** `xml_raw` (o documento inteiro, e o repo é público), `importacao_id` e `criado_em`
+  (escrituração do banco); nos itens, `id`, `nota_chave` e `produto_id`.
+- Itens saem em ordem de `n_item`, com a categoria (ver spec 02 §7).
+
+### 6.3 Decisões pendentes — do Gui
+
+1. **NF-e de emitente com CPF e item sem GTIN derruba o lote inteiro.** A identidade de produto
+   por texto exige o CNPJ da loja (spec 02 §3), e a story 013 decidiu que esse erro sobe. NF-e
+   emitida por CPF existe (produtor rural). Opções: (a) manter; (b) registrar o arquivo como
+   `invalida` e seguir o lote; (c) aceitar o CPF como "loja" na chave de texto — ⚠️ grava CPF de
+   terceiro no banco (local, nunca commitado, mas é dado pessoal).
+2. **`cancelado_em` é a hora da IMPORTAÇÃO, não a do evento.** O `dhEvento` é extraído do XML e
+   descartado. `steering/convencoes.md` diz "datas como no XML". Escolher: hora do evento (mais
+   fiel ao documento) ou da importação (o que existe hoje).

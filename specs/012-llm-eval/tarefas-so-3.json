@@ -1,0 +1,12 @@
+{
+  "story": "012-llm-eval",
+  "tarefas": [
+    {
+      "id": "3",
+      "titulo": "a varredura passa o llm adiante",
+      "alvo": "src/nfe_parser/varredura.py",
+      "teste": "tests/test_varredura_llm.py",
+      "mensagem": "specs/012-llm-eval/tarefas/tarefa-03.md"
+    }
+  ]
+}

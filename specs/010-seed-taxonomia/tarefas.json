@@ -1,0 +1,19 @@
+{
+  "story": "010-seed-taxonomia",
+  "tarefas": [
+    {
+      "id": "1",
+      "titulo": "carregar_categorias: upsert por slug em duas passadas, e o invariante do bucket",
+      "alvo": "src/nfe_parser/seed.py",
+      "teste": "tests/test_seed_categorias.py",
+      "mensagem": "specs/010-seed-taxonomia/tarefas/tarefa-01.md"
+    },
+    {
+      "id": "2",
+      "titulo": "carregar_ncm_ancora: upsert por prefixo, resolvendo o slug e recusando largura impossivel",
+      "alvo": "src/nfe_parser/seed.py",
+      "teste": "tests/test_seed_ncm.py",
+      "mensagem": "specs/010-seed-taxonomia/tarefas/tarefa-02.md"
+    }
+  ]
+}

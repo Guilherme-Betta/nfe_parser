@@ -1,0 +1,21 @@
+# ★ SEM ESTE ARQUIVO O ORCAMENTO DE 8k NAO TEM LASTRO. ★
+#
+# `num_ctx` e parametro do OLLAMA, nao do Aider. O Aider 0.86.2 nao tem flag
+# `--num-ctx` nem campo equivalente no .aider.conf.yml. Este arquivo, lido da raiz
+# do projeto, e o UNICO caminho: o Aider repassa `extra_params` cru para o Ollama.
+#
+# Verificado na Fase 0 (fase0-resultados.md, secao 1): foi assim que `ollama ps`
+# passou a mostrar CONTEXT=8192, que e o Portao A.
+#
+# O modo de falha sem ele e o pior possivel: SILENCIOSO. Um contexto maior que o
+# previsto nao da erro — so faz o plano medir uma coisa e a maquina rodar outra.
+# Todos os numeros do kit (as ~300 linhas por tarefa, o limite de ~120 linhas do
+# `whole`, a regra do /clear) sao calculados contra 8192.
+#
+# ⚠️ SE TROCAR DE MODELO, TROQUE O `name` AQUI TAMBEM. A chave casa pelo nome exato
+# que o Aider usa (ollama_chat/<modelo>:<tag>). Um `name` que nao casa e ignorado
+# em silencio — efeito identico ao de nao ter o arquivo.
+
+- name: ollama_chat/qwen2.5-coder:14b
+  extra_params:
+    num_ctx: 8192

@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block titulo %}Relatórios{% endblock %}
+{% block cabeca %}
+  <script src="/static/chart.umd.js" defer></script>
+  <script src="/static/graficos.js" defer></script>
+{% endblock %}
+{% block estilo %}
+  /* Cor da serie validada (metodo de visualizacao) contra as superficies clara e escura do app. */
+  :root { --serie-1: #2a78d6; --serie-neutra: #898781; --grade: #e1e0d9; --eixo: #c3c2b7; }
+  @media (prefers-color-scheme: dark) {
+    :root { --serie-1: #3987e5; --serie-neutra: #898781; --grade: #2c2c2a; --eixo: #383835; }
+  }
+  .graficos { display: grid; gap: 16px; margin-top: 16px;
+              grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); }
+  .cartao-grafico { background: var(--superficie); border: 1px solid var(--borda); border-radius: 8px;
+                    padding: 16px; min-width: 0; }
+  .cartao-grafico .topo { display: flex; justify-content: space-between; align-items: center;
+                          gap: 8px; margin-bottom: 8px; }
+  .cartao-grafico h2 { margin: 0; font-size: 1rem; }
+  .area { position: relative; height: 280px; }
+  details.gemea summary { cursor: pointer; color: var(--destaque); margin-top: 10px; font-size: .9rem; }
+  details.gemea table { margin-top: 8px; }
+  .filtro-ativo { margin-top: 12px; }
+{% endblock %}
+{% macro seletor(nome, opcoes) %}
+  <select data-grafico="{{ nome }}" aria-label="Tipo de gráfico">
+    {% for valor, rotulo in opcoes %}<option value="{{ valor }}">{{ rotulo }}</option>{% endfor %}
+  </select>
+{% endmacro %}
+{% set barras = [("horizontal", "Barras horizontais"), ("vertical", "Barras verticais")] %}
+{% block conteudo %}
+<h1>Relatórios</h1>
+
+<form class="linha caixa" method="get" action="/relatorios">
+  <label>De <input type="month" name="de" value="{{ filtros.de or '' }}"></label>
+  <label>Até <input type="month" name="ate" value="{{ filtros.ate or '' }}"></label>
+  <label>Categoria
+    <select name="categoria_slug">
+      <option value="">todas</option>
+      {% for slug, rotulo in categorias %}
+      <option value="{{ slug }}" {% if slug == filtros.categoria_slug %}selected{% endif %}>{{ rotulo }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Loja
+    <select name="loja_cnpj">
+      <option value="">todas</option>
+      {% for cnpj, nome in lojas %}
+      <option value="{{ cnpj }}" {% if cnpj == filtros.loja_cnpj %}selected{% endif %}>{{ nome or cnpj }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  {% if filtros.produto_id %}<input type="hidden" name="produto_id" value="{{ filtros.produto_id }}">{% endif %}
+  <button type="submit">Filtrar</button>
+  <a href="/relatorios">limpar</a>
+</form>
+
+{% if dados.preco %}
+<p class="filtro-ativo">Produto: <b>{{ dados.preco.descricao_exemplo }}</b>
+  {% if dados.preco.aproximado %}<span class="selo aviso" title="Sem código de barras: reconhecido pelo texto, só dentro da loja">casamento aproximado</span>{% endif %}
+  · <a href="{{ request.url.remove_query_params('produto_id') }}">remover</a></p>
+{% endif %}
+
+{% if not dados.mensal %}
+<p class="caixa" style="margin-top:16px">Nenhum gasto neste recorte.</p>
+{% else %}
+<div class="graficos">
+
+  <section class="cartao-grafico">
+    <div class="topo"><h2>Gasto por mês</h2>{{ seletor("mensal", [("line", "Linha"), ("bar", "Barras")]) }}</div>
+    <div class="area"><canvas id="grafico-mensal" role="img" aria-label="Gasto por mês"></canvas></div>
+    <script type="application/json" id="dados-mensal">{{ dados.mensal | tojson }}</script>
+    <details class="gemea"><summary>Ver tabela</summary>
+      <table><tr><th>Mês</th><th class="num">Gasto</th></tr>
+        {% for p in dados.mensal %}<tr><td>{{ p.mes }}</td><td class="num">{{ p.gasto | reais }}</td></tr>{% endfor %}
+      </table>
+    </details>
+  </section>
+
+  <section class="cartao-grafico">
+    <div class="topo"><h2>Por categoria</h2>{{ seletor("categoria", barras) }}</div>
+    <div class="area"><canvas id="grafico-categoria" role="img" aria-label="Gasto por categoria"></canvas></div>
+    <script type="application/json" id="dados-categoria">{{ dados.categoria | tojson }}</script>
+    <details class="gemea"><summary>Ver tabela</summary>
+      <table><tr><th>Categoria</th><th class="num">Gasto</th></tr>
+        {% for l in dados.categoria.linhas %}<tr><td>{{ l.nome }}</td><td class="num">{{ l.gasto | reais }}</td></tr>{% endfor %}
+        <tr><td>Não classificado <a href="/revisar">revisar</a></td><td class="num">{{ dados.categoria.nao_classificado.gasto | reais }}</td></tr>
+      </table>
+    </details>
+  </section>
+
+  <section class="cartao-grafico">
+    <div class="topo"><h2>Por loja</h2>{{ seletor("loja", barras) }}</div>
+    <div class="area"><canvas id="grafico-loja" role="img" aria-label="Gasto por loja"></canvas></div>
+    <script type="application/json" id="dados-loja">{{ dados.loja | tojson }}</script>
+    <details class="gemea"><summary>Ver tabela</summary>
+      <table><tr><th>Loja</th><th class="num">Gasto</th></tr>
+        {% for l in dados.loja %}<tr><td>{{ l.emit_nome or "—" }} <span class="suave">{{ l.emit_cnpj }}</span></td><td class="num">{{ l.gasto | reais }}</td></tr>{% endfor %}
+      </table>
+    </details>
+  </section>
+
+  <section class="cartao-grafico">
+    <div class="topo"><h2>Produtos que mais pesaram</h2>{{ seletor("top", barras) }}</div>
+    <div class="area"><canvas id="grafico-top" role="img" aria-label="Produtos que mais pesaram"></canvas></div>
+    <script type="application/json" id="dados-top">{{ dados.top | tojson }}</script>
+    <details class="gemea" open><summary>Ver tabela</summary>
+      <table><tr><th>Produto</th><th class="num">Qtd.</th><th class="num">Gasto</th></tr>
+        {% for p in dados.top %}
+        <tr>
+          <td><a href="{{ request.url.include_query_params(produto_id=p.produto_id) }}" title="Ver o preço no tempo">{{ p.descricao_exemplo }}</a>
+            {% if p.aproximado %}<span class="selo aviso" title="Sem código de barras: reconhecido pelo texto, só dentro da loja">aproximado</span>
+            <span class="suave">loja {{ p.emit_cnpj }}</span>{% endif %}</td>
+          <td class="num">{{ p.quantidade | decimal_br }}</td>
+          <td class="num">{{ p.gasto | reais }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </details>
+  </section>
+
+  {% if dados.preco %}
+  <section class="cartao-grafico">
+    <div class="topo"><h2>Preço no tempo</h2>{{ seletor("preco", [("line", "Linha"), ("scatter", "Pontos")]) }}</div>
+    <div class="area"><canvas id="grafico-preco" role="img" aria-label="Preço unitário no tempo"></canvas></div>
+    <script type="application/json" id="dados-preco">{{ dados.preco | tojson }}</script>
+    <details class="gemea"><summary>Ver tabela</summary>
+      <table><tr><th>Data</th><th>Loja</th><th class="num">Preço unitário</th></tr>
+        {% for p in dados.preco.pontos %}<tr><td>{{ p.data[:10] }}</td><td>{{ p.emit_nome or p.emit_cnpj }}</td><td class="num">R$ {{ p.valor_unitario | decimal_br(2) }}</td></tr>{% endfor %}
+      </table>
+    </details>
+  </section>
+  {% endif %}
+
+</div>
+{% endif %}
+{% endblock %}

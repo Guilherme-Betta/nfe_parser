@@ -1,0 +1,33 @@
+{
+  "story": "005-cancelamento-duas-passadas",
+  "tarefas": [
+    {
+      "id": "1",
+      "titulo": "extrair_evento le chNFe, tpEvento e dhEvento sem nunca levantar por campo ausente",
+      "alvo": "src/nfe_parser/cancelamento.py",
+      "teste": "tests/test_extrair_evento.py",
+      "mensagem": "specs/005-cancelamento-duas-passadas/tarefas/tarefa-01.md"
+    },
+    {
+      "id": "2",
+      "titulo": "aplicar_cancelamento cancela a nota existente e devolve orfao para a que nao existe",
+      "alvo": "src/nfe_parser/cancelamento.py",
+      "teste": "tests/test_aplicar_cancelamento.py",
+      "mensagem": "specs/005-cancelamento-duas-passadas/tarefas/tarefa-02.md"
+    },
+    {
+      "id": "3",
+      "titulo": "importar varre o lote em duas passadas: a ordem no zip deixa de importar",
+      "alvo": "src/nfe_parser/importador.py",
+      "teste": "tests/test_duas_passadas.py",
+      "mensagem": "specs/005-cancelamento-duas-passadas/tarefas/tarefa-03.md"
+    },
+    {
+      "id": "4",
+      "titulo": "cancelamentos_aplicados deixa de ser zero fixo e conta os aplicados",
+      "alvo": "src/nfe_parser/importador.py",
+      "teste": "tests/test_contador_cancelamentos.py",
+      "mensagem": "specs/005-cancelamento-duas-passadas/tarefas/tarefa-04.md"
+    }
+  ]
+}

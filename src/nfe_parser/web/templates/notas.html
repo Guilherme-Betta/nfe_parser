@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block titulo %}Notas{% endblock %}
+{% block conteudo %}
+<h1>Notas</h1>
+<form class="linha caixa" method="get" action="/notas">
+  <label>Mês <input type="month" name="mes" value="{{ filtros.mes or '' }}"></label>
+  <label>CNPJ da loja <input name="loja_cnpj" value="{{ filtros.loja_cnpj or '' }}" inputmode="numeric"></label>
+  <label>Situação
+    <select name="status">
+      <option value="">todas</option>
+      <option value="ok" {% if filtros.status == "ok" %}selected{% endif %}>válidas</option>
+      <option value="cancelada" {% if filtros.status == "cancelada" %}selected{% endif %}>canceladas</option>
+    </select>
+  </label>
+  <button type="submit">Filtrar</button>
+  <a href="/notas">limpar</a>
+</form>
+
+<p class="suave">{{ dados.total }} nota(s)</p>
+<div class="tabela-rolavel">
+<table>
+  <tr><th>Emissão</th><th>Loja</th><th>Modelo</th><th class="num">Itens</th>
+      <th class="num">Total</th><th>Situação</th></tr>
+  {% for n in dados.notas %}
+  <tr>
+    <td><a href="/notas/{{ n.chave }}">{{ n.dh_emi[:10] }}</a></td>
+    <td>{{ n.emit_nome or "—" }} <span class="suave">{{ n.emit_cnpj or "" }}</span></td>
+    <td class="suave">{{ "NFC-e" if n.modelo == 65 else "NF-e" }}</td>
+    <td class="num">{{ n.n_itens }}</td>
+    <td class="num">{{ n.valor_total_centavos | reais }}</td>
+    <td>{% if n.status == "cancelada" %}<span class="selo ruim">cancelada</span>{% else %}<span class="selo ok">válida</span>{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+{% set ultima = ((dados.total - 1) // dados.por_pagina) + 1 %}
+{% if ultima > 1 %}
+<div class="paginacao">
+  {% if dados.pagina > 1 %}<a href="{{ request.url.include_query_params(pagina=dados.pagina - 1) }}">← anterior</a>{% endif %}
+  <span class="suave">página {{ dados.pagina }} de {{ ultima }}</span>
+  {% if dados.pagina < ultima %}<a href="{{ request.url.include_query_params(pagina=dados.pagina + 1) }}">próxima →</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -24,11 +24,16 @@ dist/
 .coverage
 htmlcov/
 
+# Screenshots e logs do navegador automatizado (checagem visual da UI): sao de
+# sessao, e podem mostrar dado real se apontados para um banco de verdade.
+.playwright-mcp/
+
 # === OS / editores ===
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
 
-# Aider
+# Aider — nao e mais usado (ver docs/historico/experimento-modelo-local/). O
+# ignore fica para que um historico de conversa esquecido nunca entre num commit.
 .aider*

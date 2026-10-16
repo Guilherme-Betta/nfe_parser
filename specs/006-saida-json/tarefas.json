@@ -1,0 +1,26 @@
+{
+  "story": "006-saida-json",
+  "tarefas": [
+    {
+      "id": "1",
+      "titulo": "de_centavos formata centavos como string decimal usando so aritmetica de inteiro",
+      "alvo": "src/nfe_parser/serializacao.py",
+      "teste": "tests/test_de_centavos.py",
+      "mensagem": "specs/006-saida-json/tarefas/tarefa-01.md"
+    },
+    {
+      "id": "2",
+      "titulo": "nota_para_json devolve a nota como string JSON, e None para chave inexistente",
+      "alvo": "src/nfe_parser/serializacao.py",
+      "teste": "tests/test_nota_para_json.py",
+      "mensagem": "specs/006-saida-json/tarefas/tarefa-02.md"
+    },
+    {
+      "id": "3",
+      "titulo": "a saida ganha a chave itens, ordenada por n_item e vazia quando nao ha item",
+      "alvo": "src/nfe_parser/serializacao.py",
+      "teste": "tests/test_itens_no_json.py",
+      "mensagem": "specs/006-saida-json/tarefas/tarefa-03.md"
+    }
+  ]
+}

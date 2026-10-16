@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block titulo %}Nota {{ nota.numero }}{% endblock %}
+{% block conteudo %}
+<h1>{{ "NFC-e" if nota.modelo == 65 else "NF-e" }} {{ nota.numero }}
+  {% if nota.status == "cancelada" %}<span class="selo ruim">cancelada</span>{% endif %}</h1>
+<div class="caixa">
+  <p><b>{{ nota.emit_nome or "—" }}</b> <span class="suave">{{ nota.emit_cnpj or "" }}
+    {% if nota.emit_municipio %}· {{ nota.emit_municipio }}/{{ nota.emit_uf }}{% endif %}</span></p>
+  <p>Emissão {{ nota.dh_emi[:16].replace("T", " ") }} · Total <b>{{ nota.valor_total_centavos | reais }}</b>
+    {% if nota.forma_pagamento %}· pagamento {{ nota.forma_pagamento }}{% endif %}</p>
+  <p class="suave">Chave {{ nota.chave }}</p>
+</div>
+
+<h2>Itens</h2>
+<div class="tabela-rolavel">
+<table>
+  <tr><th>#</th><th>Descrição</th><th>Categoria</th><th class="num">Qtd.</th>
+      <th class="num">Unitário</th><th class="num">Total</th></tr>
+  {% for i in nota.itens %}
+  <tr>
+    <td class="suave">{{ i.n_item }}</td>
+    <td>{{ i.descricao }}
+      {% if i.n_item in aproximados %}<span class="selo aviso" title="Sem código de barras: o produto foi reconhecido pelo texto, só dentro desta loja">casamento aproximado</span>{% endif %}</td>
+    <td>{{ i.categoria or "—" }}</td>
+    <td class="num">{{ i.quantidade | decimal_br }} {{ i.unidade or "" }}</td>
+    <td class="num">{{ i.valor_unitario | decimal_br(2) }}</td>
+    <td class="num">{{ i.valor_linha_centavos | reais }}</td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

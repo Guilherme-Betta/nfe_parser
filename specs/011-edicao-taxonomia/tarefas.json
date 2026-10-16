@@ -1,0 +1,26 @@
+{
+  "story": "011-edicao-taxonomia",
+  "tarefas": [
+    {
+      "id": "1",
+      "titulo": "apagar_categoria: produtos ao bucket com origem zerada, ancoras fora, lapide gravada",
+      "alvo": "src/nfe_parser/taxonomia.py",
+      "teste": "tests/test_taxonomia_apagar.py",
+      "mensagem": "specs/011-edicao-taxonomia/tarefas/tarefa-01.md"
+    },
+    {
+      "id": "2",
+      "titulo": "mover_categoria: o id sobrevive, None sobe para nivel 1, e a subida recusa ciclo",
+      "alvo": "src/nfe_parser/taxonomia.py",
+      "teste": "tests/test_taxonomia_mover.py",
+      "mensagem": "specs/011-edicao-taxonomia/tarefas/tarefa-02.md"
+    },
+    {
+      "id": "3",
+      "titulo": "renomear_categoria: muda o nome e NUNCA o slug; nome vazio levanta",
+      "alvo": "src/nfe_parser/taxonomia.py",
+      "teste": "tests/test_taxonomia_renomear.py",
+      "mensagem": "specs/011-edicao-taxonomia/tarefas/tarefa-03.md"
+    }
+  ]
+}
