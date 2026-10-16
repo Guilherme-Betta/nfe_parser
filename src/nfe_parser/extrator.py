@@ -77,7 +77,11 @@ def _ler_nota(proc, xml_texto):
         "numero": int(inf.ide.nNF),
         "dh_emi": inf.ide.dhEmi,
         "emit_nome": inf.emit.xNome,
-        "emit_cnpj": inf.emit.CNPJ,
+        # O DOCUMENTO do emitente, nao so o CNPJ: emitente pessoa fisica (produtor
+        # rural) tem CPF e nenhum CNPJ. Sem o CPF aqui, item sem GTIN numa nota
+        # dessas nao teria loja para a chave de texto, e derrubava o lote (spec 01 §6.3).
+        # Os tamanhos nunca colidem: CNPJ tem 14 digitos, CPF tem 11.
+        "emit_cnpj": inf.emit.CNPJ or inf.emit.CPF,
         "emit_municipio": inf.emit.enderEmit.xMun,
         "emit_uf": inf.emit.enderEmit.UF.value,
         "valor_total": para_centavos(inf.total.ICMSTot.vNF),

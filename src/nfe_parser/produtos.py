@@ -129,7 +129,9 @@ def resolver_produto_por_texto(conexao, descricao, emit_cnpj):
     """Devolve o `id` do produto SEM codigo de barras, criando se faltar.
 
     Mesma forma da resolucao por GTIN — procurar, criar se nao achou, devolver o
-    id — com outra chave: o par (descricao normalizada, CNPJ da loja).
+    id — com outra chave: o par (descricao normalizada, documento da loja). O
+    documento e o CNPJ, ou o CPF do emitente pessoa fisica (spec 01 §2); a coluna
+    se chama `emit_cnpj` por historia.
 
     🔴 O `gtin IS NULL` do SELECT nao e enfeite. A busca por texto so pode
     enxergar linhas sem codigo de barras: quem tem GTIN e identificado pelo
@@ -152,7 +154,7 @@ def resolver_produto_por_texto(conexao, descricao, emit_cnpj):
 
     if not emit_cnpj:
         raise ValueError(
-            "resolver_produto_por_texto exige o CNPJ do emitente:"
+            "resolver_produto_por_texto exige o documento do emitente (CNPJ ou CPF):"
             " a chave de texto so identifica um produto dentro de uma loja"
         )
 

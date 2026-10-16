@@ -63,7 +63,7 @@ Seed carregado por script de migração: `categorias` (taxonomia §9 + bucket) e
 
 Resolver o produto de cada item, nesta ordem:
 - **GTIN presente** → identidade `gtin` (confiável, cross-loja). Casa/cria `produtos` por GTIN.
-- **Sem GTIN** → identidade `texto`: `descricao_normalizada` (minúsculas, sem acento, pontuação fora, espaços colapsados; **não** mexe em números/unidades no MVP) **+ CNPJ da loja**. Casa/cria por esse par.
+- **Sem GTIN** → identidade `texto`: `descricao_normalizada` (minúsculas, sem acento, pontuação fora, espaços colapsados; **não** mexe em números/unidades no MVP) **+ documento da loja** — o CNPJ, ou o CPF quando o emitente é pessoa física (spec 01 §2). Casa/cria por esse par.
 - **Honestidade:** casar o mesmo produto **entre lojas diferentes** só é confiável por GTIN. Sem GTIN, é *best-effort* dentro da loja — `identidade_origem='texto'` sinaliza isso pros componentes consumidores (ex.: preço no tempo cross-loja é aproximado).
 
 ## 4. Cascata de classificação (prioridade)
@@ -148,7 +148,7 @@ Invariantes:
 **Identidade de produto** (story 008)
 - `descricao_normalizada` guarda só `a-z`, `0-9` e espaço; pontuação vira espaço; números e
   unidades atravessam sem interpretação (`1,5L` e `1.5 L` → `1 5l`). `ø`, `º`, `µ` viram espaço.
-- GTIN vazio, ou texto sem CNPJ, é erro — ⛔ nunca um produto fantasma com chave NULL.
+- GTIN vazio, ou texto sem documento da loja (nem CNPJ nem CPF), é erro — ⛔ nunca um produto fantasma com chave NULL.
 
 **LLM** (story 012)
 - Opt-in por parâmetro: sem um `llm`, a cascata é memória → NCM → bucket.
