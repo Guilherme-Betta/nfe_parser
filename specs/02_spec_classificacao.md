@@ -78,7 +78,7 @@ Para cada produto ainda não resolvido:
 - **Produto do LLM é revisitado** (decisão do Gui de 2026-10-16): a varredura confere o NCM dos produtos `origem='llm'`; se uma âncora passou a cobri-lo (uma versão nova do seed), **o NCM vence** — `origem='ncm'`, sem confiança —, como se o produto chegasse hoje. ⛔ O LLM não é chamado de novo para eles.
 - **Devolver à fila** (decisão do Gui de 2026-10-16): humano classifica no **bucket** → `origem='manual'` no bucket. O degrau 1 protege a decisão, então nem o NCM nem o LLM mexem mais nele; a fila de revisão o mostra até o humano escolher uma categoria. ⛔ Não é `origem` NULL: com NULL, a próxima varredura poria o produto de volta na categoria que o humano rejeitou.
 - **LLM config:** só Ollama; `OLLAMA_URL` e modelo por **env var desde o dia 1**; limiar de confiança configurável. Base roda sem nada disso.
-- **Edição de taxonomia:** apagar categoria com histórico → produtos vão pro bucket; renomear → mantém vínculos (id estável); mover subcategoria → vínculos seguem (reatribui); **criar** categoria nível 1 ou subcategoria (decisão do Gui de 2026-10-15).
+- **Edição de taxonomia:** apagar **subcategoria** → os produtos sobem para a categoria-mãe, mantendo origem e confiança, e as âncoras NCM dela passam a apontar para a mãe (decisão do Gui de 2026-10-16); apagar categoria de **nível 1** → produtos vão pro bucket; renomear → mantém vínculos (id estável); mover subcategoria → vínculos seguem (reatribui); **criar** categoria nível 1 ou subcategoria (decisão do Gui de 2026-10-15).
 - **A árvore tem no máximo 2 níveis.** Criar ou mover que produza um terceiro nível é recusado: o pai tem de ser nível 1, e categoria com subcategorias não vira subcategoria. O bucket nunca é pai. Terceiro nível = roadmap.
 
 ## 5. Fronteiras (não fazer aqui)
@@ -132,9 +132,13 @@ Invariantes:
 **Edição de taxonomia** (story 011) — sempre por `slug`, nunca por `id`
 - **Renomear** muda só o `nome`; ⛔ nunca o `slug`. Nome vazio é recusado.
 - **Apagar** é definitivo: a lápide impede o seed de trazer a categoria de volta. É recusado para o
-  bucket e para categoria com subcategorias. Os produtos vão ao bucket com `origem` NULL —
-  ⚠️ **inclusive os `manual`**, cuja decisão apontava para uma categoria que não existe mais — e sem
-  `confianca`. As âncoras NCM da categoria são apagadas, não reapontadas.
+  bucket e para categoria com subcategorias.
+  - **Subcategoria** (decisão do Gui de 2026-10-16): os produtos sobem para a mãe **mantendo origem
+    e confiança** — o `manual` continua `manual`: a decisão humana só fica menos específica. As
+    âncoras NCM dela passam a apontar para a mãe, e o próximo produto daquele NCM cai lá também.
+  - **Nível 1** (não há mãe): os produtos vão ao bucket com `origem` NULL — ⚠️ **inclusive os
+    `manual`**, cuja decisão apontava para uma categoria que não existe mais — e sem `confianca`.
+    As âncoras NCM da categoria são apagadas.
 - **Mover** recusa ciclo na árvore; mover para `None` sobe a categoria para o nível 1.
 - **Criar** categoria: ver §4 e §6 (decidido em 2026-10-15; antes estava fora do escopo).
 

@@ -59,7 +59,8 @@ GET    /api/categorias               árvore: [{slug, nome, is_bucket, n_produto
 POST   /api/categorias               {nome, parent_slug?} → 201 {slug, nome, parent_slug}
 PATCH  /api/categorias/{slug}        {nome?, parent_slug?} → renomear e/ou mover; `parent_slug: null` sobe para
                                      nível 1, `parent_slug` ausente não move. Devolve {slug, nome, parent_slug}
-DELETE /api/categorias/{slug}        → 204; produtos vão pro bucket (spec 02 §7.2)
+DELETE /api/categorias/{slug}        → 204; produtos de subcategoria sobem para a mãe; de nível 1, vão pro
+                                     bucket (spec 02 §7.2)
 
 POST   /api/llm/classificar          roda a varredura COM o LLM → {classificados}; LLM desligado → 409;
                                      Ollama fora do ar → 503 com a mensagem, nada gravado
@@ -82,7 +83,7 @@ Navegação comum a todas as páginas. As páginas chamam as **mesmas** funçõe
 - `/notas` — lista com filtros (mês, loja, status) e paginação; `/notas/{chave}` — cabeçalho + itens com categoria.
 - `/revisar` — **fila de não-classificados** (`classificado=false` por padrão; `?todos=true` mostra todos): os que a classificação automática não resolveu **e os que o Gui devolveu**. Cada linha tem um seletor de categoria. Para produto **fora** da fila, a 1ª opção é **"↩ Não Classificado (voltar à fila)"** (o nome do bucket); dentro da fila ela não aparece, e o bucket **nunca** vem pré-selecionado — um "Salvar" sem escolher não devolve nada por acidente. O devolvido aparece com o selo *devolvido por você* (decisão do Gui de 2026-10-16, `docs/mockups/rodada-01-devolver-a-fila.html`). O HTMX posta em `/revisar/{id}` e troca só a linha. Sem HTMX (requisição comum), o mesmo POST redireciona para `/revisar`. Com LLM ligado, um botão posta em `/revisar/llm`, que roda a varredura com LLM e volta. Com o Ollama fora do ar, a tela de revisão volta **com o aviso** ("Não consegui falar com o Ollama…"), status 503, e nada é gravado (decisão do Gui de 2026-10-16).
 - **Números na tela** em formato brasileiro (`R$ 1.234,56`; `3,33`), por operação de texto sobre centavos e strings decimais — nunca float. O JSON da API não passa por essa formatação.
-- `/taxonomia` — árvore com criar / renomear / mover / apagar (formulários, POST + redirect). Apagar **avisa** quantos produtos vão pro bucket antes de confirmar. Erro do núcleo → a página volta com a mensagem, status 400.
+- `/taxonomia` — árvore com criar / renomear / mover / apagar (formulários, POST + redirect). Apagar **avisa** quantos produtos vão para onde antes de confirmar: para a categoria-mãe, se é subcategoria; para Não Classificado, se é de nível 1. Erro do núcleo → a página volta com a mensagem, status 400.
 - **Honestidade (§5 do report):** produto com `identidade_origem='texto'` aparece marcado como *casamento aproximado* em `/revisar` e em `/notas/{chave}`.
 
 ## 6. Fronteiras (não fazer aqui)
@@ -113,7 +114,7 @@ Fixtures anonimizadas (repo público — sem CPF/CNPJ/nome real). Testes pela `T
 - C11. `GET /api/produtos?classificado=false` traz `origem IS NULL` e o que está no bucket, com `aproximado` certo; `classificado=true` traz o resto. `POST /api/produtos/{id}/categoria` grava `origem='manual'`; um item do mesmo produto importado depois sai com essa categoria. Produto ou slug inexistente → 404.
 
 **Taxonomia via API**
-- C12. Criar (nível 1 e subcategoria) → aparece na árvore; criar sob subcategoria → 400. Renomear → vínculos intactos. Mover → vínculos seguem; `parent_slug: null` sobe para nível 1. Apagar → produtos no bucket; apagar o bucket → 400; slug inexistente → 404.
+- C12. Criar (nível 1 e subcategoria) → aparece na árvore; criar sob subcategoria → 400. Renomear → vínculos intactos. Mover → vínculos seguem; `parent_slug: null` sobe para nível 1. Apagar subcategoria → produtos na mãe, com a origem; apagar nível 1 → produtos no bucket; apagar o bucket → 400; slug inexistente → 404.
 
 **UI smoke**
 - C13. `/`, `/notas`, `/revisar`, `/taxonomia`, `/importacoes/{id}`, `/notas/{chave}` respondem 200 com HTML. Upload pelo formulário roda o pipeline e redireciona para a importação. POST em `/revisar/{id}` grava a categoria (com e sem HTMX). `htmx.min.js` é servido de `/static/`.

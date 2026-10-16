@@ -96,12 +96,14 @@ def test_patch_sem_parent_slug_nao_move(com_produtos):
     assert _no(com_produtos.get("/api/categorias").json(), "mercado-mercearia")[1] == "mercado"
 
 
-def test_apagar_manda_os_produtos_para_o_bucket(com_produtos, banco):
-    """`mercado-mercearia` e folha; `vegetais` nao serviria — tem subcategorias no seed."""
+def test_apagar_subcategoria_sobe_os_produtos_para_a_mae(com_produtos, banco):
+    """`mercado-mercearia` e folha; `vegetais` nao serviria — tem subcategorias no seed.
+    Desde 2026-10-16 (spec 02 §7.2) o produto sobe para `mercado` com a origem; antes
+    ia para o bucket."""
     resposta = com_produtos.delete("/api/categorias/mercado-mercearia")
 
     assert resposta.status_code == 204
-    assert produto(banco, ACHOCOLATADO)[1:] == ("uncategorized", None)
+    assert produto(banco, ACHOCOLATADO)[1:] == ("mercado", "ncm")
     assert _no(com_produtos.get("/api/categorias").json(), "mercado-mercearia") == (None, None)
 
 

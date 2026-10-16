@@ -103,7 +103,7 @@ def criar_categoria(conexao, nome, parent_slug=None):
 
 
 def apagar_categoria(conexao, slug):
-    """Apaga a categoria e manda os produtos dela para o bucket.
+    """Apaga a categoria. Os produtos sobem para a mae; sem mae (nivel 1), vao ao bucket.
 
     🔴 A ORDEM DAS ESCRITAS E OBRIGATORIA, e nao e estilo. `produtos.categoria_id`
     e `ncm_ancora.categoria_id` apontam para `categorias(id)`, e o `abrir_banco`
@@ -111,7 +111,12 @@ def apagar_categoria(conexao, slug):
     ainda apontando para ela levanta `IntegrityError` e nada acontece. Por isso:
     produtos, ancoras, lapide, e SO ENTAO a categoria.
 
-    🔴 Os produtos vao para o bucket com `origem = NULL`, INCLUSIVE os que
+    ⭐ SUBCATEGORIA (decisao do Gui de 2026-10-16, spec 02 §7.2): os produtos sobem
+    para a mae com origem e confianca INTACTAS. A decisao — humana ou nao — so fica
+    menos especifica, e continua valendo. As ancoras NCM sobem junto, e o proximo
+    produto daquele NCM cai na mae tambem.
+
+    🔴 NIVEL 1: os produtos vao para o bucket com `origem = NULL`, INCLUSIVE os que
     estavam em `'manual'`, e este e o ponto mais fino da funcao. O que protege um
     produto da cascata e a `origem`, nao a categoria (ver o cabecalho de
     `categorizacao.py`). Um `'manual'` preservado deixaria o produto protegido
@@ -120,12 +125,10 @@ def apagar_categoria(conexao, slug):
     categoria que nao existe mais. A `confianca` sai junto, pelo mesmo motivo: ela
     descrevia uma decisao que deixou de valer.
 
-    ⚠️ As ancoras NCM sao APAGADAS junto, e nao reapontadas. `ncm_ancora.
-    categoria_id` e `NOT NULL`, entao nao ha como "desapontar" uma ancora. As
-    duas alternativas sao piores: reapontar para o bucket gravaria
-    `origem = 'ncm'` no produto daquele NCM — e origem nao-NULL o PROTEGE, que e
-    o oposto do que o bucket significa; reapontar para o pai so funciona quando
-    ha pai.
+    ⚠️ No nivel 1, as ancoras NCM sao APAGADAS, e nao reapontadas. `ncm_ancora.
+    categoria_id` e `NOT NULL`, entao nao ha como "desapontar" uma ancora, e
+    reapontar para o bucket gravaria `origem = 'ncm'` no produto daquele NCM —
+    origem nao-NULL o PROTEGE, que e o oposto do que o bucket significa.
 
     ⛔ Apagar o bucket e RECUSADO: `categoria_do_bucket` levanta quando nao ha
     linha `is_bucket = 1`, e o degrau do bucket da cascata morre inteiro.
@@ -144,11 +147,11 @@ def apagar_categoria(conexao, slug):
     """
 
     linha = conexao.execute(
-        "SELECT id, is_bucket FROM categorias WHERE slug = ?", (slug,)
+        "SELECT id, is_bucket, parent_id FROM categorias WHERE slug = ?", (slug,)
     ).fetchone()
     if linha is None:
         raise LookupError(f"nao existe categoria com slug {slug!r}")
-    categoria_id, is_bucket = linha[0], linha[1]
+    categoria_id, is_bucket, mae_id = linha[0], linha[1], linha[2]
 
     if is_bucket:
         raise ValueError(f"a categoria {slug!r} e o bucket; apaga-la quebraria a classificacao")
@@ -162,16 +165,26 @@ def apagar_categoria(conexao, slug):
             " mova ou apague as subcategorias antes de apagar esta"
         )
 
-    conexao.execute(
-        "UPDATE produtos SET categoria_id = ?, origem = NULL, confianca = NULL, atualizado_em = ?"
-        " WHERE categoria_id = ?",
-        (categoria_do_bucket(conexao), datetime.now(UTC).isoformat(), categoria_id),
-    )
-    conexao.execute("DELETE FROM ncm_ancora WHERE categoria_id = ?", (categoria_id,))
+    agora = datetime.now(UTC).isoformat()
+    if mae_id is not None:
+        conexao.execute(
+            "UPDATE produtos SET categoria_id = ?, atualizado_em = ? WHERE categoria_id = ?",
+            (mae_id, agora, categoria_id),
+        )
+        conexao.execute(
+            "UPDATE ncm_ancora SET categoria_id = ? WHERE categoria_id = ?", (mae_id, categoria_id)
+        )
+    else:
+        conexao.execute(
+            "UPDATE produtos SET categoria_id = ?, origem = NULL, confianca = NULL,"
+            " atualizado_em = ? WHERE categoria_id = ?",
+            (categoria_do_bucket(conexao), agora, categoria_id),
+        )
+        conexao.execute("DELETE FROM ncm_ancora WHERE categoria_id = ?", (categoria_id,))
     conexao.execute(
         "INSERT INTO categorias_apagadas (slug, apagada_em) VALUES (?, ?)"
         " ON CONFLICT(slug) DO NOTHING",
-        (slug, datetime.now(UTC).isoformat()),
+        (slug, agora),
     )
     conexao.execute("DELETE FROM categorias WHERE id = ?", (categoria_id,))
 
