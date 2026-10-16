@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rodada 01 — devolver à fila</title>
+<style>
+  /* --- moldura do mockup --- */
+  :root{--bg:#eceef2;--card:#fff;--border:#e4e4e7;--fg:#18181b;--muted:#71717a;--rec:#166534;--rec-bg:#dcfce7}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+  .moldura{max-width:1180px;margin:0 auto;padding:20px 16px 60px}
+  .moldura > h1{font-size:20px;margin:0 0 6px}
+  .intro{color:var(--muted);max-width:820px;margin:0 0 22px}
+  section.cen{margin:0 0 44px}
+  .cen-head{display:flex;gap:10px;align-items:baseline}
+  .cen-num{background:var(--fg);color:#fff;border-radius:6px;padding:1px 8px;font-weight:600}
+  .cen-head h2{font-size:17px;margin:0}
+  .situacao{margin:8px 0 14px;max-width:860px}
+  .alts{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(520px,1fr))}
+  @media (max-width:600px){.alts{grid-template-columns:1fr}}
+  .alt{background:#fbfbfb;border:1px solid var(--border);border-radius:14px;padding:12px;min-width:0}
+  .alt-label{display:flex;gap:8px;align-items:baseline;margin-bottom:4px;flex-wrap:wrap}
+  .letra{font-weight:700;font-size:16px} .alt-titulo{font-weight:600}
+  .rec{background:var(--rec-bg);color:var(--rec);border-radius:999px;font-size:11px;padding:1px 8px;font-weight:600;white-space:nowrap}
+  .alt-desc{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .dica{font-size:12px;color:var(--muted);margin:8px 2px 0}
+  .recomecar{font:inherit;font-size:12px;background:transparent;border:1px solid var(--border);border-radius:6px;padding:2px 8px;cursor:pointer;color:var(--muted)}
+  .comum{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin:0 0 16px;max-width:860px}
+  .comum .titulo{display:block;margin-bottom:4px}
+
+  /* --- o app, com o CSS real de base.html (tema claro) --- */
+  .app{--fundo:#f6f7f9;--superficie:#ffffff;--texto:#1d2330;--suave:#5b6577;--borda:#dde1e7;
+       --destaque:#2f6fdb;--ok:#1f8a4c;--ruim:#c0392b;--aviso-fundo:#fff4d6;--aviso-texto:#7a5300;
+       background:var(--fundo);color:var(--texto);border:1px solid #cfd4dc;border-radius:10px;overflow:hidden;
+       font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .app header{background:var(--superficie);border-bottom:1px solid var(--borda)}
+  .app nav{padding:0 12px;display:flex;gap:2px;flex-wrap:wrap;align-items:center}
+  .app nav a{color:var(--suave);text-decoration:none;padding:10px 7px;font-size:13px}
+  .app nav a.marca{color:var(--texto);font-weight:700;margin-right:6px}
+  .app nav a.atual{color:var(--texto)}
+  .app main{padding:16px 12px 20px}
+  .app h1{font-size:1.25rem;margin:0 0 10px}
+  .app a{color:var(--destaque);cursor:pointer}
+  .app table{width:100%;border-collapse:collapse;background:var(--superficie);border:1px solid var(--borda);border-radius:8px}
+  .app th,.app td{padding:7px 6px;text-align:left;border-bottom:1px solid var(--borda);vertical-align:middle}
+  .app th{color:var(--suave);font-weight:600;font-size:.8rem}
+  .app td.num,.app th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .app .suave{color:var(--suave);font-size:.85rem}
+  .app .selo{display:inline-block;padding:1px 8px;border-radius:999px;font-size:.75rem;border:1px solid var(--borda);color:var(--suave);white-space:nowrap}
+  .app .selo.ok{color:var(--ok);border-color:var(--ok)}
+  .app .selo.aviso{background:var(--aviso-fundo);color:var(--aviso-texto);border:0}
+  .app .selo.devolvido{color:var(--destaque);border-color:var(--destaque)}
+  .app form.linha{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0}
+  .app select,.app button{font:inherit;font-size:13px;padding:5px 8px;border-radius:6px;border:1px solid var(--borda);background:var(--superficie);color:var(--texto)}
+  .app select{max-width:165px}
+  .app button{cursor:pointer;background:var(--destaque);color:#fff;border-color:var(--destaque)}
+  .app button.discreto{background:transparent;color:var(--destaque)}
+  .app .vazio{margin:6px 0 0}
+</style></head><body><div class="moldura">
+
+<h1>Revisão por cenário: devolver um produto à fila</h1>
+<p class="intro">Só o que está em julgamento: <b>onde fica o comando</b> de devolver à fila. O comportamento
+você já decidiu (opção B): o produto devolvido volta para a fila, e o NCM e o LLM não mexem mais nele até você
+escolher uma categoria. As duas réplicas usam o HTML e o CSS reais da tela <code>/revisar</code>, com os produtos
+das notas de teste. Inventado: só a lista de categorias, que foi encurtada.</p>
+
+<div class="comum">
+  <b class="titulo">Igual nas duas alternativas</b>
+  · Na fila, o produto devolvido aparece como <i>Não Classificado</i> com o selo <i>devolvido por você</i>.<br>
+  · O comando só aparece para produto que <b>não</b> está na fila: lá dentro ele não faria nada visível.<br>
+  · O texto do topo da fila passa a dizer que ela também guarda os produtos que você devolveu.
+</div>
+
+<section class="cen" id="c1">
+  <div class="cen-head"><span class="cen-num">1</span><h2>Você acha que o achocolatado está na categoria errada, mas ainda não sabe a certa</h2></div>
+  <p class="situacao">Você está em <b>Revisar → Ver todos</b>. O <b>ACHOCOLATADO EM PO 400G</b> foi posto pelo NCM em
+  <i>Mercearia (secos/enlatados)</i>. Você quer tirá-lo dali e decidir depois. <b>Devolva-o à fila nas duas réplicas</b> e
+  depois clique em <i>Só os sem categoria</i> para ver a fila.</p>
+  <div class="alts">
+    <div class="alt">
+      <div class="alt-label"><span class="letra">A</span><span class="alt-titulo">No próprio seletor</span><span class="rec">recomendo</span></div>
+      <p class="alt-desc">"Não Classificado (voltar à fila)" é a primeira opção do seletor. Um controle só: escolher e Salvar, como qualquer categoria.</p>
+      <div class="app" id="replica-a"></div>
+      <p class="dica"><button class="recomecar" data-recomecar="a">↺ recomeçar</button></p>
+    </div>
+    <div class="alt">
+      <div class="alt-label"><span class="letra">B</span><span class="alt-titulo">Botão "Devolver à fila"</span></div>
+      <p class="alt-desc">Um botão próprio ao lado do Salvar. O seletor continua só com categorias; a ação fica mais visível, e a linha fica mais larga.</p>
+      <div class="app" id="replica-b"></div>
+      <p class="dica"><button class="recomecar" data-recomecar="b">↺ recomeçar</button></p>
+    </div>
+  </div>
+</section>
+
+</div>
+<script>
+  // Categorias da arvore real (seed), encurtada. O bucket NAO esta aqui: ele entra
+  // so como "voltar a fila", e so na alternativa A.
+  var CATEGORIAS = [
+    ["bebidas", "Bebidas"], ["bebidas-cafe", "Bebidas › Café"], ["bebidas-cha", "Bebidas › Chá"],
+    ["mercado", "Mercado"], ["mercado-laticinios", "Mercado › Laticínios"],
+    ["mercado-mercearia", "Mercado › Mercearia (secos/enlatados)"], ["mercado-padaria", "Mercado › Padaria"],
+    ["vegetais", "Vegetais"], ["vegetais-legumes", "Vegetais › Legumes"], ["vegetais-verduras", "Vegetais › Verduras"]
+  ];
+  var NOMES = {};
+  CATEGORIAS.forEach(function (c) { NOMES[c[0]] = c[1].split(" › ").pop(); });
+  NOMES["uncategorized"] = "Não Classificado";
+
+  function produtosIniciais() {
+    // Os tres produtos das fixtures anonimizadas, como o app real os classificou.
+    return [
+      { id: 1, nome: "ACHOCOLATADO EM PO 400G", aprox: false, slug: "mercado-mercearia", origem: "ncm", itens: 2, salvo: false },
+      { id: 2, nome: "TOMATE ITALIANO KG", aprox: true, slug: "vegetais", origem: "ncm", itens: 2, salvo: false },
+      { id: 3, nome: "ARROZ BRANCO TIPO 1 1KG", aprox: false, slug: "mercado-mercearia", origem: "ncm", itens: 1, salvo: false }
+    ];
+  }
+
+  var estados = {};
+  function recomecar(qual) {
+    estados[qual] = { visao: "todos", produtos: produtosIniciais() };
+    desenhar(qual);
+  }
+
+  function naFila(p) { return p.slug === "uncategorized" || p.origem === null; }
+
+  function celulaCategoria(p) {
+    var h = NOMES[p.slug] || "—";
+    if (p.slug === "uncategorized" && p.origem === "manual") h += ' <span class="selo devolvido">devolvido por você</span>';
+    else if (p.origem && !p.salvo) h += ' <span class="suave">(' + p.origem + ')</span>';
+    if (p.salvo) h += ' <span class="selo ok">salvo</span>';
+    return h;
+  }
+
+  function formulario(qual, p) {
+    var h = '<form class="linha" data-qual="' + qual + '" data-id="' + p.id + '">';
+    h += '<select aria-label="Nova categoria"><option value="">escolha…</option>';
+    if (qual === "a" && !naFila(p)) h += '<option value="uncategorized">↩ Não Classificado (voltar à fila)</option>';
+    CATEGORIAS.forEach(function (c) {
+      // Nunca pre-seleciona o bucket: "Salvar" sem escolher nao devolve nada por acidente.
+      var sel = (c[0] === p.slug) ? " selected" : "";
+      h += '<option value="' + c[0] + '"' + sel + '>' + c[1] + '</option>';
+    });
+    h += '</select><button type="submit">Salvar</button>';
+    if (qual === "b" && !naFila(p)) h += '<button type="button" class="discreto" data-devolver="1">↩ Devolver à fila</button>';
+    return h + '</form>';
+  }
+
+  function desenhar(qual) {
+    var e = estados[qual];
+    var lista = e.visao === "todos" ? e.produtos : e.produtos.filter(naFila);
+    var h = '<header><nav><a class="marca">NF-e Despesas</a><a>Importar</a><a>Notas</a>' +
+            '<a class="atual">Revisar</a><a>Orçamento</a><a>Relatórios</a><a>Taxonomia</a></nav></header><main>';
+    h += '<h1>Revisar produtos</h1><p class="suave">';
+    if (e.visao === "todos") h += 'Todos os produtos. <a data-visao="fila">Só os sem categoria</a>';
+    else h += 'Produtos sem categoria: os que a classificação automática não resolveu e os que você devolveu. <a data-visao="todos">Ver todos</a>';
+    h += '</p><p class="suave">' + lista.length + ' produto(s)</p>';
+    if (!lista.length) {
+      h += '<p class="vazio">Nada para revisar. 🎉</p>';
+    } else {
+      h += '<table><tr><th>Produto</th><th>Categoria atual</th><th class="num">Itens</th><th>Nova categoria</th></tr>';
+      lista.forEach(function (p) {
+        h += '<tr><td>' + p.nome + (p.aprox ? ' <span class="selo aviso">casamento aproximado</span>' : '') + '</td>' +
+             '<td>' + celulaCategoria(p) + '</td><td class="num">' + p.itens + '</td><td>' + formulario(qual, p) + '</td></tr>';
+      });
+      h += '</table>';
+    }
+    document.getElementById("replica-" + qual).innerHTML = h + '</main>';
+  }
+
+  function aplicar(qual, id, slug) {
+    estados[qual].produtos.forEach(function (p) {
+      p.salvo = false;
+      if (p.id === id) { p.slug = slug; p.origem = "manual"; p.salvo = true; }
+    });
+    desenhar(qual);
+  }
+
+  document.addEventListener("submit", function (ev) {
+    var f = ev.target; if (!f.dataset.qual) return;
+    ev.preventDefault();
+    var slug = f.querySelector("select").value;
+    if (!slug) { f.querySelector("select").focus(); return; }
+    aplicar(f.dataset.qual, +f.dataset.id, slug);
+  });
+  document.addEventListener("click", function (ev) {
+    var t = ev.target;
+    if (t.dataset.devolver) { var f = t.closest("form"); aplicar(f.dataset.qual, +f.dataset.id, "uncategorized"); }
+    if (t.dataset.visao) { var q = t.closest(".app").id.slice(-1); estados[q].visao = t.dataset.visao; estados[q].produtos.forEach(function (p) { p.salvo = false; }); desenhar(q); }
+    if (t.dataset.recomecar) recomecar(t.dataset.recomecar);
+  });
+  recomecar("a"); recomecar("b");
+</script>
+</body></html>

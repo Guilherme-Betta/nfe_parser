@@ -24,6 +24,7 @@ So despesas, so BRL, sem lancamento manual.
 | convencoes de nome, estilo e commit | `steering/convencoes.md` |
 | o que o `verify` checa, e o que ele deixa passar | `steering/verificacao.md` |
 | o contrato de cada componente (fonte da verdade) | `specs/0N_spec_*.md` (01 a 06 — todas implementadas) |
+| quem decidiu o que, e o cartão da visão | `docs/decisoes.md` — **ler antes de qualquer decisão de produto ou pergunta ao Gui** |
 | como subir o app, em dev e em Docker | `README.md` |
 | como os nucleos 01 e 02 foram fatiados e decididos | `specs/NNN-nome/` (stories 001 a 013) |
 | o porque das decisoes originais (fotos antigas) | `docs/historico/` |
