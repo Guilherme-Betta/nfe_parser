@@ -96,3 +96,14 @@ def test_banco_antigo_migra_sem_perder_o_log_de_importacao(tmp_path):
         )
     finally:
         conexao.close()
+
+
+def test_evento_sem_tipo_continua_orfao_e_nao_e_guardado(conexao, tmp_path):
+    """Sem `tpEvento` nao se sabe o que o evento e: nao se guarda, e o resultado
+    continua o de antes (orfao) — "registrado" diria que esta guardado."""
+    sem_tipo = evento(CHAVE_1ITEM).replace("<tpEvento>110111</tpEvento>", "")
+
+    _importar(conexao, tmp_path, {"nota.xml": texto("nfe_55_1item.xml"), "x.xml": sem_tipo})
+
+    assert ("x.xml", "cancelamento_orfao", None) in _arquivos(conexao)
+    assert _eventos(conexao) == []

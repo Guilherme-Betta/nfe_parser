@@ -66,14 +66,16 @@ def _campos_do_detalhe(det):
 
 
 def guardar_evento(conexao, evento, xml_texto, importacao_id=None):
-    """Guarda o evento ja lido. Sem `ch_nfe` nao ha nota a que liga-lo, e nada e gravado.
+    """Guarda o evento ja lido e devolve `True`. Sem chave ou sem tipo, nada e gravado: `False`.
+
+    Sem `ch_nfe` nao ha nota a que liga-lo; sem `tp_evento` nao se sabe o que ele e.
 
     ⭐ `ON CONFLICT DO NOTHING`: reimportar o mesmo evento nao duplica, e o primeiro
     guardado vence — a mesma regra do `cancelado_em`. `n_seq` ausente vale 1, que e
     o que o leiaute manda para o primeiro evento de cada tipo.
     """
     if evento["ch_nfe"] is None or evento["tp_evento"] is None:
-        return
+        return False
     conexao.execute(
         "INSERT INTO eventos (chave, tp_evento, n_seq, dh_evento, descricao, correcao,"
         " xml_raw, importacao_id, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
@@ -90,6 +92,7 @@ def guardar_evento(conexao, evento, xml_texto, importacao_id=None):
             datetime.now(UTC).isoformat(),
         ),
     )
+    return True
 
 
 def eventos_da_nota(conexao, chave):
