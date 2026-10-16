@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response,
 from pydantic import BaseModel
 
 from nfe_parser import consultas, operacoes, orcamento, relatorios
+from nfe_parser.llm import LlmIndisponivel
 from nfe_parser.migracoes import versao_do_banco
 from nfe_parser.serializacao import nota_para_json
 from nfe_parser.web.comum import UploadRecusado, importar_upload, obter_conexao
@@ -255,7 +256,10 @@ def classificar_com_llm(request: Request, conexao: Conexao):
             status_code=409,
             detail="LLM desligado: defina OLLAMA_URL, OLLAMA_MODELO e LLM_LIMIAR",
         )
-    return {"classificados": operacoes.classificar_com_llm(conexao, llm)}
+    try:
+        return {"classificados": operacoes.classificar_com_llm(conexao, llm)}
+    except LlmIndisponivel as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
 
 
 @roteador.get("/health")

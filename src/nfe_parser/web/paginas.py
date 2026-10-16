@@ -21,6 +21,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from nfe_parser import consultas, operacoes, orcamento, relatorios
+from nfe_parser.llm import LlmIndisponivel
 from nfe_parser.serializacao import nota_para_json
 from nfe_parser.web.comum import (
     UploadRecusado,
@@ -138,6 +139,10 @@ def ver_nota(request: Request, chave: str, conexao: Conexao):
 
 @roteador.get("/revisar")
 def revisar(request: Request, conexao: Conexao, todos: bool = False, pagina: int = 1):
+    return _revisar(request, conexao, todos, pagina)
+
+
+def _revisar(request, conexao, todos=False, pagina=1, erro=None, status=200):
     pagina = max(pagina, 1)
     dados = consultas.listar_produtos(
         conexao, classificado=None if todos else False, pagina=pagina, por_pagina=50
@@ -148,15 +153,21 @@ def revisar(request: Request, conexao: Conexao, todos: bool = False, pagina: int
         "opcoes": _opcoes_de_categoria(conexao),
         "bucket": consultas.bucket(conexao),
         "llm_ativo": request.app.state.llm is not None,
+        "erro": erro,
     }
-    return _tela(request, "revisar.html", contexto)
+    return _tela(request, "revisar.html", contexto, status=status)
 
 
 @roteador.post("/revisar/llm")
 def revisar_com_llm(request: Request, conexao: Conexao):
+    """⭐ Ollama fora do ar volta para a revisao COM o aviso (503), e nada e gravado:
+    a varredura e uma transacao so, desfeita inteira quando o LLM cai no meio."""
     llm = request.app.state.llm
     if llm is not None:
-        operacoes.classificar_com_llm(conexao, llm)
+        try:
+            operacoes.classificar_com_llm(conexao, llm)
+        except LlmIndisponivel as e:
+            return _revisar(request, conexao, erro=f"{e}. Nada foi alterado.", status=503)
     return RedirectResponse("/revisar", status_code=303)
 
 

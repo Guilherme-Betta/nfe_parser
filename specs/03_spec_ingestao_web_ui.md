@@ -61,7 +61,8 @@ PATCH  /api/categorias/{slug}        {nome?, parent_slug?} → renomear e/ou mov
                                      nível 1, `parent_slug` ausente não move. Devolve {slug, nome, parent_slug}
 DELETE /api/categorias/{slug}        → 204; produtos vão pro bucket (spec 02 §7.2)
 
-POST   /api/llm/classificar          roda a varredura COM o LLM → {classificados}; LLM desligado → 409
+POST   /api/llm/classificar          roda a varredura COM o LLM → {classificados}; LLM desligado → 409;
+                                     Ollama fora do ar → 503 com a mensagem, nada gravado
 GET    /api/health                   {status:"ok", schema_version, llm_ativo, contagens:{notas, itens, produtos, categorias}}
 ```
 
@@ -79,7 +80,7 @@ Navegação comum a todas as páginas. As páginas chamam as **mesmas** funçõe
 - `/` — formulário de upload (zip/xml) + últimas importações. Enviar roda o pipeline (§3) e redireciona (303) para `/importacoes/{id}`. Extensão errada → a página volta com a mensagem, status 400.
 - `/importacoes/{id}` — contadores, resumo da classificação e tabela por arquivo (nova/duplicada/inválida/cancelamento/SAT).
 - `/notas` — lista com filtros (mês, loja, status) e paginação; `/notas/{chave}` — cabeçalho + itens com categoria.
-- `/revisar` — **fila de não-classificados** (`classificado=false` por padrão; `?todos=true` mostra todos): os que a classificação automática não resolveu **e os que o Gui devolveu**. Cada linha tem um seletor de categoria. Para produto **fora** da fila, a 1ª opção é **"↩ Não Classificado (voltar à fila)"** (o nome do bucket); dentro da fila ela não aparece, e o bucket **nunca** vem pré-selecionado — um "Salvar" sem escolher não devolve nada por acidente. O devolvido aparece com o selo *devolvido por você* (decisão do Gui de 2026-10-16, `docs/mockups/rodada-01-devolver-a-fila.html`). O HTMX posta em `/revisar/{id}` e troca só a linha. Sem HTMX (requisição comum), o mesmo POST redireciona para `/revisar`. Com LLM ligado, um botão posta em `/revisar/llm`, que roda a varredura com LLM e volta.
+- `/revisar` — **fila de não-classificados** (`classificado=false` por padrão; `?todos=true` mostra todos): os que a classificação automática não resolveu **e os que o Gui devolveu**. Cada linha tem um seletor de categoria. Para produto **fora** da fila, a 1ª opção é **"↩ Não Classificado (voltar à fila)"** (o nome do bucket); dentro da fila ela não aparece, e o bucket **nunca** vem pré-selecionado — um "Salvar" sem escolher não devolve nada por acidente. O devolvido aparece com o selo *devolvido por você* (decisão do Gui de 2026-10-16, `docs/mockups/rodada-01-devolver-a-fila.html`). O HTMX posta em `/revisar/{id}` e troca só a linha. Sem HTMX (requisição comum), o mesmo POST redireciona para `/revisar`. Com LLM ligado, um botão posta em `/revisar/llm`, que roda a varredura com LLM e volta. Com o Ollama fora do ar, a tela de revisão volta **com o aviso** ("Não consegui falar com o Ollama…"), status 503, e nada é gravado (decisão do Gui de 2026-10-16).
 - **Números na tela** em formato brasileiro (`R$ 1.234,56`; `3,33`), por operação de texto sobre centavos e strings decimais — nunca float. O JSON da API não passa por essa formatação.
 - `/taxonomia` — árvore com criar / renomear / mover / apagar (formulários, POST + redirect). Apagar **avisa** quantos produtos vão pro bucket antes de confirmar. Erro do núcleo → a página volta com a mensagem, status 400.
 - **Honestidade (§5 do report):** produto com `identidade_origem='texto'` aparece marcado como *casamento aproximado* em `/revisar` e em `/notas/{chave}`.
@@ -118,5 +119,6 @@ Fixtures anonimizadas (repo público — sem CPF/CNPJ/nome real). Testes pela `T
 - C13. `/`, `/notas`, `/revisar`, `/taxonomia`, `/importacoes/{id}`, `/notas/{chave}` respondem 200 com HTML. Upload pelo formulário roda o pipeline e redireciona para a importação. POST em `/revisar/{id}` grava a categoria (com e sem HTMX). `htmx.min.js` é servido de `/static/`.
 - C14. Produto `texto` aparece como *casamento aproximado* em `/revisar`.
 - C15. **Devolver à fila:** em `?todos=true`, produto fora da fila tem "↩ Não Classificado (voltar à fila)" como 1ª opção; produto na fila não a tem, e nenhum seletor pré-seleciona o bucket. Devolver (pela tela ou pela API) grava `origem='manual'` no bucket: o produto aparece na fila com *devolvido por você*, e nem a próxima importação nem o LLM o reclassificam.
+- C16. **Ollama fora do ar:** `POST /revisar/llm` responde 503 com o aviso na tela de revisão; `POST /api/llm/classificar` responde 503 com a mensagem; nenhum produto muda.
 
 Saídas serializam em JSON; nenhum dado pessoal real nas fixtures.

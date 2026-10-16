@@ -160,7 +160,7 @@ Invariantes:
 - Resposta aceita só se: for objeto JSON, a categoria estiver na lista, a confiança for número
   (⛔ não booleano) entre 0 e 1 e **≥ limiar** (igual ao limiar é aceito). O slug é conferido no
   banco antes de gravar, e o LLM não pode escolher o bucket.
-- Nenhum valor padrão para modelo nem limiar. Temperatura 0. Erro de rede sobe.
+- Nenhum valor padrão para modelo nem limiar. Temperatura 0. Erro de rede sobe, como `LlmIndisponivel` com a URL — quem chama decide como avisar (a tela mostra o aviso; spec 03 C16).
 - `LLM_LIMIAR` tem de ser número entre 0 e 1 (inclusive); outro valor derruba a subida do app (§7.3 item 4).
 
 **Eval** (story 012)
