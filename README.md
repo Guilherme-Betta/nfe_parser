@@ -4,7 +4,8 @@ Ferramenta self-hosted pra **visualizar despesas a partir de notas fiscais eletr
 
 > **Status:** os seis componentes das specs estao implementados e testados: **parser** (01),
 > **classificacao** (02), **app web** com importacao, revisao e taxonomia (03), **orcamento** (04),
-> **relatorios com graficos** (05) e **deploy em Docker** (06). Ainda nao ha versao publicada (tag).
+> **relatorios com graficos** (05) e **deploy em Docker** (06). Versoes publicadas como imagem
+> Docker a cada tag `v*` — a lista esta na pagina do pacote no GitHub (Packages).
 
 ## O que e (MVP)
 
