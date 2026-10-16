@@ -75,6 +75,7 @@ Para cada produto ainda não resolvido:
 4. **Bucket** — resto → `categoria_id` do `uncategorized`, `origem=NULL`.
 
 - **Realimentação:** humano classifica um produto → `origem='manual'`; reaplica automático aos próximos itens do mesmo produto (resolvem pro mesmo `produtos`).
+- **Devolver à fila** (decisão do Gui de 2026-10-16): humano classifica no **bucket** → `origem='manual'` no bucket. O degrau 1 protege a decisão, então nem o NCM nem o LLM mexem mais nele; a fila de revisão o mostra até o humano escolher uma categoria. ⛔ Não é `origem` NULL: com NULL, a próxima varredura poria o produto de volta na categoria que o humano rejeitou.
 - **LLM config:** só Ollama; `OLLAMA_URL` e modelo por **env var desde o dia 1**; limiar de confiança configurável. Base roda sem nada disso.
 - **Edição de taxonomia:** apagar categoria com histórico → produtos vão pro bucket; renomear → mantém vínculos (id estável); mover subcategoria → vínculos seguem (reatribui); **criar** categoria nível 1 ou subcategoria (decisão do Gui de 2026-10-15).
 - **A árvore tem no máximo 2 níveis.** Criar ou mover que produza um terceiro nível é recusado: o pai tem de ser nível 1, e categoria com subcategorias não vira subcategoria. O bucket nunca é pai. Terceiro nível = roadmap.

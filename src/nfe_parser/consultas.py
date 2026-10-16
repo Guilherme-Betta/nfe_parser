@@ -151,6 +151,11 @@ _SELECT_PRODUTO = (
 )
 
 
+_NA_FILA = "(p.origem IS NULL OR p.categoria_id IN (SELECT id FROM categorias WHERE is_bucket = 1))"
+"""Produto que a revisao mostra. 🔴 So `origem IS NULL` deixaria de fora o devolvido
+a fila, que e `manual` no bucket — e o humano o perderia de vista."""
+
+
 def _produto_de(linha):
     """⭐ `aproximado` e a honestidade da spec 02 §3: identidade por texto so vale
     dentro da loja, e a UI tem de dizer isso em vez de fingir precisao."""
@@ -160,13 +165,14 @@ def _produto_de(linha):
 def listar_produtos(conexao, classificado=None, origem=None, pagina=1, por_pagina=50):
     """A fila de revisao: produtos filtrados e paginados, os mais frequentes primeiro.
 
-    🔴 "Nao classificado" e `origem IS NULL`, ⛔ nunca `categoria_id IS NULL`: o
-    produto no bucket TEM categoria e e justamente ele que precisa de revisao
-    (ver o cabecalho de `categorizacao.py`).
+    "Nao classificado" e quem esta NA FILA: `origem` NULL (a cascata ainda nao
+    resolveu) ou no bucket (inclui o que o humano devolveu, com `origem='manual'`
+    — spec 02 §4). ⛔ Nunca `categoria_id IS NULL`: o produto no bucket TEM
+    categoria e e justamente ele que precisa de revisao.
     """
     filtros, parametros = [], _pagina(pagina, por_pagina)
     if classificado is not None:
-        filtros.append("p.origem IS NOT NULL" if classificado else "p.origem IS NULL")
+        filtros.append(f"NOT {_NA_FILA}" if classificado else _NA_FILA)
     if origem:
         filtros.append("p.origem = :origem")
         parametros["origem"] = origem
@@ -256,6 +262,14 @@ def id_da_categoria(conexao, slug):
     if linha is None:
         raise LookupError(f"nao existe categoria com slug {slug!r}")
     return linha[0]
+
+
+def bucket(conexao):
+    """`{slug, nome}` do bucket — o "Nao Classificado". Levanta `LookupError` se nao ha."""
+    linha = conexao.execute("SELECT slug, nome FROM categorias WHERE is_bucket = 1").fetchone()
+    if linha is None:
+        raise LookupError("nao ha bucket no banco: o seed nao foi carregado")
+    return {"slug": linha[0], "nome": linha[1]}
 
 
 def lojas(conexao):
