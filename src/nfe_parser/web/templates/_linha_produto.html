@@ -1,9 +1,16 @@
+{#- Na fila = a cascata nao resolveu (origem vazia) OU esta no bucket. "Voltar a fila"
+    so faz sentido para quem esta fora dela, e o bucket nunca e pre-selecionado:
+    um "Salvar" sem escolher nao pode devolver nada por acidente. -#}
+{% set no_bucket = p.categoria_slug == bucket.slug %}
+{% set na_fila = p.origem is none or no_bucket %}
 <tr id="produto-{{ p.id }}">
   <td>{{ p.descricao_exemplo }}
     {% if p.aproximado %}<span class="selo aviso" title="Sem código de barras: o produto foi reconhecido pelo texto, só dentro da loja">casamento aproximado</span>{% endif %}
   </td>
   <td>{{ p.categoria or "—" }}
-    {% if salvo %}<span class="selo ok">salvo</span>{% elif p.origem %}<span class="suave">({{ p.origem }})</span>{% endif %}
+    {% if no_bucket and p.origem == "manual" %}<span class="selo devolvido" title="Você devolveu à fila: a classificação automática não mexe mais nele">devolvido por você</span>
+    {% elif p.origem and not salvo %}<span class="suave">({{ p.origem }})</span>{% endif %}
+    {% if salvo %}<span class="selo ok">salvo</span>{% endif %}
   </td>
   <td class="num">{{ p.n_itens }}</td>
   <td>
@@ -11,6 +18,7 @@
           hx-post="/revisar/{{ p.id }}" hx-target="#produto-{{ p.id }}" hx-swap="outerHTML">
       <select name="categoria_slug" aria-label="Nova categoria" required>
         <option value="">escolha…</option>
+        {% if not na_fila %}<option value="{{ bucket.slug }}">↩ {{ bucket.nome }} (voltar à fila)</option>{% endif %}
         {% for slug, rotulo in opcoes %}
         <option value="{{ slug }}" {% if slug == p.categoria_slug %}selected{% endif %}>{{ rotulo }}</option>
         {% endfor %}

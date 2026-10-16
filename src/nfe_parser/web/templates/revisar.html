@@ -4,7 +4,7 @@
 <h1>Revisar produtos</h1>
 <p class="suave">
   {% if todos %}Todos os produtos. <a href="/revisar">Só os sem categoria</a>
-  {% else %}Produtos que a classificação automática não resolveu. <a href="/revisar?todos=true">Ver todos</a>{% endif %}
+  {% else %}Produtos sem categoria: os que a classificação automática não resolveu e os que você devolveu. <a href="/revisar?todos=true">Ver todos</a>{% endif %}
   · A categoria escolhida vale para todos os itens do produto, inclusive os que ainda vão chegar.
 </p>
 {% if llm_ativo and not todos %}

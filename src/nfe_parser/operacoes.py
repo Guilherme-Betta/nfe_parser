@@ -17,7 +17,7 @@ from nfe_parser.categorizacao import definir_categoria_manual
 from nfe_parser.consultas import id_da_categoria
 from nfe_parser.importador import importar
 from nfe_parser.seed import carregar_seed_padrao
-from nfe_parser.varredura import classificar_produtos_pendentes
+from nfe_parser.varredura import classificar_produtos_pendentes, reancorar_produtos_do_llm
 
 NAO_MUDA = object()
 """Marca o campo que `editar_categoria` deve deixar como esta.
@@ -52,17 +52,23 @@ def importar_e_classificar(conexao, caminho, origem):
     `origem IS NULL`, e a proxima varredura os pega. Juntar as duas faria um erro
     de classificacao desfazer uma importacao que estava certa.
 
-    ⛔ Sem LLM: ele e opt-in e roda a parte (`classificar_com_llm`).
+    ⛔ Sem LLM: ele e opt-in e roda a parte (`classificar_com_llm`). Mas o que o LLM
+    ja classificou e revisitado, so pelo NCM: ancora nova vence o LLM (spec 02 §4).
     """
     importacao_id = importar(conexao, caminho, origem)
     with conexao:
+        reancorar_produtos_do_llm(conexao)
         classificar_produtos_pendentes(conexao)
     return importacao_id
 
 
 def classificar_com_llm(conexao, llm):
-    """Roda a varredura COM o LLM. Devolve quantos produtos sairam do pendente."""
+    """Roda a varredura COM o LLM. Devolve quantos produtos sairam do pendente.
+
+    ⭐ O reancorar vem ANTES: produto que o NCM ja cobre nao precisa de LLM nenhum.
+    """
     with conexao:
+        reancorar_produtos_do_llm(conexao)
         return classificar_produtos_pendentes(conexao, llm)
 
 

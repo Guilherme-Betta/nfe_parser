@@ -63,7 +63,7 @@ Seed carregado por script de migração: `categorias` (taxonomia §9 + bucket) e
 
 Resolver o produto de cada item, nesta ordem:
 - **GTIN presente** → identidade `gtin` (confiável, cross-loja). Casa/cria `produtos` por GTIN.
-- **Sem GTIN** → identidade `texto`: `descricao_normalizada` (minúsculas, sem acento, pontuação fora, espaços colapsados; **não** mexe em números/unidades no MVP) **+ CNPJ da loja**. Casa/cria por esse par.
+- **Sem GTIN** → identidade `texto`: `descricao_normalizada` (minúsculas, sem acento, pontuação fora, espaços colapsados; **não** mexe em números/unidades no MVP) **+ documento da loja** — o CNPJ, ou o CPF quando o emitente é pessoa física (spec 01 §2). Casa/cria por esse par.
 - **Honestidade:** casar o mesmo produto **entre lojas diferentes** só é confiável por GTIN. Sem GTIN, é *best-effort* dentro da loja — `identidade_origem='texto'` sinaliza isso pros componentes consumidores (ex.: preço no tempo cross-loja é aproximado).
 
 ## 4. Cascata de classificação (prioridade)
@@ -75,6 +75,8 @@ Para cada produto ainda não resolvido:
 4. **Bucket** — resto → `categoria_id` do `uncategorized`, `origem=NULL`.
 
 - **Realimentação:** humano classifica um produto → `origem='manual'`; reaplica automático aos próximos itens do mesmo produto (resolvem pro mesmo `produtos`).
+- **Produto do LLM é revisitado** (decisão do Gui de 2026-10-16): a varredura confere o NCM dos produtos `origem='llm'`; se uma âncora passou a cobri-lo (uma versão nova do seed), **o NCM vence** — `origem='ncm'`, sem confiança —, como se o produto chegasse hoje. ⛔ O LLM não é chamado de novo para eles.
+- **Devolver à fila** (decisão do Gui de 2026-10-16): humano classifica no **bucket** → `origem='manual'` no bucket. O degrau 1 protege a decisão, então nem o NCM nem o LLM mexem mais nele; a fila de revisão o mostra até o humano escolher uma categoria. ⛔ Não é `origem` NULL: com NULL, a próxima varredura poria o produto de volta na categoria que o humano rejeitou.
 - **LLM config:** só Ollama; `OLLAMA_URL` e modelo por **env var desde o dia 1**; limiar de confiança configurável. Base roda sem nada disso.
 - **Edição de taxonomia:** apagar categoria com histórico → produtos vão pro bucket; renomear → mantém vínculos (id estável); mover subcategoria → vínculos seguem (reatribui); **criar** categoria nível 1 ou subcategoria (decisão do Gui de 2026-10-15).
 - **A árvore tem no máximo 2 níveis.** Criar ou mover que produza um terceiro nível é recusado: o pai tem de ser nível 1, e categoria com subcategorias não vira subcategoria. O bucket nunca é pai. Terceiro nível = roadmap.
@@ -148,7 +150,7 @@ Invariantes:
 **Identidade de produto** (story 008)
 - `descricao_normalizada` guarda só `a-z`, `0-9` e espaço; pontuação vira espaço; números e
   unidades atravessam sem interpretação (`1,5L` e `1.5 L` → `1 5l`). `ø`, `º`, `µ` viram espaço.
-- GTIN vazio, ou texto sem CNPJ, é erro — ⛔ nunca um produto fantasma com chave NULL.
+- GTIN vazio, ou texto sem documento da loja (nem CNPJ nem CPF), é erro — ⛔ nunca um produto fantasma com chave NULL.
 
 **LLM** (story 012)
 - Opt-in por parâmetro: sem um `llm`, a cascata é memória → NCM → bucket.
@@ -159,6 +161,7 @@ Invariantes:
   (⛔ não booleano) entre 0 e 1 e **≥ limiar** (igual ao limiar é aceito). O slug é conferido no
   banco antes de gravar, e o LLM não pode escolher o bucket.
 - Nenhum valor padrão para modelo nem limiar. Temperatura 0. Erro de rede sobe.
+- `LLM_LIMIAR` tem de ser número entre 0 e 1 (inclusive); outro valor derruba a subida do app (§7.3 item 4).
 
 **Eval** (story 012)
 - Gold: CSV `descricao;esperado`, UTF-8 (BOM do Excel aceito). `esperado` vazio = "a taxonomia não
@@ -175,10 +178,13 @@ Invariantes:
 1. ✅ **DECIDIDO (Gui, 2026-10-15): vale o código.** `OLLAMA_URL` presente liga o LLM, ausente o
    desliga; com ela, `OLLAMA_MODELO` e `LLM_LIMIAR` são obrigatórios, sem valor padrão. As specs
    03 e 06 e o `.env.example` foram alinhados a isso.
-2. **Produto com `origem='llm'` nunca é revisitado.** Se uma âncora NCM chegar depois, ele continua
-   com a resposta do LLM, embora o §4 ponha NCM acima do LLM. A varredura só olha `origem IS NULL`.
+2. ✅ **DECIDIDO (Gui, 2026-10-16): o NCM vence.** Produto com `origem='llm'` não era revisitado:
+   se uma âncora NCM chegasse depois, ele ficava com a resposta do LLM, embora o §4 ponha NCM acima
+   do LLM. Agora a varredura o revisita (§4, "Produto do LLM é revisitado").
 3. ✅ **DECIDIDO (Gui, 2026-10-15): criar categoria SIM, até 2 níveis; terceiro nível = roadmap.**
    Ver §4 e §6. (O gold de 19 produtos tinha mostrado 7 rótulos num terceiro nível — Sabonete,
    Iogurte, Frango… — e categorias ausentes, como molho.)
-4. **`LLM_LIMIAR` fora de 0..1 não é recusado.** Um limiar `2` deixaria o LLM ligado sem nunca
-   classificar nada, sem erro.
+4. ✅ **DECIDIDO (Claude, 2026-10-16, por convenção — o Gui pode vetar em `docs/decisoes.md`):
+   recusar.** Um limiar `2` deixava o LLM ligado sem nunca classificar nada, sem erro. Agora
+   `LLM_LIMIAR` que não é número entre 0 e 1 derruba a subida do app com a mensagem, como as
+   outras variáveis obrigatórias.

@@ -10,9 +10,11 @@ da ruim. Ninguem ve isso na hora. O estrago aparece no PROXIMO `commit()`
 daquela conexao — de outro `importar`, de quem for —, que grava a metade orfa
 junto com o que ele mesmo fez.
 
-⭐ Quem dispara a falha e uma nota de emitente com CPF e item sem GTIN: a chave
-de texto do produto exige CNPJ, e a 013 (D4) decidiu que esse erro SOBE e
-derruba o lote. Este arquivo nao discute aquela decisao; usa-a como gatilho.
+⭐ Quem dispara a falha e uma falha de GRAVACAO simulada no item da segunda nota
+— o caso que a spec 01 §6.2 manda desfazer inteiro. Ate 2026-10-16 o gatilho era
+uma nota de emitente com CPF e item sem GTIN; desde a decisao do Gui daquele dia
+(spec 01 §6.3 item 1) essa nota importa normalmente, e o gatilho virou este. O
+contrato testado nao mudou.
 
 🔴 OS `.zip` NASCEM EM `tmp_path` E NUNCA SAO COMMITADOS — repositorio publico.
 """
@@ -24,6 +26,7 @@ from pathlib import Path
 
 import pytest
 
+from nfe_parser import persistencia
 from nfe_parser.banco import abrir_banco
 from nfe_parser.importador import importar
 
@@ -31,7 +34,7 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 NS = "http://www.portalfiscal.inf.br/nfe"
 CHAVE_1ITEM = "35260499999999000199550010000000011000000017"
-CNPJ_EMITENTE = "<CNPJ>99999999000199</CNPJ>"
+TOMATE = "TOMATE ITALIANO KG"
 
 
 @pytest.fixture
@@ -59,11 +62,16 @@ def _fixture(nome):
     return (FIXTURES / nome).read_text(encoding="utf-8")
 
 
-def _nota_que_derruba_o_lote():
-    """A nota de 1 item (que e SEM GTIN) com o emitente trocado de CNPJ para CPF."""
-    xml = _fixture("nfe_55_1item.xml")
-    assert xml.count(CNPJ_EMITENTE) == 1, "a fixture mudou; o gatilho deste teste depende dela"
-    return xml.replace(CNPJ_EMITENTE, "<CPF>99999999999</CPF>")
+def _gravacao_do_tomate_falha(monkeypatch):
+    """Faz a gravacao do item TOMATE (so ele) levantar como um disco cheio levantaria."""
+    original = persistencia.resolver_produto_do_item
+
+    def resolver(conexao, item, emit_cnpj):
+        if item["descricao"] == TOMATE:
+            raise sqlite3.OperationalError("database or disk is full (simulado)")
+        return original(conexao, item, emit_cnpj)
+
+    monkeypatch.setattr(persistencia, "resolver_produto_do_item", resolver)
 
 
 def _evento(chave):
@@ -78,7 +86,7 @@ def _conta(conexao, tabela):
     return conexao.execute(f"SELECT COUNT(*) FROM {tabela}").fetchone()[0]
 
 
-def test_lote_que_falha_nao_vaza_no_proximo_commit(conexao, tmp_path):
+def test_lote_que_falha_nao_vaza_no_proximo_commit(conexao, tmp_path, monkeypatch):
     """⚠️ O `commit()` depois da excecao e o ponto do teste, e nao descuido: e
     ele que transforma "transacao aberta" em "lixo no disco". Com o lote
     desfeito na saida de `importar`, nao sobra nada para ele gravar.
@@ -89,10 +97,11 @@ def test_lote_que_falha_nao_vaza_no_proximo_commit(conexao, tmp_path):
     lote = _zip(
         tmp_path,
         "lote.zip",
-        {"a_boa.xml": _fixture("nfe_65_1item.xml"), "b_cpf.xml": _nota_que_derruba_o_lote()},
+        {"a_boa.xml": _fixture("nfe_65_1item.xml"), "b_tomate.xml": _fixture("nfe_55_1item.xml")},
     )
+    _gravacao_do_tomate_falha(monkeypatch)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(sqlite3.OperationalError):
         importar(conexao, lote)
     conexao.commit()
 

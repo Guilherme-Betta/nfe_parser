@@ -69,7 +69,11 @@ def aplicar_cancelamento(conexao, evento: dict) -> str:
     # mesmo lote nao move o `cancelado_em` da primeira vez. O desfecho continua
     # sendo "aplicado" porque a pergunta que ele responde e "este evento
     # corresponde a uma nota cancelada?", e a resposta e sim nas duas vezes.
-    cancelado_em = datetime.now(UTC).isoformat()
+    #
+    # `cancelado_em` e a hora do CANCELAMENTO, como veio no XML (spec 01 §6.2). A
+    # hora da importacao so entra se o evento nao trouxer `dhEvento` — fora do
+    # leiaute, mas nota cancelada nunca fica sem carimbo.
+    cancelado_em = evento.get("dh_evento") or datetime.now(UTC).isoformat()
     query_update = (
         "UPDATE notas SET status = 'cancelada', cancelado_em = ? WHERE chave = ? AND status = 'ok'"
     )

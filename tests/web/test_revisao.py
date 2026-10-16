@@ -13,7 +13,7 @@ def tomate_no_bucket(cliente):
     return cliente
 
 
-def test_fila_de_nao_classificados_traz_so_origem_nula(tomate_no_bucket, banco):
+def test_fila_de_nao_classificados_traz_o_bucket(tomate_no_bucket, banco):
     corpo = tomate_no_bucket.get("/api/produtos", params={"classificado": "false"}).json()
 
     assert corpo["total"] == 1

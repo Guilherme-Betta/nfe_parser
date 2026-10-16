@@ -55,8 +55,9 @@ def _vazio_e_none(valor):
 
 
 def _opcoes_de_categoria(conexao):
-    """A arvore achatada para um `<select>`: `(slug, rotulo)`. ⛔ Sem o bucket:
-    classificar A MAO no bucket protegeria o produto la dentro, fora da fila."""
+    """A arvore achatada para um `<select>`: `(slug, rotulo)`, ⛔ sem o bucket. Na
+    revisao ele entra a parte, como "voltar a fila" (`_linha_produto.html`); nos
+    relatorios, o nao classificado ja tem linha propria."""
     opcoes = []
     for raiz in consultas.arvore_categorias(conexao):
         if raiz["is_bucket"]:
@@ -145,6 +146,7 @@ def revisar(request: Request, conexao: Conexao, todos: bool = False, pagina: int
         "dados": dados,
         "todos": todos,
         "opcoes": _opcoes_de_categoria(conexao),
+        "bucket": consultas.bucket(conexao),
         "llm_ativo": request.app.state.llm is not None,
     }
     return _tela(request, "revisar.html", contexto)
@@ -176,6 +178,7 @@ def classificar(
     contexto = {
         "p": consultas.produto(conexao, produto_id),
         "opcoes": _opcoes_de_categoria(conexao),
+        "bucket": consultas.bucket(conexao),
         "salvo": True,
     }
     return _tela(request, "_linha_produto.html", contexto)

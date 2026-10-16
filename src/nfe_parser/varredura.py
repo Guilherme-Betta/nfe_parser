@@ -3,7 +3,8 @@
 Este modulo existe porque o MAPA DE NCM CRESCE. Um produto que chegou antes de a
 ancora dele existir caiu no bucket; quando a ancora entra, alguem tem de voltar la
 e resgata-lo. `classificar_produto` faz isso para UM produto; esta funcao e a
-passagem sobre todos os pendentes.
+passagem sobre todos os pendentes. Pelo mesmo motivo, `reancorar_produtos_do_llm`
+passa ao NCM o que o LLM tinha resolvido antes de a ancora existir.
 
 🔴 Ele mora em modulo PROPRIO, e nao em `categorizacao.py`, porque PRECISA ler
 `itens`: a tabela `produtos` nao tem coluna `ncm`, e e do item que ele vem. A
@@ -23,7 +24,12 @@ dentro da importacao, TODA importacao em banco nao semeado explodiria. Quem deci
 varrer e quem tem taxonomia carregada.
 """
 
-from nfe_parser.categorizacao import decidir_categoria, gravar_decisao
+from nfe_parser.categorizacao import (
+    Decisao,
+    buscar_categoria_por_ncm,
+    decidir_categoria,
+    gravar_decisao,
+)
 
 
 def classificar_produtos_pendentes(conexao, llm=None) -> int:
@@ -82,3 +88,28 @@ def _ncm_mais_recente(conexao, produto_id):
         (produto_id,),
     ).fetchone()
     return linha[0] if linha else None
+
+
+def reancorar_produtos_do_llm(conexao) -> int:
+    """Passa ao NCM quem o LLM classificou, se uma ancora passou a cobri-lo. Devolve quantos.
+
+    🔴 A cascata poe o NCM ACIMA do LLM (spec 02 §4). O LLM so respondeu por um
+    produto porque, naquele dia, o mapa nao tinha ancora para o NCM dele. Quando a
+    ancora chega (uma versao nova do seed), o produto fica como se chegasse hoje:
+    `origem='ncm'`, e a `confianca` do LLM sai junto, porque `gravar_decisao` grava
+    o trio inteiro.
+
+    ⛔ So o NCM e consultado. Chamar o LLM de novo a cada importacao custaria caro e
+    poderia trocar a resposta de um dia para o outro sem nada ter mudado.
+    """
+
+    do_llm = conexao.execute("SELECT id FROM produtos WHERE origem = 'llm'").fetchall()
+    reancorados = 0
+
+    for (produto_id,) in do_llm:
+        categoria_id = buscar_categoria_por_ncm(conexao, _ncm_mais_recente(conexao, produto_id))
+        if categoria_id is not None:
+            gravar_decisao(conexao, produto_id, Decisao(categoria_id, "ncm"))
+            reancorados += 1
+
+    return reancorados

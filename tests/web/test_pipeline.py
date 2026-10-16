@@ -144,3 +144,15 @@ def test_disparo_do_llm_classifica_os_pendentes(caminho_banco):
 
 def test_disparo_do_llm_desligado_e_409(cliente):
     assert cliente.post("/api/llm/classificar").status_code == 409
+
+
+def test_upload_de_nota_de_emitente_cpf_com_item_sem_gtin_e_201(cliente):
+    """Spec 01 §6.3 item 1 (decisao de 2026-10-16): antes era erro 500 e o lote caia.
+    O CPF e de mentira, como em `tests/test_emitente_cpf.py`."""
+    nota = variante("nfe_55_1item.xml", chave(1), cpf_emitente="88888888888")
+
+    resposta = enviar(cliente, "produtor.xml", nota)
+
+    assert resposta.status_code == 201
+    item = cliente.get(f"/api/notas/{chave(1)}").json()["itens"][0]
+    assert item["categoria_slug"] == "vegetais"

@@ -56,10 +56,11 @@ def resolver_produto_do_item(conexao, item, emit_cnpj):
     Este modulo existe justamente para transformar item de nota em linha de
     banco, e e aqui que a politica pertence.
 
-    ⚠️ Item sem GTIN em nota sem CNPJ (emitente com CPF) levanta `ValueError`,
-    vindo de `resolver_produto_por_texto`. ⛔ O erro SOBE e derruba o lote:
-    engoli-lo deixaria `produto_id` NULL em silencio, e uma chave de texto sem
-    loja nao identificaria nada.
+    ⭐ `emit_cnpj` e o documento da loja: o CNPJ, ou o CPF do emitente pessoa
+    fisica (spec 01 §2). Item sem GTIN em nota SEM documento nenhum levanta
+    `ValueError`, vindo de `resolver_produto_por_texto`. ⛔ O erro SOBE e
+    derruba o lote: engoli-lo deixaria `produto_id` NULL em silencio, e uma
+    chave de texto sem loja nao identificaria nada.
     """
 
     if item["gtin"]:

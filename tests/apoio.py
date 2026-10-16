@@ -40,9 +40,10 @@ def chave(n):
     return f"3526049999999900019955002{n:09d}1{n:08d}7"
 
 
-def variante(nome, chave_nova, *, cnpj=None, ncm=None, dh_emi=None):
+def variante(nome, chave_nova, *, cnpj=None, cpf_emitente=None, ncm=None, dh_emi=None):
     """A fixture `nome` com outra chave e, opcionalmente, outro CNPJ, NCM ou data.
 
+    `cpf_emitente` troca o CNPJ do emitente por um CPF (emitente pessoa fisica).
     `ncm` e um par `(antigo, novo)`; `dh_emi` substitui a data inteira.
     """
     xml = texto(nome)
@@ -50,6 +51,8 @@ def variante(nome, chave_nova, *, cnpj=None, ncm=None, dh_emi=None):
     xml = xml.replace(chave_antiga, chave_nova)
     if cnpj:
         xml = xml.replace(f"<CNPJ>{CNPJ_FIXTURE}</CNPJ>", f"<CNPJ>{cnpj}</CNPJ>")
+    if cpf_emitente:
+        xml = xml.replace(f"<CNPJ>{CNPJ_FIXTURE}</CNPJ>", f"<CPF>{cpf_emitente}</CPF>")
     if ncm:
         xml = xml.replace(f"<NCM>{ncm[0]}</NCM>", f"<NCM>{ncm[1]}</NCM>")
     if dh_emi:

@@ -14,6 +14,9 @@ Convenções (não óbvias, respeitar):
 - Gasto (`valor_total`, `valor_linha`) = **inteiro em centavos** (sem float).
 - `quantidade` e `valor_unitario` = **string decimal exata** do XML (qCom fracionário; vUnCom com muitas casas).
 - `chave`, `emit_cnpj`, `ncm`, `gtin` = **TEXT** (têm zero à esquerda).
+- `emit_cnpj` é o **documento do emitente**: o CNPJ (14 dígitos) ou, quando o emitente é pessoa
+  física (produtor rural, por exemplo), o **CPF** (11 dígitos). O nome da coluna ficou do tempo
+  em que só havia CNPJ; os dois tamanhos nunca colidem (decisão do Gui de 2026-10-16, §6.3).
 - Datas = **ISO-8601 com offset**, como no XML.
 
 ```sql
@@ -86,6 +89,7 @@ Invariantes que os testes verificam:
 - 55, 65 e multi-item extraídos corretos (N `det` → N itens); multi-item fecha o gap do report §11.
 - Dedup idempotente; cancelamento aplicado inclusive com evento antes da nota; órfão e inválido não quebram o lote; SAT ignorado com marca.
 - Dinheiro exato ao centavo; quantidade fracionária (kg) preservada; GTIN ausente → NULL.
+- Emitente com CPF: o CPF vai em `emit_cnpj`, e a nota importa — inclusive item sem GTIN, que se identifica pelo texto + CPF (§6.3).
 - Saídas serializam em JSON; nenhum dado pessoal real nas fixtures.
 
 ## 6. Decisões tomadas na implementação — ⚠️ RASCUNHO, a revisar
@@ -119,6 +123,9 @@ Invariantes que os testes verificam:
 **Cancelamento** (story 005)
 - Só `tpEvento = 110111` cancela. Outro evento (carta de correção, por exemplo) vira
   `cancelamento_orfao` e não muda nota nenhuma.
+- `cancelado_em` é a hora **do cancelamento**: o `dhEvento` do XML, como veio ("datas como no XML").
+  Evento sem `dhEvento` (fora do leiaute) usa a hora da importação, para nota cancelada nunca ficar
+  sem carimbo (decisão do Gui de 2026-10-16, §6.3).
 - Reaplicar o mesmo evento não move `cancelado_em`: o primeiro carimbo vence, e o resultado
   continua `cancelamento_aplicado`.
 - Evento de nota importada num lote **anterior** também aplica. Evento cujo XML não abre é
@@ -134,11 +141,12 @@ Invariantes que os testes verificam:
 
 ### 6.3 Decisões pendentes — do Gui
 
-1. **NF-e de emitente com CPF e item sem GTIN derruba o lote inteiro.** A identidade de produto
-   por texto exige o CNPJ da loja (spec 02 §3), e a story 013 decidiu que esse erro sobe. NF-e
-   emitida por CPF existe (produtor rural). Opções: (a) manter; (b) registrar o arquivo como
-   `invalida` e seguir o lote; (c) aceitar o CPF como "loja" na chave de texto — ⚠️ grava CPF de
-   terceiro no banco (local, nunca commitado, mas é dado pessoal).
-2. **`cancelado_em` é a hora da IMPORTAÇÃO, não a do evento.** O `dhEvento` é extraído do XML e
-   descartado. `steering/convencoes.md` diz "datas como no XML". Escolher: hora do evento (mais
-   fiel ao documento) ou da importação (o que existe hoje).
+1. ✅ **DECIDIDO (Gui, 2026-10-16): opção (c), o CPF faz o papel de "loja".** Antes, NF-e de
+   emitente com CPF e item sem GTIN derrubava o lote inteiro (pela UI, erro 500): a identidade de
+   produto por texto exige o documento da loja, e o extrator só lia o CNPJ. Agora o CPF vai em
+   `emit_cnpj` (§2) e tudo o que agrupa por loja — identidade de produto, filtro, relatórios — o
+   trata como mais uma loja. ⚠️ É dado pessoal de terceiro no banco local, mas não é exposição nova:
+   o `xml_raw` já guardava o documento inteiro. Fixtures continuam com CPF de mentira.
+2. ✅ **DECIDIDO (Gui, 2026-10-16): hora do cancelamento.** `cancelado_em` era a hora da
+   IMPORTAÇÃO, e o `dhEvento` extraído do XML era descartado. Agora é o `dhEvento` (§6.2). Notas
+   já canceladas num banco existente mantêm o carimbo antigo: o primeiro carimbo vence.

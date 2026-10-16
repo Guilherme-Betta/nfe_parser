@@ -4,7 +4,7 @@
 <h1>Notas</h1>
 <form class="linha caixa" method="get" action="/notas">
   <label>Mês <input type="month" name="mes" value="{{ filtros.mes or '' }}"></label>
-  <label>CNPJ da loja <input name="loja_cnpj" value="{{ filtros.loja_cnpj or '' }}" inputmode="numeric"></label>
+  <label>CNPJ ou CPF da loja <input name="loja_cnpj" value="{{ filtros.loja_cnpj or '' }}" inputmode="numeric"></label>
   <label>Situação
     <select name="status">
       <option value="">todas</option>
