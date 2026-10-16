@@ -48,6 +48,8 @@ GET    /api/importacoes/{id}         {importacao_id, origem, iniciado_em, finali
 GET    /api/notas?mes=YYYY-MM&loja_cnpj=&status=ok|cancelada&pagina=1&por_pagina=50
                                      {notas: [cabeçalho], total, pagina, por_pagina}
 GET    /api/notas/{chave}            a nota com itens, exatamente a saída de `serializacao.nota_para_json`
+GET    /api/notas/{chave}/eventos    [{tp_evento, n_seq, dh_evento, descricao, correcao}] na ordem de chegada
+                                     (spec 01 §6.2); nota inexistente → 404
 
 GET    /api/produtos?classificado=true|false&origem=manual|memoria|ncm|llm&pagina=1&por_pagina=50
                                      {produtos: [produto], total, pagina, por_pagina}   — a fila de revisão.
@@ -80,7 +82,7 @@ Navegação comum a todas as páginas. As páginas chamam as **mesmas** funçõe
 
 - `/` — formulário de upload (zip/xml) + últimas importações. Enviar roda o pipeline (§3) e redireciona (303) para `/importacoes/{id}`. Extensão errada → a página volta com a mensagem, status 400.
 - `/importacoes/{id}` — contadores, resumo da classificação e tabela por arquivo (nova/duplicada/inválida/cancelamento/SAT).
-- `/notas` — lista com filtros (mês, loja, status) e paginação; `/notas/{chave}` — cabeçalho + itens com categoria.
+- `/notas` — lista com filtros (mês, loja, status) e paginação; `/notas/{chave}` — cabeçalho + itens com categoria + **cartas de correção** (data e texto; com mais de uma, avisa que a mais recente substitui as anteriores). Na importação, o evento guardado aparece como *evento registrado*.
 - `/revisar` — **fila de não-classificados** (`classificado=false` por padrão; `?todos=true` mostra todos): os que a classificação automática não resolveu **e os que o Gui devolveu**. Cada linha tem um seletor de categoria. Para produto **fora** da fila, a 1ª opção é **"↩ Não Classificado (voltar à fila)"** (o nome do bucket); dentro da fila ela não aparece, e o bucket **nunca** vem pré-selecionado — um "Salvar" sem escolher não devolve nada por acidente. O devolvido aparece com o selo *devolvido por você* (decisão do Gui de 2026-10-16, `docs/mockups/rodada-01-devolver-a-fila.html`). O HTMX posta em `/revisar/{id}` e troca só a linha. Sem HTMX (requisição comum), o mesmo POST redireciona para `/revisar`. Com LLM ligado, um botão posta em `/revisar/llm`, que roda a varredura com LLM e volta. Com o Ollama fora do ar, a tela de revisão volta **com o aviso** ("Não consegui falar com o Ollama…"), status 503, e nada é gravado (decisão do Gui de 2026-10-16).
 - **Números na tela** em formato brasileiro (`R$ 1.234,56`; `3,33`), por operação de texto sobre centavos e strings decimais — nunca float. O JSON da API não passa por essa formatação.
 - `/taxonomia` — árvore com criar / renomear / mover / apagar (formulários, POST + redirect). Apagar **avisa** quantos produtos vão para onde antes de confirmar: para a categoria-mãe, se é subcategoria; para Não Classificado, se é de nível 1. Erro do núcleo → a página volta com a mensagem, status 400.
@@ -121,5 +123,6 @@ Fixtures anonimizadas (repo público — sem CPF/CNPJ/nome real). Testes pela `T
 - C14. Produto `texto` aparece como *casamento aproximado* em `/revisar`.
 - C15. **Devolver à fila:** em `?todos=true`, produto fora da fila tem "↩ Não Classificado (voltar à fila)" como 1ª opção; produto na fila não a tem, e nenhum seletor pré-seleciona o bucket. Devolver (pela tela ou pela API) grava `origem='manual'` no bucket: o produto aparece na fila com *devolvido por você*, e nem a próxima importação nem o LLM o reclassificam.
 - C16. **Ollama fora do ar:** `POST /revisar/llm` responde 503 com o aviso na tela de revisão; `POST /api/llm/classificar` responde 503 com a mensagem; nenhum produto muda.
+- C17. **Eventos:** importar uma carta de correção dá `evento_registrado` (não `invalida`); `GET /api/notas/{chave}/eventos` a traz com o texto; `/notas/{chave}` mostra a data e o texto; reimportar não duplica.
 
 Saídas serializam em JSON; nenhum dado pessoal real nas fixtures.

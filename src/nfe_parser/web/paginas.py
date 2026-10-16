@@ -20,7 +20,7 @@ from fastapi import APIRouter, Depends, Form, Request, UploadFile
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from nfe_parser import consultas, operacoes, orcamento, relatorios
+from nfe_parser import consultas, eventos, operacoes, orcamento, relatorios
 from nfe_parser.llm import LlmIndisponivel
 from nfe_parser.serializacao import nota_para_json
 from nfe_parser.web.comum import (
@@ -130,6 +130,11 @@ def ver_nota(request: Request, chave: str, conexao: Conexao):
     contexto = {
         "nota": json.loads(texto),
         "aproximados": consultas.itens_aproximados(conexao, chave),
+        "cartas": [
+            e
+            for e in eventos.eventos_da_nota(conexao, chave)
+            if e["tp_evento"] == eventos.TP_CARTA_DE_CORRECAO
+        ],
     }
     return _tela(request, "nota.html", contexto)
 

@@ -69,6 +69,24 @@ def evento(chave_nota):
     )
 
 
+def carta_de_correcao(chave_nota, correcao, *, n_seq=1, dh_evento="2026-07-02T09:00:00-03:00"):
+    """Uma carta de correcao (tpEvento 110110) no formato real, com `xCorrecao`.
+
+    ⚠️ O formato real importa: o leitor de CANCELAMENTO do nfelib recusa o campo
+    `xCorrecao`, e uma carta assim virava `invalida`. CNPJ de mentira.
+    """
+    return (
+        f'<procEventoNFe xmlns="{NS}" versao="1.00"><evento versao="1.00">'
+        f'<infEvento Id="ID110110{chave_nota}{n_seq:02d}"><cOrgao>35</cOrgao><tpAmb>1</tpAmb>'
+        f"<CNPJ>{CNPJ_FIXTURE}</CNPJ><chNFe>{chave_nota}</chNFe><dhEvento>{dh_evento}</dhEvento>"
+        f"<tpEvento>110110</tpEvento><nSeqEvento>{n_seq}</nSeqEvento><verEvento>1.00</verEvento>"
+        '<detEvento versao="1.00"><descEvento>Carta de Correcao</descEvento>'
+        f"<xCorrecao>{correcao}</xCorrecao><xCondUso>A Carta de Correcao e disciplinada pelo"
+        " paragrafo 1o-A do art. 7o do Convenio S/N, de 15 de dezembro de 1970.</xCondUso>"
+        "</detEvento></infEvento></evento></procEventoNFe>"
+    )
+
+
 def zip_de(membros):
     """Bytes de um `.zip` montado em memoria. `membros` = {nome_interno: texto}."""
     buffer = io.BytesIO()

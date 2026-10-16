@@ -65,13 +65,25 @@ CREATE TABLE IF NOT EXISTS importacao_arquivos (  -- log por arquivo do lote
     'cancelamento_aplicado','cancelamento_orfao','nao_suportado_sat')),
   detalhe TEXT
 );
+-- migração v5 (2026-10-16): o CHECK acima aceita também 'evento_registrado'
+
+CREATE TABLE IF NOT EXISTS eventos (    -- migração v5: todo evento que abre, guardado
+  id INTEGER PRIMARY KEY,
+  chave TEXT NOT NULL,                   -- chNFe; ⛔ sem REFERENCES: a nota pode chegar depois
+  tp_evento TEXT NOT NULL, n_seq INTEGER NOT NULL,   -- nSeqEvento (1 se ausente)
+  dh_evento TEXT, descricao TEXT,        -- descEvento
+  correcao TEXT,                         -- xCorrecao: só a carta de correção (110110)
+  xml_raw TEXT NOT NULL,
+  importacao_id INTEGER REFERENCES importacoes(id), criado_em TEXT NOT NULL,
+  UNIQUE (chave, tp_evento, n_seq)
+);
 ```
 
 `status` só tem `ok|cancelada` porque "duplicada"/"inválida" são desfechos de *importação* (log), não estados de nota.
 
 ## 3. Comportamento
 
-- **Roteamento por raiz + `ide/mod`:** NF-e/NFC-e mod 55/65 → extrai; `procEventoNFe` com `tpEvento=110111` → cancelamento; `CFe`/modelo 59 → `nao_suportado_sat`; resto ou XML corrompido → `invalida`. **Nenhum arquivo derruba o lote.**
+- **Roteamento por raiz + `ide/mod`:** NF-e/NFC-e mod 55/65 → extrai; `procEventoNFe` → evento (guardado; `tpEvento=110111` cancela, os outros ficam registrados); `CFe`/modelo 59 → `nao_suportado_sat`; resto ou XML corrompido → `invalida`. **Nenhum arquivo derruba o lote.**
 - **Extração 55 e 65 = mesmo caminho** (schema NF-e; parser schema-aware, ex. `nfelib`). Itens: um por `det` (repete em multi-item). `xProd` guardado cru — normalização é da classificação.
 - **Dedup idempotente por `chave`:** já existe → não recontabiliza, marca `duplicada`. Reprocessar o mesmo zip deixa o banco idêntico.
 - **Cancelamento em duas passadas** (insere notas, depois aplica eventos) pra ordem no zip não importar. Evento sem nota → `cancelamento_orfao`, sem criar nota fantasma. Nota `cancelada` não conta como gasto.
@@ -120,9 +132,18 @@ Invariantes que os testes verificam:
 - O `arquivo_hash` é o SHA-256 dos **bytes** do arquivo, não do texto decodificado.
 - `cancelamento_orfao` entra no total de arquivos mas não tem contador próprio em `importacoes`.
 
-**Cancelamento** (story 005)
-- Só `tpEvento = 110111` cancela. Outro evento (carta de correção, por exemplo) vira
-  `cancelamento_orfao` e não muda nota nenhuma.
+**Eventos** (story 005; decisão do Gui de 2026-10-16)
+- **Todo evento que abre e traz `chNFe` é guardado** em `eventos`, com o XML inteiro — mesmo que a
+  nota ainda não esteja no banco: quando ela chegar, a correção já está lá. Reimportar não duplica
+  (`UNIQUE (chave, tp_evento, n_seq)`; o primeiro guardado vence). Motivo: coerência com o
+  `xml_raw` das notas, e a informação não se perde se o arquivo original sumir.
+- Só `tpEvento = 110111` cancela. Outro evento (carta de correção, ciência da operação…) é
+  `evento_registrado`, com a descrição no `detalhe`, e não muda nota nenhuma. Sem `chNFe`, não há
+  a que ligá-lo: continua `cancelamento_orfao`.
+- O evento é lido pelo binding **genérico** do `nfelib` (`nfe_evento_generico`): o de cancelamento
+  recusava a carta de correção real (o campo `xCorrecao` não existe nele) e a marcava `invalida`.
+- A carta de correção só corrige texto: por lei não muda valores, quantidades, preços, impostos,
+  emitente/destinatário nem data. O app guarda e mostra; não aplica nada.
 - `cancelado_em` é a hora **do cancelamento**: o `dhEvento` do XML, como veio ("datas como no XML").
   Evento sem `dhEvento` (fora do leiaute) usa a hora da importação, para nota cancelada nunca ficar
   sem carimbo (decisão do Gui de 2026-10-16, §6.3).

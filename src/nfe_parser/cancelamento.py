@@ -1,8 +1,6 @@
 from datetime import UTC, datetime
 
-from nfelib.nfe_evento_cancel.bindings.v1_0.proc_evento_canc_nfe_v1_00 import ProcEventoNfe
-from xsdata.exceptions import ParserError
-from xsdata.formats.dataclass.parsers import XmlParser
+from nfe_parser.eventos import ler_evento
 
 # O unico `tpEvento` que cancela uma nota. Os outros existem e sao validos --
 # `110110` e carta de correcao, por exemplo -- mas nao mudam o status da nota.
@@ -10,39 +8,24 @@ TP_EVENTO_CANCELAMENTO = "110111"
 
 
 def extrair_evento(xml_texto: str) -> dict:
-    """Le um evento de cancelamento e devolve seus tres campos uteis.
+    """Le um evento e devolve os tres campos que o cancelamento usa.
 
     Campo ausente vira `None` em vez de excecao: um evento capenga e dado ruim,
     e quem decide o que fazer com ele e `aplicar_cancelamento`. So um XML que
-    nao ABRE vira erro.
+    nao ABRE vira erro (`ValueError`).
 
-    ⚠️ `ProcEventoNfe` NAO tem `.from_xml()`, ao contrario da `NfeProc` usada em
-    `extrator.py` -- ela nao herda de `CommonMixin`. Por isso o `XmlParser`.
+    ⭐ A leitura e de `eventos.ler_evento`, pelo binding GENERICO do nfelib: o de
+    cancelamento recusava a carta de correcao real e a marcava `invalida` (ver o
+    cabecalho de `eventos.py`).
+
+    ⚠️ O `getattr(..., "value", ...)` de la nao e paranoia: o xsdata devolve
+    `tpEvento` como ENUM quando o valor e conhecido (o texto fica em `.value`) e
+    como STRING CRUA para qualquer outro. Um `.value` direto funciona no caminho
+    feliz e estoura `AttributeError` na primeira carta de correcao que chegar.
     """
 
-    try:
-        proc = XmlParser().from_string(xml_texto, ProcEventoNfe)
-    except ParserError:
-        raise ValueError("Erro ao parsear o XML")
-
-    evento = proc.evento
-    if evento is None:
-        return {"ch_nfe": None, "tp_evento": None, "dh_evento": None}
-
-    inf_evento = evento.infEvento
-    if inf_evento is None:
-        return {"ch_nfe": None, "tp_evento": None, "dh_evento": None}
-
-    # ⚠️ O `getattr(..., "value", ...)` nao e paranoia: o xsdata devolve
-    # `tpEvento` como ENUM quando o valor e conhecido (o texto fica em `.value`)
-    # e como STRING CRUA para qualquer outro, emitindo so um `ConverterWarning`.
-    # Um `.value` direto funciona no caminho feliz e estoura `AttributeError` na
-    # primeira carta de correcao que chegar.
-    ch_nfe = getattr(inf_evento.chNFe, "value", inf_evento.chNFe)
-    tp_evento = getattr(inf_evento.tpEvento, "value", inf_evento.tpEvento)
-    dh_evento = getattr(inf_evento.dhEvento, "value", inf_evento.dhEvento)
-
-    return {"ch_nfe": ch_nfe, "tp_evento": tp_evento, "dh_evento": dh_evento}
+    evento = ler_evento(xml_texto)
+    return {campo: evento[campo] for campo in ("ch_nfe", "tp_evento", "dh_evento")}
 
 
 def aplicar_cancelamento(conexao, evento: dict) -> str:

@@ -18,8 +18,9 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from nfe_parser.cancelamento import aplicar_cancelamento, extrair_evento
+from nfe_parser.cancelamento import TP_EVENTO_CANCELAMENTO, aplicar_cancelamento
 from nfe_parser.classificador import classificar_xml
+from nfe_parser.eventos import guardar_evento, ler_evento
 from nfe_parser.extrator import extrair_nota
 from nfe_parser.persistencia import persistir_nota
 
@@ -63,7 +64,7 @@ def importar(conexao, caminho, origem: str | None = None) -> int:
             _registrar(conexao, importacao_id, arquivo, resultado, chave, detalhe)
 
         for arquivo in eventos:
-            resultado, chave, detalhe = _processar_evento(conexao, arquivo)
+            resultado, chave, detalhe = _processar_evento(conexao, importacao_id, arquivo)
             _registrar(conexao, importacao_id, arquivo, resultado, chave, detalhe)
 
         _fechar_importacao(conexao, importacao_id)
@@ -122,21 +123,29 @@ def _processar_nota(conexao, importacao_id, arquivo):
     return resultado, extraido["nota"]["chave"], None
 
 
-def _processar_evento(conexao, arquivo):
-    """Aplica um evento de cancelamento. Devolve `(resultado, chave, detalhe)`.
+def _processar_evento(conexao, importacao_id, arquivo):
+    """Guarda o evento e, se for cancelamento, aplica. Devolve `(resultado, chave, detalhe)`.
 
     Mesma regra de `_processar_nota`: evento que nao ABRE e `'invalida'`, como
     uma nota que nao abre — sem isso a excecao derrubaria o lote inteiro,
-    inclusive as notas boas. Mas falhar ao APLICAR o cancelamento e outra coisa,
-    e por isso `aplicar_cancelamento` fica fora do `try`.
+    inclusive as notas boas. Mas falhar ao GRAVAR e outra coisa, e por isso
+    guardar e aplicar ficam fora do `try`.
+
+    ⭐ Todo evento com chave e guardado, inclusive o cancelamento (spec 01 §6.2).
+    So `110111` cancela; os outros sao `'evento_registrado'`, com a descricao no
+    detalhe. Evento sem chave nao tem a que se ligar e continua indo para
+    `aplicar_cancelamento`, que o chama de orfao.
     """
 
     try:
-        evento = extrair_evento(arquivo.texto)
+        evento = ler_evento(arquivo.texto)
     except ValueError as e:
         return "invalida", None, str(e)
 
-    return aplicar_cancelamento(conexao, evento), evento["ch_nfe"], None
+    guardar_evento(conexao, evento, arquivo.texto, importacao_id)
+    if evento["tp_evento"] == TP_EVENTO_CANCELAMENTO or evento["ch_nfe"] is None:
+        return aplicar_cancelamento(conexao, evento), evento["ch_nfe"], None
+    return "evento_registrado", evento["ch_nfe"], evento["descricao"]
 
 
 def _registrar(conexao, importacao_id, arquivo, resultado, chave, detalhe):

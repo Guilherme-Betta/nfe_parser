@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% block titulo %}Nota {{ nota.numero }}{% endblock %}
+{% block estilo %}
+  .carta { margin-bottom: 8px; }
+  .carta p { margin: 4px 0; }
+{% endblock %}
 {% block conteudo %}
 <h1>{{ "NFC-e" if nota.modelo == 65 else "NF-e" }} {{ nota.numero }}
   {% if nota.status == "cancelada" %}<span class="selo ruim">cancelada</span>{% endif %}</h1>
@@ -10,6 +14,18 @@
     {% if nota.forma_pagamento %}· pagamento {{ nota.forma_pagamento }}{% endif %}</p>
   <p class="suave">Chave {{ nota.chave }}</p>
 </div>
+
+{% if cartas %}
+<h2>Carta de correção</h2>
+{% if cartas | length > 1 %}<p class="suave">Esta nota tem {{ cartas | length }} cartas de correção: a mais recente substitui as anteriores.</p>{% endif %}
+{% for c in cartas %}
+<div class="caixa carta">
+  <p class="suave">nº {{ c.n_seq }} · {{ (c.dh_evento or "")[:16].replace("T", " ") }}</p>
+  <p>{{ c.correcao or "—" }}</p>
+</div>
+{% endfor %}
+<p class="suave">A carta de correção só corrige texto: não muda valores, quantidades nem a data da compra.</p>
+{% endif %}
 
 <h2>Itens</h2>
 <div class="tabela-rolavel">
