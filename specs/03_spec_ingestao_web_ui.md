@@ -95,7 +95,7 @@ Fixtures anonimizadas (repo público — sem CPF/CNPJ/nome real). Testes pela `T
 **Shell e config**
 - C1. `criar_app(caminho)` sobe e o banco sai com esquema na versão corrente e o seed carregado; `GET /api/health` → 200 com `schema_version` = `migracoes.versao_do_banco`, `llm_ativo: false`, contagens.
 - C2. Subir o app 2× sobre o mesmo arquivo não erra nem duplica categorias.
-- C3. `criar_app_do_ambiente()` lê `APP_DB_PATH`; sem ela, levanta. Sem `OLLAMA_URL`, `llm_ativo` é `false`; com `OLLAMA_URL` e sem `OLLAMA_MODELO`, levanta.
+- C3. `criar_app_do_ambiente()` lê `APP_DB_PATH`; sem ela, levanta. Sem `OLLAMA_URL`, `llm_ativo` é `false`; com `OLLAMA_URL` e sem `OLLAMA_MODELO`, levanta; `LLM_LIMIAR` que não é número entre 0 e 1 também levanta.
 
 **Pipeline**
 - C4. Zip com nota boa + XML quebrado + CF-e SAT → 201; contadores certos; os três arquivos no log de `GET /api/importacoes/{id}`.

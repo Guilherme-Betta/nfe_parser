@@ -161,6 +161,7 @@ Invariantes:
   (⛔ não booleano) entre 0 e 1 e **≥ limiar** (igual ao limiar é aceito). O slug é conferido no
   banco antes de gravar, e o LLM não pode escolher o bucket.
 - Nenhum valor padrão para modelo nem limiar. Temperatura 0. Erro de rede sobe.
+- `LLM_LIMIAR` tem de ser número entre 0 e 1 (inclusive); outro valor derruba a subida do app (§7.3 item 4).
 
 **Eval** (story 012)
 - Gold: CSV `descricao;esperado`, UTF-8 (BOM do Excel aceito). `esperado` vazio = "a taxonomia não
@@ -183,5 +184,7 @@ Invariantes:
 3. ✅ **DECIDIDO (Gui, 2026-10-15): criar categoria SIM, até 2 níveis; terceiro nível = roadmap.**
    Ver §4 e §6. (O gold de 19 produtos tinha mostrado 7 rótulos num terceiro nível — Sabonete,
    Iogurte, Frango… — e categorias ausentes, como molho.)
-4. **`LLM_LIMIAR` fora de 0..1 não é recusado.** Um limiar `2` deixaria o LLM ligado sem nunca
-   classificar nada, sem erro.
+4. ✅ **DECIDIDO (Claude, 2026-10-16, por convenção — o Gui pode vetar em `docs/decisoes.md`):
+   recusar.** Um limiar `2` deixava o LLM ligado sem nunca classificar nada, sem erro. Agora
+   `LLM_LIMIAR` que não é número entre 0 e 1 derruba a subida do app com a mensagem, como as
+   outras variáveis obrigatórias.

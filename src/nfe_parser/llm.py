@@ -164,4 +164,22 @@ def llm_do_ambiente():
     if not limiar:
         raise ValueError("Variavel de ambiente LLM_LIMIAR não definida")
 
-    return criar_llm(url, modelo, float(limiar))
+    return criar_llm(url, modelo, _limiar_valido(limiar))
+
+
+def _limiar_valido(texto):
+    """O `LLM_LIMIAR` como numero entre 0 e 1, ou `ValueError` que diz o que esta errado.
+
+    🔴 A confianca do LLM vai de 0 a 1. Um limiar `2` deixaria o LLM ligado sem que
+    resposta nenhuma passasse — e sem erro nenhum. ⚠️ `float("nan")` nao levanta, e
+    toda comparacao com NaN da falso: por isso a faixa e conferida com `0 <= x <= 1`,
+    que recusa o NaN, e nao com dois `if` de "menor que 0" e "maior que 1".
+    """
+    erro = f"LLM_LIMIAR={texto!r}: tem de ser um numero entre 0 e 1, com ponto (ex.: 0.7)"
+    try:
+        limiar = float(texto)
+    except ValueError:
+        raise ValueError(erro) from None
+    if not 0 <= limiar <= 1:
+        raise ValueError(erro)
+    return limiar
