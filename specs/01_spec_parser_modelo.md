@@ -123,6 +123,9 @@ Invariantes que os testes verificam:
 **Cancelamento** (story 005)
 - Só `tpEvento = 110111` cancela. Outro evento (carta de correção, por exemplo) vira
   `cancelamento_orfao` e não muda nota nenhuma.
+- `cancelado_em` é a hora **do cancelamento**: o `dhEvento` do XML, como veio ("datas como no XML").
+  Evento sem `dhEvento` (fora do leiaute) usa a hora da importação, para nota cancelada nunca ficar
+  sem carimbo (decisão do Gui de 2026-10-16, §6.3).
 - Reaplicar o mesmo evento não move `cancelado_em`: o primeiro carimbo vence, e o resultado
   continua `cancelamento_aplicado`.
 - Evento de nota importada num lote **anterior** também aplica. Evento cujo XML não abre é
@@ -144,6 +147,6 @@ Invariantes que os testes verificam:
    `emit_cnpj` (§2) e tudo o que agrupa por loja — identidade de produto, filtro, relatórios — o
    trata como mais uma loja. ⚠️ É dado pessoal de terceiro no banco local, mas não é exposição nova:
    o `xml_raw` já guardava o documento inteiro. Fixtures continuam com CPF de mentira.
-2. **`cancelado_em` é a hora da IMPORTAÇÃO, não a do evento.** O `dhEvento` é extraído do XML e
-   descartado. `steering/convencoes.md` diz "datas como no XML". Escolher: hora do evento (mais
-   fiel ao documento) ou da importação (o que existe hoje).
+2. ✅ **DECIDIDO (Gui, 2026-10-16): hora do cancelamento.** `cancelado_em` era a hora da
+   IMPORTAÇÃO, e o `dhEvento` extraído do XML era descartado. Agora é o `dhEvento` (§6.2). Notas
+   já canceladas num banco existente mantêm o carimbo antigo: o primeiro carimbo vence.
