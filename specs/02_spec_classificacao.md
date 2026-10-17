@@ -10,7 +10,7 @@ Classifica cada **produto** (identidade), não cada linha solta — todo item do
 
 ## 2. Modelo de dados (DDL — idempotente)
 
-`ALTER TABLE` roda uma vez na migração (não é idempotente em SQLite; controlar por versão de schema).
+`ALTER TABLE` roda uma vez na migração (não é idempotente em SQLite). A versão do esquema é o `PRAGMA user_version`: hoje **v5** — v1 = tabelas desta spec, v2 = `itens.produto_id`, v3 = lápide de categorias, v4 = orçamentos (spec 04), v5 = eventos (spec 01).
 
 ```sql
 -- Taxonomia: 2 níveis via parent_id (NULL = categoria nível 1)
@@ -55,9 +55,15 @@ CREATE TABLE IF NOT EXISTS produto_tags (
 -- Liga cada item do parser ao seu produto (migração aditiva)
 ALTER TABLE itens ADD COLUMN produto_id INTEGER REFERENCES produtos(id);
 CREATE INDEX IF NOT EXISTS idx_itens_produto ON itens(produto_id);
+
+-- Migração v3: a "lápide" de cada categoria apagada — impede o seed de trazê-la de volta (§7.2)
+CREATE TABLE IF NOT EXISTS categorias_apagadas (
+  slug TEXT PRIMARY KEY,
+  apagada_em TEXT NOT NULL
+);
 ```
 
-Seed carregado por script de migração: `categorias` (taxonomia §9 + bucket) e `ncm_ancora` (mapa curado). `categoria_id` referencia qualquer nível da árvore — cada linha de `ncm_ancora` aponta pro **nível mais específico que o prefixo justifica** (subcategoria quando o NCM é específico — ex.: 0403 → Mercado›Laticínios; nível 1 quando o código é genérico). LLM/humano refina só o que o NCM não alcança.
+Seed: um **carregador idempotente** (`seed.carregar_seed_padrao`, a partir de `src/nfe_parser/dados/taxonomia_seed.json`), ⛔ não uma migração — roda quantas vezes for preciso, e é recarregando que o mapa NCM resgata o bucket. Carrega `categorias` (taxonomia §9 + bucket) e `ncm_ancora` (mapa curado). `categoria_id` referencia qualquer nível da árvore — cada linha de `ncm_ancora` aponta pro **nível mais específico que o prefixo justifica** (subcategoria quando o NCM é específico — ex.: 0403 → Mercado›Laticínios; nível 1 quando o código é genérico). LLM/humano refina só o que o NCM não alcança.
 
 ## 3. Identidade de produto
 
@@ -68,17 +74,17 @@ Resolver o produto de cada item, nesta ordem:
 
 ## 4. Cascata de classificação (prioridade)
 
-Para cada produto ainda não resolvido:
+Para cada produto ainda não resolvido — `origem IS NULL`, o que **inclui** quem está no bucket. Quem percorre é `classificar_produtos_pendentes`, separado da importação (banco sem seed tem de continuar importando):
 1. **Memória por produto** — se o produto já tem categoria com `origem in (manual,memoria)`, **mantém** (nunca sobrescreve decisão humana).
 2. **NCM âncora** — casa o `ncm` do item pelo **prefixo mais longo** em `ncm_ancora` → categoria no nível que o prefixo alcança (subcategoria se específico, ex. 0403→Laticínios; senão nível 1). `origem='ncm'`.
 3. **LLM (opt-in)** — só pro que sobrou. Saída **restrita** à lista de categorias fornecida + `nao_sei`; resposta fora da lista, `nao_sei` ou confiança < limiar → bucket. `origem='llm'`, grava `confianca`.
 4. **Bucket** — resto → `categoria_id` do `uncategorized`, `origem=NULL`.
 
-- **Realimentação:** humano classifica um produto → `origem='manual'`; reaplica automático aos próximos itens do mesmo produto (resolvem pro mesmo `produtos`).
+- **Realimentação:** humano classifica um produto → `origem='manual'`; reaplica automático aos próximos itens do mesmo produto (resolvem pro mesmo `produtos`). Não há cópia: todo item do produto aponta para a mesma linha de `produtos`, que já tem a categoria; `origem='memoria'` é respeitado, mas nunca escrito.
 - **Produto do LLM é revisitado** (decisão do Gui de 2026-10-16): a varredura confere o NCM dos produtos `origem='llm'`; se uma âncora passou a cobri-lo (uma versão nova do seed), **o NCM vence** — `origem='ncm'`, sem confiança —, como se o produto chegasse hoje. ⛔ O LLM não é chamado de novo para eles.
 - **Devolver à fila** (decisão do Gui de 2026-10-16): humano classifica no **bucket** → `origem='manual'` no bucket. O degrau 1 protege a decisão, então nem o NCM nem o LLM mexem mais nele; a fila de revisão o mostra até o humano escolher uma categoria. ⛔ Não é `origem` NULL: com NULL, a próxima varredura poria o produto de volta na categoria que o humano rejeitou.
 - **LLM config:** só Ollama; `OLLAMA_URL` e modelo por **env var desde o dia 1**; limiar de confiança configurável. Base roda sem nada disso.
-- **Edição de taxonomia:** apagar categoria com histórico → produtos vão pro bucket; renomear → mantém vínculos (id estável); mover subcategoria → vínculos seguem (reatribui); **criar** categoria nível 1 ou subcategoria (decisão do Gui de 2026-10-15).
+- **Edição de taxonomia:** apagar **subcategoria** → os produtos sobem para a categoria-mãe, mantendo origem e confiança, e as âncoras NCM dela passam a apontar para a mãe (decisão do Gui de 2026-10-16); apagar categoria de **nível 1** → produtos vão pro bucket; renomear → mantém vínculos (id estável); mover subcategoria → vínculos seguem (reatribui); **criar** categoria nível 1 ou subcategoria (decisão do Gui de 2026-10-15).
 - **A árvore tem no máximo 2 níveis.** Criar ou mover que produza um terceiro nível é recusado: o pai tem de ser nível 1, e categoria com subcategorias não vira subcategoria. O bucket nunca é pai. Terceiro nível = roadmap.
 
 ## 5. Fronteiras (não fazer aqui)
@@ -100,23 +106,17 @@ Invariantes:
 - **Eval harness** roda sobre um conjunto rotulado (gold humano) e emite acurácia por categoria, matriz de confusão e % que caiu no bucket — é o que decide se o LLM é ligado. Bar de aprovação: chamada do Gui após ver os números.
 - Saídas serializam em JSON; nenhum dado pessoal real nas fixtures.
 
-## 7. Decisões tomadas na implementação — ⚠️ RASCUNHO, a revisar
+## 7. Decisões tomadas na implementação
 
-> **Rascunho de 2026-10-14, ainda NÃO aprovado.** Consolida o que as stories 007–013, e a
-> refatoração de 2026-10-14, decidiram ao construir este componente — decisões que até aqui só
-> existiam nas specs das stories e no código. Ao aprovar, esta seção vira contrato (e o texto das
-> §1–§6 é ajustado onde a §7.1 aponta); as stories voltam a ser só registro.
+> **Aprovado pelo Gui em 2026-10-16.** Consolida o que as stories 007–013, a refatoração de
+> 2026-10-14 e as decisões de 2026-10-15/16 decidiram ao construir este componente. É contrato; as
+> specs das stories voltam a ser só registro.
 
-### 7.1 Onde o texto acima diverge do que foi construído
+### 7.1 Onde o texto acima divergia do que foi construído
 
-| As §1–§6 dizem | O código faz | Proposta |
-| -------------- | ------------ | -------- |
-| §2: "Seed carregado por script de migração" | o seed ⛔ **não** é migração: é um carregador idempotente (`seed.carregar_seed_padrao`), que pode rodar quantas vezes for preciso, a partir de `src/nfe_parser/dados/taxonomia_seed.json` (story 010 D6). Migração roda uma vez só — e o mapa NCM só resgata o bucket se puder ser recarregado | trocar o texto |
-| §2: o DDL | falta a tabela `categorias_apagadas (slug TEXT PRIMARY KEY, apagada_em TEXT NOT NULL)` — a "lápide" (migração v3, story 011) | acrescentar ao DDL |
-| §2: "controlar por versão de schema" | `PRAGMA user_version`; hoje v3 (v1 = tabelas desta spec, v2 = `itens.produto_id`, v3 = lápide) | registrar |
-| §4: "Para cada produto ainda não resolvido" | "não resolvido" = `origem IS NULL`, o que **inclui** quem está no bucket. Quem percorre é `classificar_produtos_pendentes`, separado da importação (story 013 D1/D5) | registrar |
-| §4: "Realimentação: reaplica automático aos próximos itens" | não há cópia: todo item do mesmo produto aponta para a mesma linha de `produtos`, que já tem a categoria. `origem='memoria'` é respeitado, mas nunca escrito (story 009 D4) | registrar |
-| §4 e specs 03/06: variáveis de ambiente do LLM | divergiam entre si — ver §7.3, item 1 | ✅ decidido: vale o código |
+Aplicado nas §2 e §4 na aprovação (2026-10-16): o seed como carregador idempotente, a lápide no
+DDL, a versão do esquema, o que é "não resolvido" e a realimentação sem cópia. As variáveis de
+ambiente do LLM seguem o código (§7.3 item 1).
 
 ### 7.2 Regras decididas
 
@@ -132,9 +132,13 @@ Invariantes:
 **Edição de taxonomia** (story 011) — sempre por `slug`, nunca por `id`
 - **Renomear** muda só o `nome`; ⛔ nunca o `slug`. Nome vazio é recusado.
 - **Apagar** é definitivo: a lápide impede o seed de trazer a categoria de volta. É recusado para o
-  bucket e para categoria com subcategorias. Os produtos vão ao bucket com `origem` NULL —
-  ⚠️ **inclusive os `manual`**, cuja decisão apontava para uma categoria que não existe mais — e sem
-  `confianca`. As âncoras NCM da categoria são apagadas, não reapontadas.
+  bucket e para categoria com subcategorias.
+  - **Subcategoria** (decisão do Gui de 2026-10-16): os produtos sobem para a mãe **mantendo origem
+    e confiança** — o `manual` continua `manual`: a decisão humana só fica menos específica. As
+    âncoras NCM dela passam a apontar para a mãe, e o próximo produto daquele NCM cai lá também.
+  - **Nível 1** (não há mãe): os produtos vão ao bucket com `origem` NULL — ⚠️ **inclusive os
+    `manual`**, cuja decisão apontava para uma categoria que não existe mais — e sem `confianca`.
+    As âncoras NCM da categoria são apagadas.
 - **Mover** recusa ciclo na árvore; mover para `None` sobe a categoria para o nível 1.
 - **Criar** categoria: ver §4 e §6 (decidido em 2026-10-15; antes estava fora do escopo).
 
@@ -160,7 +164,7 @@ Invariantes:
 - Resposta aceita só se: for objeto JSON, a categoria estiver na lista, a confiança for número
   (⛔ não booleano) entre 0 e 1 e **≥ limiar** (igual ao limiar é aceito). O slug é conferido no
   banco antes de gravar, e o LLM não pode escolher o bucket.
-- Nenhum valor padrão para modelo nem limiar. Temperatura 0. Erro de rede sobe.
+- Nenhum valor padrão para modelo nem limiar. Temperatura 0. Erro de rede sobe, como `LlmIndisponivel` com a URL — quem chama decide como avisar (a tela mostra o aviso; spec 03 C16).
 - `LLM_LIMIAR` tem de ser número entre 0 e 1 (inclusive); outro valor derruba a subida do app (§7.3 item 4).
 
 **Eval** (story 012)
@@ -173,7 +177,7 @@ Invariantes:
   Item no bucket sai com o nome do bucket; item sem produto ou sem categoria sai com `None` nas duas.
   ⛔ `origem` e `confianca` não saem.
 
-### 7.3 Decisões pendentes — do Gui
+### 7.3 Decisões do Gui
 
 1. ✅ **DECIDIDO (Gui, 2026-10-15): vale o código.** `OLLAMA_URL` presente liga o LLM, ausente o
    desliga; com ela, `OLLAMA_MODELO` e `LLM_LIMIAR` são obrigatórios, sem valor padrão. As specs

@@ -194,6 +194,64 @@ def _migracao_04_orcamentos(conexao):
     conexao.execute("CREATE INDEX IF NOT EXISTS idx_orcamentos_mes ON orcamentos(mes)")
 
 
+def _migracao_05_eventos(conexao):
+    """Guarda todo evento de NF-e, e o log de importacao passa a aceitar `evento_registrado`.
+
+    Spec 01 §2 e §6.2; decisao do Gui de 2026-10-16.
+
+    ⛔ `eventos.chave` NAO tem `REFERENCES notas(chave)`: um evento pode chegar
+    ANTES da nota (outro lote), e e justamente para ele estar la quando a nota
+    chegar que ele e guardado.
+
+    🔴 O CHECK de `importacao_arquivos.resultado` nao se altera no SQLite: so
+    reconstruindo a tabela. O caminho e o que a documentacao do SQLite manda —
+    criar a nova, copiar, apagar a velha, renomear —, tudo na transacao que o
+    executor abriu. Nenhuma tabela aponta para `importacao_arquivos`, entao o
+    `DROP` nao esbarra em chave estrangeira. O `criar_esquema` de `banco.py`
+    continua com o CHECK antigo, e nao faz mal: o `IF NOT EXISTS` dele nunca mais
+    cria esta tabela num banco migrado, e num banco novo esta migracao roda logo
+    depois e a reconstroi.
+    """
+
+    conexao.execute("""
+        CREATE TABLE IF NOT EXISTS eventos (
+          id INTEGER PRIMARY KEY,
+          chave TEXT NOT NULL,
+          tp_evento TEXT NOT NULL,
+          n_seq INTEGER NOT NULL,
+          dh_evento TEXT,
+          descricao TEXT,
+          correcao TEXT,
+          xml_raw TEXT NOT NULL,
+          importacao_id INTEGER REFERENCES importacoes(id),
+          criado_em TEXT NOT NULL,
+          UNIQUE (chave, tp_evento, n_seq)
+        )
+    """)
+    conexao.execute("CREATE INDEX IF NOT EXISTS idx_eventos_chave ON eventos(chave)")
+
+    conexao.execute("""
+        CREATE TABLE importacao_arquivos_v5 (
+          id INTEGER PRIMARY KEY,
+          importacao_id INTEGER NOT NULL REFERENCES importacoes(id),
+          arquivo TEXT, arquivo_hash TEXT, chave TEXT,
+          resultado TEXT NOT NULL CHECK (resultado IN (
+            'nova','duplicada','invalida',
+            'cancelamento_aplicado','cancelamento_orfao','nao_suportado_sat',
+            'evento_registrado')),
+          detalhe TEXT
+        )
+    """)
+    conexao.execute(
+        "INSERT INTO importacao_arquivos_v5"
+        " (id, importacao_id, arquivo, arquivo_hash, chave, resultado, detalhe)"
+        " SELECT id, importacao_id, arquivo, arquivo_hash, chave, resultado, detalhe"
+        " FROM importacao_arquivos"
+    )
+    conexao.execute("DROP TABLE importacao_arquivos")
+    conexao.execute("ALTER TABLE importacao_arquivos_v5 RENAME TO importacao_arquivos")
+
+
 # A POSICAO E A VERSAO: indice 0 e a migracao v1, indice 1 e a v2. A lista torna
 # impossivel um numero de versao duplicado ou um buraco na sequencia.
 MIGRACOES = [
@@ -201,4 +259,5 @@ MIGRACOES = [
     _migracao_02_produto_id_em_itens,
     _migracao_03_lapide_de_categorias,
     _migracao_04_orcamentos,
+    _migracao_05_eventos,
 ]

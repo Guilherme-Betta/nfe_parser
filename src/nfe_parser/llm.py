@@ -88,6 +88,15 @@ def interpretar_resposta(texto, slugs, limiar):
     return (categoria, float(confianca))
 
 
+class LlmIndisponivel(Exception):
+    """O Ollama nao respondeu: fora do ar, endereco errado, rede caiu, demorou demais.
+
+    ⭐ Nome proprio para quem chama poder AVISAR — a tela de revisao mostra a
+    mensagem — sem engolir outros erros. A mensagem leva a URL, que e a primeira
+    coisa a conferir.
+    """
+
+
 def perguntar_ao_ollama(prompt, url, modelo):
     """Faz o `POST /api/generate` e devolve o texto que o modelo respondeu.
 
@@ -96,9 +105,10 @@ def perguntar_ao_ollama(prompt, url, modelo):
     `temperature: 0` pede a mesma resposta para a mesma pergunta — e o que faz o
     eval ser repetivel. `stream: False` faz a resposta chegar num JSON so.
 
-    🔴 Erro de rede SOBE, de proposito. Quem ligou o LLM e apontou para um
-    Ollama fora do ar precisa saber na hora — ⛔ e nao descobrir semanas depois
-    que tudo foi para o bucket em silencio.
+    🔴 Erro de rede SOBE, de proposito, como `LlmIndisponivel`. Quem ligou o LLM
+    e apontou para um Ollama fora do ar precisa saber na hora — ⛔ e nao descobrir
+    semanas depois que tudo foi para o bucket em silencio. `OSError` cobre todos
+    os jeitos de a rede falhar: `URLError`, timeout, conexao recusada ou caida.
 
     ⚠️ O teste troca `urllib.request.urlopen` pelo NOME. Um
     `from urllib.request import urlopen` no topo escaparia da troca, e o teste
@@ -119,8 +129,16 @@ def perguntar_ao_ollama(prompt, url, modelo):
         data=corpo,
         headers={"Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(requisicao, timeout=120) as resposta:
-        return json.loads(resposta.read().decode("utf-8"))["response"]
+    try:
+        with urllib.request.urlopen(requisicao, timeout=120) as resposta:
+            return json.loads(resposta.read().decode("utf-8"))["response"]
+    except OSError as e:
+        # `URLError` embrulha a causa em `reason`; sem ela a tela mostraria
+        # "<urlopen error ...>". Timeout e conexao caida nao tem `reason`.
+        motivo = getattr(e, "reason", e)
+        raise LlmIndisponivel(
+            f"Não consegui falar com o Ollama em {url.rstrip('/')}: {motivo}"
+        ) from e
 
 
 def criar_llm(url, modelo, limiar):

@@ -33,8 +33,12 @@ Os princípios que decidem coisas. Fonte: `docs/historico/report_projeto_nfe.md`
 | 2026-10-16 | A opção B é implementada como `origem='manual'` no bucket, sem valor novo de `origem` e sem migração. A cascata já pula `manual`; a fila passa a ser "`origem` NULL **ou** no bucket" | Claude | técnica | alta |
 | 2026-10-16 | O seletor da revisão nunca vem com "Não Classificado" pré-selecionado: um "Salvar" sem escolher não devolve o produto à fila por acidente | Claude | bom senso | alta |
 | 2026-10-16 | `LLM_LIMIAR` fora de 0..1 é recusado na subida do app, com mensagem (spec 02 §7.3 item 4) | Claude | convenção: configuração inválida falha cedo | alta |
-| 2026-10-16 | Apagar categoria manda os produtos dela para a fila com `origem` NULL, inclusive os que eram `manual`; a automação tenta de novo antes de sobrar para o Gui (comportamento atual, spec 02 §7.2) | Claude | estado atual | média |
+| 2026-10-16 | ~~Apagar categoria manda os produtos para a fila com `origem` NULL~~ — substituída pela decisão do Gui de 2026-10-16 abaixo (rodada 02) | Claude | estado atual | média |
 | 2026-10-16 | Devolver à fila fica **no próprio seletor**: "↩ Não Classificado (voltar à fila)" é a 1ª opção, só para produto fora da fila; na fila, o devolvido leva o selo "devolvido por você" | Gui | rodada 01 (`docs/mockups/rodada-01-devolver-a-fila.html`) | — |
 | 2026-10-16 | Produto do LLM é revisitado: se uma âncora NCM passar a cobri-lo, **o NCM vence**, como se o produto chegasse hoje (spec 02 §7.3 item 2) | Gui | rodada 01 | — |
 | 2026-10-16 | `cancelado_em` guarda a hora **do cancelamento** (`dhEvento` do XML), não a da importação (spec 01 §6.3 item 2) | Gui | rodada 01 | — |
 | 2026-10-16 | Rascunhos de 01 §6 e 02 §7: o Gui **lê antes de aprovar** — continuam marcados como rascunho | Gui | rodada 01 | — |
+| 2026-10-16 | Apagar **subcategoria**: os produtos sobem para a categoria-mãe na hora, mantendo quem decidiu (`manual` continua `manual`); as âncoras NCM dela passam a apontar para a mãe. Apagar categoria de nível 1 continua mandando para a fila | Gui | rodada 02 | — |
+| 2026-10-16 | Carta de correção (e todo evento): o XML é **guardado**, e a tela da nota mostra a data e o texto da correção. Motivo do Gui: coerência com o `xml_raw` das notas e não perder a informação se o arquivo original sumir | Gui | rodada 02 | — |
+| 2026-10-16 | LLM fora do ar ao clicar "Sugerir com o LLM": aviso na própria tela de revisão, nada gravado (antes: erro 500) | Gui | rodada 02 | — |
+| 2026-10-16 | Rascunhos de 01 §6 e 02 §7 **aprovados** como contrato, com as respostas da rodada 02 | Gui | rodada 02 | — |

@@ -55,7 +55,7 @@ def criar_esquema(conexao):
         'nova','duplicada','invalida',
         'cancelamento_aplicado','cancelamento_orfao','nao_suportado_sat')),
       detalhe TEXT
-    );
+    );  -- a migracao v5 reconstroi esta tabela: o CHECK passa a aceitar 'evento_registrado'
     """
 
     conexao.executescript(ddl)

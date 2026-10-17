@@ -5,7 +5,8 @@
   details summary { cursor: pointer; color: var(--destaque); }
   details form { margin-top: 8px; }
 {% endblock %}
-{% macro acoes(cat, tem_filhas) %}
+{#- `destino`: para onde vao os produtos ao apagar — a mae, se e subcategoria (spec 02 §7.2). -#}
+{% macro acoes(cat, tem_filhas, destino) %}
   <details>
     <summary>editar</summary>
     <form class="linha" method="post" action="/taxonomia/{{ cat.slug }}/renomear">
@@ -24,10 +25,10 @@
     </form>
     {# ⚠️ o nome vai por data-*, nunca colado dentro da string JS: um apostrofo nele quebraria o confirm #}
     <form class="linha" method="post" action="/taxonomia/{{ cat.slug }}/apagar"
-          data-nome="{{ cat.nome }}" data-produtos="{{ cat.n_produtos }}"
-          onsubmit="return confirm('Apagar “' + this.dataset.nome + '”? ' + this.dataset.produtos + ' produto(s) vão para Não Classificado. Não dá para desfazer.')">
+          data-nome="{{ cat.nome }}" data-produtos="{{ cat.n_produtos }}" data-destino="{{ destino }}"
+          onsubmit="return confirm('Apagar “' + this.dataset.nome + '”? ' + this.dataset.produtos + ' produto(s) vão para ' + this.dataset.destino + '. Não dá para desfazer.')">
       <button type="submit" class="perigo">Apagar</button>
-      <span class="suave">{{ cat.n_produtos }} produto(s) iriam para Não Classificado</span>
+      <span class="suave">{{ cat.n_produtos }} produto(s) iriam para {{ destino }}</span>
     </form>
     {% endif %}
   </details>
@@ -58,13 +59,13 @@
   <tr>
     <td><b>{{ raiz.nome }}</b> <span class="suave">{{ raiz.slug }}</span></td>
     <td class="num">{{ raiz.n_produtos }}</td>
-    <td>{% if raiz.is_bucket %}<span class="suave">fixa — recebe o que não tem categoria</span>{% else %}{{ acoes(raiz, raiz.filhas) }}{% endif %}</td>
+    <td>{% if raiz.is_bucket %}<span class="suave">fixa — recebe o que não tem categoria</span>{% else %}{{ acoes(raiz, raiz.filhas, "Não Classificado") }}{% endif %}</td>
   </tr>
   {% for filha in raiz.filhas %}
   <tr>
     <td class="filha">{{ filha.nome }} <span class="suave">{{ filha.slug }}</span></td>
     <td class="num">{{ filha.n_produtos }}</td>
-    <td>{{ acoes(filha, False) }}</td>
+    <td>{{ acoes(filha, False, raiz.nome) }}</td>
   </tr>
   {% endfor %}
   {% endfor %}

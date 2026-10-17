@@ -7,7 +7,8 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, UploadFile
 from pydantic import BaseModel
 
-from nfe_parser import consultas, operacoes, orcamento, relatorios
+from nfe_parser import consultas, eventos, operacoes, orcamento, relatorios
+from nfe_parser.llm import LlmIndisponivel
 from nfe_parser.migracoes import versao_do_banco
 from nfe_parser.serializacao import nota_para_json
 from nfe_parser.web.comum import UploadRecusado, importar_upload, obter_conexao
@@ -97,6 +98,15 @@ def ver_nota(chave: str, conexao: Conexao):
     if texto is None:
         raise HTTPException(status_code=404, detail=f"nao existe nota com chave {chave}")
     return Response(content=texto, media_type="application/json")
+
+
+@roteador.get("/notas/{chave}/eventos")
+def eventos_da_nota(chave: str, conexao: Conexao):
+    """Os eventos guardados da nota (spec 01 §6.2). ⭐ Rota propria, e nao um campo a mais
+    em `/notas/{chave}`: aquele JSON e o contrato de `nota_para_json`."""
+    if not conexao.execute("SELECT 1 FROM notas WHERE chave = ?", (chave,)).fetchone():
+        raise HTTPException(status_code=404, detail=f"nao existe nota com chave {chave}")
+    return eventos.eventos_da_nota(conexao, chave)
 
 
 @roteador.get("/produtos")
@@ -255,7 +265,10 @@ def classificar_com_llm(request: Request, conexao: Conexao):
             status_code=409,
             detail="LLM desligado: defina OLLAMA_URL, OLLAMA_MODELO e LLM_LIMIAR",
         )
-    return {"classificados": operacoes.classificar_com_llm(conexao, llm)}
+    try:
+        return {"classificados": operacoes.classificar_com_llm(conexao, llm)}
+    except LlmIndisponivel as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
 
 
 @roteador.get("/health")
