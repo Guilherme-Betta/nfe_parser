@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS eventos (    -- migração v5: todo evento que abre, 
 - **Roteamento por raiz + `ide/mod`:** NF-e/NFC-e mod 55/65 → extrai; `procEventoNFe` → evento (guardado; `tpEvento=110111` cancela, os outros ficam registrados); `CFe`/modelo 59 → `nao_suportado_sat`; resto ou XML corrompido → `invalida`. **Nenhum arquivo derruba o lote.**
 - **Extração 55 e 65 = mesmo caminho** (schema NF-e; parser schema-aware, ex. `nfelib`). Itens: um por `det` (repete em multi-item). `xProd` guardado cru — normalização é da classificação.
 - **Dedup idempotente por `chave`:** já existe → não recontabiliza, marca `duplicada`. Reprocessar o mesmo zip deixa o banco idêntico.
-- **Cancelamento em duas passadas** (insere notas, depois aplica eventos) pra ordem no zip não importar. Evento sem nota → `cancelamento_orfao`, sem criar nota fantasma. Nota `cancelada` não conta como gasto.
+- **Cancelamento em duas passadas** (insere notas, depois aplica eventos) pra ordem no zip não importar. Evento sem nota → `cancelamento_orfao`, sem criar nota fantasma; o evento fica guardado, e a nota que chegar num lote posterior já entra cancelada (§6.2). Nota `cancelada` não conta como gasto.
 - **Saída:** `importar()` devolve o `id` da importação; os contadores ficam em `importacoes`, e o destino de cada arquivo em `importacao_arquivos`. Leitura do núcleo: `nota_para_json(conexao, chave)` — a nota com os itens dentro, como string JSON, ou `None` se a chave não existe.
 
 ## 4. Fronteiras (não fazer aqui)
@@ -148,6 +148,15 @@ Aplicado nas §1–§5 na aprovação (2026-10-16): a saída de `importar()` e a
   continua `cancelamento_aplicado`.
 - Evento de nota importada num lote **anterior** também aplica. Evento cujo XML não abre é
   `invalida`, e o lote segue.
+- E o contrário (2026-10-17): **cancelamento que chegou num lote anterior ao da nota** — guardado,
+  e `cancelamento_orfao` naquele lote — é aplicado quando a nota chega. `cancelado_em` é o
+  `dhEvento` do evento guardado, com a mesma regra de carimbo acima. A linha da nota no log
+  continua `nova`, com `detalhe` = `cancelada: o cancelamento chegou antes, na importação N`; o
+  contador `cancelamentos_aplicados` do lote não a conta (ele conta arquivos de cancelamento). A
+  linha `cancelamento_orfao` do lote antigo fica como está: o log registra o desfecho daquele lote.
+- Banco que já tinha nota `ok` com cancelamento guardado (o caso acima, antes da correção) é
+  corrigido uma vez pela **migração v6**, com o mesmo carimbo. Órfão importado antes da v5 não foi
+  guardado e não tem como ser aplicado sozinho: reimportar o XML do evento resolve.
 
 **Saída JSON** (story 006, decisão do Gui de 15/09)
 - **Dinheiro sai em dois campos:** `valor_total_centavos` (int — a fonte de verdade, com o qual se

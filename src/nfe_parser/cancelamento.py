@@ -63,3 +63,31 @@ def aplicar_cancelamento(conexao, evento: dict) -> str:
     conexao.execute(query_update, (cancelado_em, ch_nfe))
 
     return "cancelamento_aplicado"
+
+
+def cancelamento_guardado(conexao, chave):
+    """O cancelamento ja guardado em `eventos` para a nota `chave`, ou `None`.
+
+    Serve a nota que chega DEPOIS do seu cancelamento, num lote posterior (spec 01
+    §6.2): o evento foi `cancelamento_orfao` no lote dele, mas ficou guardado.
+    Devolve as chaves que `aplicar_cancelamento` le, mais o `importacao_id` do
+    lote em que o cancelamento chegou.
+
+    ⭐ `ORDER BY id`: se houver mais de um (fora do leiaute), o primeiro guardado
+    vence — a mesma regra do carimbo.
+    """
+
+    linha = conexao.execute(
+        "SELECT dh_evento, importacao_id FROM eventos"
+        " WHERE chave = ? AND tp_evento = ? ORDER BY id LIMIT 1",
+        (chave, TP_EVENTO_CANCELAMENTO),
+    ).fetchone()
+    if linha is None:
+        return None
+    dh_evento, importacao_id = linha
+    return {
+        "ch_nfe": chave,
+        "tp_evento": TP_EVENTO_CANCELAMENTO,
+        "dh_evento": dh_evento,
+        "importacao_id": importacao_id,
+    }

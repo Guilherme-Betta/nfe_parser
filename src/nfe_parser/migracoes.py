@@ -14,6 +14,8 @@ alcancaria esse banco — ele ficaria meio migrado, sem sintoma. Mudanca de
 esquema e sempre uma migracao NOVA no fim de `MIGRACOES`.
 """
 
+from datetime import UTC, datetime
+
 
 def versao_do_banco(conexao) -> int:
     """Le a versao de esquema gravada no arquivo. Banco novo devolve 0."""
@@ -252,6 +254,42 @@ def _migracao_05_eventos(conexao):
     conexao.execute("ALTER TABLE importacao_arquivos_v5 RENAME TO importacao_arquivos")
 
 
+def _migracao_06_cancelamentos_guardados(conexao):
+    """Aplica, uma vez, o cancelamento guardado a nota que ficou `ok`. Spec 01 §6.2.
+
+    O defeito que ela conserta: na v5, o cancelamento que
+    chegava num lote ANTERIOR ao da nota ficava guardado em `eventos`, mas a nota
+    entrava `ok` — e contava como gasto. O importador agora aplica quando a nota
+    chega; esta migracao conserta os bancos que ja ficaram assim.
+
+    Nao muda esquema nenhum: muda DADO, uma vez so, e por isso mora aqui.
+
+    ⛔ SQL proprio, sem chamar `cancelamento.py`. Uma migracao e imutavel; chamando
+    o codigo do app, ela mudaria de comportamento quando o app mudasse, e um banco
+    migrado hoje e um migrado daqui a um ano sairiam diferentes.
+
+    A regra e a do importador: o carimbo e o `dhEvento` do primeiro cancelamento
+    guardado (`ORDER BY id`); sem ele, a hora em que a correcao roda — nota
+    cancelada nunca fica sem carimbo. O `status = 'ok'` deixa a nota ja cancelada
+    com o carimbo que tem: o primeiro carimbo vence.
+    """
+
+    conexao.execute(
+        """
+        UPDATE notas SET
+          status = 'cancelada',
+          cancelado_em = COALESCE(
+            (SELECT e.dh_evento FROM eventos e
+             WHERE e.chave = notas.chave AND e.tp_evento = '110111'
+             ORDER BY e.id LIMIT 1),
+            :agora)
+        WHERE status = 'ok'
+          AND chave IN (SELECT chave FROM eventos WHERE tp_evento = '110111')
+        """,
+        {"agora": datetime.now(UTC).isoformat()},
+    )
+
+
 # A POSICAO E A VERSAO: indice 0 e a migracao v1, indice 1 e a v2. A lista torna
 # impossivel um numero de versao duplicado ou um buraco na sequencia.
 MIGRACOES = [
@@ -260,4 +298,5 @@ MIGRACOES = [
     _migracao_03_lapide_de_categorias,
     _migracao_04_orcamentos,
     _migracao_05_eventos,
+    _migracao_06_cancelamentos_guardados,
 ]
