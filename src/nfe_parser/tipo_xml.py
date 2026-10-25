@@ -1,13 +1,14 @@
 """Descobrir que TIPO de documento fiscal um XML e, antes de qualquer parser.
 
-⚠️ "Classificar" aqui e rotear o ARQUIVO, e nao tem relacao com a classificacao
-de PRODUTO em categoria (`categorizacao.py`).
+⚠️ Isto roteia o ARQUIVO (nota, evento, SAT, lixo) e nao tem relacao com a
+classificacao de PRODUTO em categoria (`categorizacao.py`). O modulo ja se chamou
+`classificador.py`, e o nome confundia as duas coisas.
 """
 
 import xml.etree.ElementTree as ET
 
 
-def classificar_xml(xml_texto: str) -> str:
+def tipo_do_xml(xml_texto: str) -> str:
     """Devolve `"nfe"`, `"evento"`, `"nao_suportado_sat"` ou `"invalida"`.
 
     Olha so a raiz do XML e, para nota, o `<mod>`: 55 (NF-e) e 65 (NFC-e) sao

@@ -28,7 +28,7 @@ NS = "http://www.portalfiscal.inf.br/nfe"
 CHAVE_1ITEM = "35260499999999000199550010000000011000000017"
 CHAVE_AUSENTE = "35260499999999000199550019999999991000000099"
 
-# ⚠️ Sem namespace de proposito: o `classificar_xml` aceita a tag crua e devolve
+# ⚠️ Sem namespace de proposito: o `tipo_do_xml` aceita a tag crua e devolve
 # "evento", mas o parser do `nfelib` recusa. E o C3.5.
 EVENTO_QUE_NAO_ABRE = (
     f"<procEventoNFe><evento><infEvento><chNFe>{CHAVE_1ITEM}</chNFe>"

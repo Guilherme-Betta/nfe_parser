@@ -175,7 +175,7 @@ def test_sem_chave_conhecida_a_coluna_chave_sai_null(conexao, tmp_path):
 
 # --- C4.4 -------------------------------------------------------------------
 def test_o_mapa_de_classificacao_para_resultado(conexao, tmp_path):
-    """Os quatro desfechos de `classificar_xml`, num lote so.
+    """Os quatro desfechos de `tipo_do_xml`, num lote so.
 
     O evento vira `cancelamento_orfao` — decisao (a) da §5 da spec: dos seis
     valores que o CHECK do DDL aceita, e o unico que descreve um evento que nao

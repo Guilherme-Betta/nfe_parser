@@ -1,4 +1,4 @@
-"""Testes de `classificar_xml` — tarefa 3 da story 004-lote-zip-dedup.
+"""Testes de `tipo_do_xml` — tarefa 3 da story 004-lote-zip-dedup.
 
 Escritos ANTES da implementacao (passo 2 do loop) e congelados por commit. O
 modelo local recebe este arquivo como LEITURA (`--read`), nunca como editavel.
@@ -6,7 +6,7 @@ modelo local recebe este arquivo como LEITURA (`--read`), nunca como editavel.
 ⭐ O QUE FAZ ESTA FUNCAO SER DIFICIL: ela precisa responder sobre XML que o
 `nfelib` RECUSA. Usar `NfeProc.from_xml` aqui seria pedir ao parser estrito que
 classifique justamente o que ele nao consegue abrir. Por isso a leitura da raiz
-e com `xml.etree.ElementTree`, e por isso `classificar_xml` **nunca levanta**:
+e com `xml.etree.ElementTree`, e por isso `tipo_do_xml` **nunca levanta**:
 ela devolve `"invalida"` no lugar.
 
 Criterios em `specs/004-lote-zip-dedup/spec.md` §3, bloco C3.
@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from nfe_parser.classificador import classificar_xml
+from nfe_parser.tipo_xml import tipo_do_xml
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -43,18 +43,18 @@ def _fixture(nome):
 # --- C3.1 -------------------------------------------------------------------
 @pytest.mark.parametrize("nome", ["nfe_55_1item.xml", "nfe_55_3itens.xml", "nfe_65_1item.xml"])
 def test_as_tres_fixtures_sao_nfe(nome):
-    assert classificar_xml(_fixture(nome)) == "nfe"
+    assert tipo_do_xml(_fixture(nome)) == "nfe"
 
 
 # --- C3.2 -------------------------------------------------------------------
 def test_cfe_sat_e_nao_suportado():
-    assert classificar_xml(CFE_MINIMO) == "nao_suportado_sat"
+    assert tipo_do_xml(CFE_MINIMO) == "nao_suportado_sat"
 
 
 # --- C3.3 -------------------------------------------------------------------
 def test_proc_evento_e_evento():
     """A story 004 CLASSIFICA o evento. Aplicar o cancelamento e a story 005."""
-    assert classificar_xml(EVENTO_MINIMO) == "evento"
+    assert tipo_do_xml(EVENTO_MINIMO) == "evento"
 
 
 # --- C3.4 -------------------------------------------------------------------
@@ -70,20 +70,20 @@ def test_proc_evento_e_evento():
     ids=["malformado", "vazio", "espaco", "raiz-desconhecida", "texto-solto"],
 )
 def test_o_que_nao_da_para_rotear_e_invalida(texto):
-    assert classificar_xml(texto) == "invalida"
+    assert tipo_do_xml(texto) == "invalida"
 
 
 # --- C3.5 -------------------------------------------------------------------
 def test_nfe_proc_com_modelo_fora_de_55_e_65_e_invalida():
     """A raiz esta certa, o modelo nao. Nao da para extrair, e nao e CF-e."""
-    assert classificar_xml(NFE_MOD_99) == "invalida"
+    assert tipo_do_xml(NFE_MOD_99) == "invalida"
 
 
 # --- C3.6 -------------------------------------------------------------------
 def test_nunca_levanta_excecao():
     """O importador chama isto dentro do laco do lote.
 
-    Se `classificar_xml` levantar, um arquivo ruim derruba o lote inteiro — que
+    Se `tipo_do_xml` levantar, um arquivo ruim derruba o lote inteiro — que
     e exatamente o criterio 4 da story.
     """
     entradas = [
@@ -95,7 +95,7 @@ def test_nunca_levanta_excecao():
     ]
 
     for texto in entradas:
-        assert classificar_xml(texto) in {"nfe", "nao_suportado_sat", "evento", "invalida"}
+        assert tipo_do_xml(texto) in {"nfe", "nao_suportado_sat", "evento", "invalida"}
 
 
 # --- C3.7 -------------------------------------------------------------------
@@ -109,23 +109,23 @@ def test_o_namespace_nao_atrapalha_a_leitura_da_raiz():
     sem_ns = "<nfeProc><NFe><infNFe><ide><mod>55</mod></ide></infNFe></NFe></nfeProc>"
     com_ns = f'<nfeProc xmlns="{NS}"><NFe><infNFe><ide><mod>55</mod></ide></infNFe></NFe></nfeProc>'
 
-    assert classificar_xml(sem_ns) == "nfe"
-    assert classificar_xml(com_ns) == "nfe"
+    assert tipo_do_xml(sem_ns) == "nfe"
+    assert tipo_do_xml(com_ns) == "nfe"
 
 
 def test_o_modelo_65_tambem_e_nfe_e_nao_so_o_55():
     com_ns = f'<nfeProc xmlns="{NS}"><NFe><infNFe><ide><mod>65</mod></ide></infNFe></NFe></nfeProc>'
 
-    assert classificar_xml(com_ns) == "nfe"
+    assert tipo_do_xml(com_ns) == "nfe"
 
 
 # --- devolve sempre uma das quatro strings --------------------------------
 def test_o_retorno_e_sempre_uma_das_quatro_strings():
     valores = {
-        classificar_xml(_fixture("nfe_55_1item.xml")),
-        classificar_xml(CFE_MINIMO),
-        classificar_xml(EVENTO_MINIMO),
-        classificar_xml("<quebrado"),
+        tipo_do_xml(_fixture("nfe_55_1item.xml")),
+        tipo_do_xml(CFE_MINIMO),
+        tipo_do_xml(EVENTO_MINIMO),
+        tipo_do_xml("<quebrado"),
     }
 
     assert valores == {"nfe", "nao_suportado_sat", "evento", "invalida"}

@@ -49,3 +49,4 @@ Os princípios que decidem coisas. Fonte: `docs/historico/report_projeto_nfe.md`
 | 2026-10-17 | Banco que já tem nota `ok` com cancelamento guardado (v0.3.0) é corrigido uma vez, pela migração v6 | Claude | spec 01 §5; nota cancelada não conta como gasto | alta |
 | 2026-10-17 | Órfão importado antes da v5 não foi guardado: não há o que aplicar sozinho. Reimportar o XML do evento resolve (o evento aplica em nota de lote anterior) | Claude | fato do código | alta |
 | 2026-10-25 | `xsdata` declarado no `pyproject.toml`: o código o importa direto, e dependência transitiva não é garantia | Gui | próximos passos de 2026-10-25 | — |
+| 2026-10-25 | `classificador.py` → `tipo_xml.py` (`classificar_xml` → `tipo_do_xml`): o módulo roteia o arquivo (nota/evento/SAT/inválido) e o nome antigo se confundia com a classificação de produto. As stories 001–013 continuam citando o nome antigo: são histórico | Claude | técnica (próximos passos de 2026-10-25) | alta |

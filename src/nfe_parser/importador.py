@@ -27,10 +27,10 @@ from nfe_parser.cancelamento import (
     aplicar_cancelamento,
     cancelamento_guardado,
 )
-from nfe_parser.classificador import classificar_xml
 from nfe_parser.eventos import guardar_evento, ler_evento
 from nfe_parser.extrator import extrair_nota
 from nfe_parser.persistencia import persistir_nota
+from nfe_parser.tipo_xml import tipo_do_xml
 
 
 @dataclass(frozen=True)
@@ -40,7 +40,7 @@ class _Arquivo:
     nome: str
     conteudo: bytes  # os bytes ORIGINAIS: e deles que sai o hash do log
     texto: str
-    tipo: str  # o que `classificar_xml` devolveu: "nfe", "evento", "invalida"...
+    tipo: str  # o que `tipo_do_xml` devolveu: "nfe", "evento", "invalida"...
 
 
 def importar(conexao, caminho, origem: str | None = None) -> int:
@@ -105,7 +105,7 @@ def _ler_lote(caminho):
 
 def _decodificar(nome, conteudo):
     texto = conteudo.decode("utf-8", errors="replace")
-    return _Arquivo(nome, conteudo, texto, classificar_xml(texto))
+    return _Arquivo(nome, conteudo, texto, tipo_do_xml(texto))
 
 
 def _processar_nota(conexao, importacao_id, arquivo):
