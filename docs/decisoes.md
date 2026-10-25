@@ -48,3 +48,4 @@ Os princípios que decidem coisas. Fonte: `docs/historico/report_projeto_nfe.md`
 | 2026-10-17 | A linha "cancelamento órfão" da importação antiga fica como está: o log registra o desfecho daquele lote | Claude | bom senso: log é histórico | alta |
 | 2026-10-17 | Banco que já tem nota `ok` com cancelamento guardado (v0.3.0) é corrigido uma vez, pela migração v6 | Claude | spec 01 §5; nota cancelada não conta como gasto | alta |
 | 2026-10-17 | Órfão importado antes da v5 não foi guardado: não há o que aplicar sozinho. Reimportar o XML do evento resolve (o evento aplica em nota de lote anterior) | Claude | fato do código | alta |
+| 2026-10-25 | `xsdata` declarado no `pyproject.toml`: o código o importa direto, e dependência transitiva não é garantia | Gui | próximos passos de 2026-10-25 | — |

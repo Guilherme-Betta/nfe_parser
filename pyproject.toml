@@ -20,6 +20,7 @@ dependencies = [
     "jinja2",
     "python-multipart",
     "nfelib",
+    "xsdata",
 ]
 
 [project.optional-dependencies]

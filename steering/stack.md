@@ -25,6 +25,7 @@ Nenhum pacote fora desta tabela. Ela e copia fiel do `pyproject.toml`.
 | Pacote | Para que | Versao |
 | ------ | -------- | ------ |
 | `nfelib` | parsing schema-aware dos XMLs de NF-e/NFC-e | livre (nao pinada) |
+| `xsdata` | base do `nfelib`; importado direto (`ParserError`, `XmlParser`) em `extrator.py`, `eventos.py` e `cancelamento.py` | livre |
 | `fastapi` | HTTP dos componentes 03+ | livre |
 | `uvicorn[standard]` | servidor ASGI | livre |
 | `jinja2` | templates da UI (componente 03+) | livre |
@@ -34,9 +35,9 @@ Nenhum pacote fora desta tabela. Ela e copia fiel do `pyproject.toml`.
 | `ruff` (dev) | lint e formato, `line-length = 100` | livre |
 | `httpx` (dev) | client de teste da API | livre |
 
-> ⚠️ **`xsdata` e importado direto** (`extrator.py`, `cancelamento.py`) sem estar no
-> `pyproject.toml`: ele chega como dependencia do `nfelib`, que e construido sobre ele. Funciona
-> enquanto o `nfelib` depender do `xsdata`; se isso mudar, o import quebra sem nenhum aviso antes.
+> `xsdata` ja vinha como dependencia do `nfelib`; esta declarado por conta propria porque o codigo
+> o importa direto. ⚠️ Pacote que `src/` importa tem de estar nesta tabela, mesmo que outro pacote
+> ja o traga: dependencia transitiva pode sumir numa versao nova sem nenhum aviso antes.
 
 **Da biblioteca padrao**, o que `src/` usa: `sqlite3`, `zipfile`, `hashlib`, `pathlib`,
 `datetime`, `decimal`, `dataclasses`, `json`, `csv`, `os`, `re`, `unicodedata`, `urllib.request`,
