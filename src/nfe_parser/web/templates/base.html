@@ -42,6 +42,7 @@
              vertical-align: middle; }
     th { color: var(--suave); font-weight: 600; font-size: .85rem; }
     td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    td.data { white-space: nowrap; } /* "2026-07-01" nunca quebra em "2026-07-" / "01" */
     .suave { color: var(--suave); font-size: .9rem; }
     .selo { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: .8rem;
             border: 1px solid var(--borda); color: var(--suave); white-space: nowrap; }
@@ -65,6 +66,15 @@
     button.discreto { background: transparent; color: var(--destaque); }
     button.perigo { background: transparent; color: var(--ruim); border-color: var(--ruim); }
     .paginacao { display: flex; gap: 12px; margin-top: 12px; align-items: center; }
+    /* Tela estreita (celular): o que e .so-largo some e o que e .so-estreito aparece.
+       ⚠️ Uma tabela de 6 colunas em 390px empurra a ultima para fora da tela — e e ela
+       que diz se a nota vale. Em vez de rolar, a informacao muda de lugar. */
+    .so-estreito { display: none; }
+    @media (max-width: 480px) {
+      .so-largo { display: none; }
+      .so-estreito { display: block; margin-top: 4px; }
+      th, td { padding: 8px 6px; }
+    }
     {% block estilo %}{% endblock %}
   </style>
 </head>

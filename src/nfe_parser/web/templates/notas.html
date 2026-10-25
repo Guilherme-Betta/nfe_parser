@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block titulo %}Notas{% endblock %}
+{% macro situacao(n) %}{% if n.status == "cancelada" %}<span class="selo ruim">cancelada</span>{% else %}<span class="selo ok">válida</span>{% endif %}{% endmacro %}
 {% block conteudo %}
 <h1>Notas</h1>
 <form class="linha caixa" method="get" action="/notas">
@@ -19,16 +20,18 @@
 <p class="suave">{{ dados.total }} nota(s)</p>
 <div class="tabela-rolavel">
 <table>
-  <tr><th>Emissão</th><th>Loja</th><th>Modelo</th><th class="num">Itens</th>
-      <th class="num">Total</th><th>Situação</th></tr>
+  <tr><th>Emissão</th><th>Loja</th><th class="so-largo">Modelo</th><th class="num">Itens</th>
+      <th class="num">Total</th><th class="so-largo">Situação</th></tr>
   {% for n in dados.notas %}
   <tr>
-    <td><a href="/notas/{{ n.chave }}">{{ n.dh_emi[:10] }}</a></td>
+    {# A situacao sai duas vezes de proposito: sob a data (so no celular, onde a 6a
+       coluna ficaria fora da tela) e na coluna propria (so em tela larga). #}
+    <td class="data"><a href="/notas/{{ n.chave }}">{{ n.dh_emi[:10] }}</a><div class="so-estreito">{{ situacao(n) }}</div></td>
     <td>{{ n.emit_nome or "—" }} <span class="suave">{{ n.emit_cnpj or "" }}</span></td>
-    <td class="suave">{{ "NFC-e" if n.modelo == 65 else "NF-e" }}</td>
+    <td class="suave so-largo">{{ "NFC-e" if n.modelo == 65 else "NF-e" }}</td>
     <td class="num">{{ n.n_itens }}</td>
     <td class="num">{{ n.valor_total_centavos | reais }}</td>
-    <td>{% if n.status == "cancelada" %}<span class="selo ruim">cancelada</span>{% else %}<span class="selo ok">válida</span>{% endif %}</td>
+    <td class="so-largo">{{ situacao(n) }}</td>
   </tr>
   {% endfor %}
 </table>
