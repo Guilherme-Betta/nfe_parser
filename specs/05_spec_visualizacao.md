@@ -59,7 +59,7 @@ Todas aceitam `de`, `ate`, `categoria_slug`, `loja_cnpj`, `produto_id`. Parâmet
 - **Uma série por gráfico, uma cor** (o azul validado contra as superfícies clara e escura); sem legenda (o título nomeia a série). "Não classificado" aparece como barra cinza à parte, rotulada. Traços finos, grade discreta, tooltip com o valor em R$.
 - **Toda análise tem a tabela gêmea** (renderizada no servidor): o tooltip nunca é o único jeito de ler um valor.
 - **Sinalização honesta:** produto/série com `identidade_origem='texto'` marcado como *aproximado*.
-- **Rótulo repetido ganha o fim do CNPJ** no gráfico (filiais com o mesmo nome; o mesmo produto sem código de barras em lojas diferentes); a tabela gêmea mostra o CNPJ inteiro.
+- **Rótulo repetido ganha o fim do CNPJ** no gráfico (filiais com o mesmo nome; o mesmo produto sem código de barras em lojas diferentes); a tabela gêmea mostra o CNPJ inteiro. O **seletor de loja** da linha de filtros segue a mesma regra: duas lojas de mesmo nome nunca saem como opções idênticas.
 - Item **Relatórios** na navegação.
 
 ## 6. Fronteiras (não fazer aqui)
@@ -77,5 +77,5 @@ Fixtures anonimizadas (repo público — sem CPF/CNPJ/nome real).
 - V5. **top-produtos** ordena desc, respeita `limite`; `ordenar=quantidade` soma em decimal exato.
 - V6. **preco-no-tempo** ordenado por data; `gtin` não-aproximado, `texto` aproximado; produto inexistente → 404.
 - V7. **Read-only:** nenhuma função do componente muda o banco (`total_changes` igual antes e depois).
-- V8. **UI smoke:** `/relatorios` responde 200 com e sem filtros; traz as tabelas e o JSON dos gráficos; o seletor de tipo da série mensal não oferece pizza; `chart.umd.js` é servido; produto `texto` aparece como aproximado.
+- V8. **UI smoke:** `/relatorios` responde 200 com e sem filtros; traz as tabelas e o JSON dos gráficos; o seletor de tipo da série mensal não oferece pizza; `chart.umd.js` é servido; produto `texto` aparece como aproximado; lojas de mesmo nome saem distinguidas pelo fim do CNPJ no seletor de loja.
 - Saídas serializam em JSON; centavos int; nenhum dado pessoal real nas fixtures.
