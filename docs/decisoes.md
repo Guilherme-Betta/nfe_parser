@@ -42,3 +42,9 @@ Os princípios que decidem coisas. Fonte: `docs/historico/report_projeto_nfe.md`
 | 2026-10-16 | Carta de correção (e todo evento): o XML é **guardado**, e a tela da nota mostra a data e o texto da correção. Motivo do Gui: coerência com o `xml_raw` das notas e não perder a informação se o arquivo original sumir | Gui | rodada 02 | — |
 | 2026-10-16 | LLM fora do ar ao clicar "Sugerir com o LLM": aviso na própria tela de revisão, nada gravado (antes: erro 500) | Gui | rodada 02 | — |
 | 2026-10-16 | Rascunhos de 01 §6 e 02 §7 **aprovados** como contrato, com as respostas da rodada 02 | Gui | rodada 02 | — |
+| 2026-10-17 | Cancelamento que chegou num lote **anterior** ao da nota (guardado em `eventos` desde a v5) é aplicado quando a nota chega; `cancelado_em` = `dhEvento` do evento guardado | Claude | spec 01 §5 ("inclusive com evento antes da nota") e §6.2 | alta |
+| 2026-10-17 | A linha da nota no log continua `nova` (é uma nota nova); o `detalhe` diz que ela entrou cancelada e em que importação o cancelamento chegou | Gui | conversa (confirmou a escolha do Claude) | — |
+| 2026-10-17 | O cartão "cancelamentos" do lote não conta esse caso: ele conta arquivos de cancelamento, e os contadores saem do log | Gui | conversa (confirmou a escolha do Claude) | — |
+| 2026-10-17 | A linha "cancelamento órfão" da importação antiga fica como está: o log registra o desfecho daquele lote | Claude | bom senso: log é histórico | alta |
+| 2026-10-17 | Banco que já tem nota `ok` com cancelamento guardado (v0.3.0) é corrigido uma vez, pela migração v6 | Claude | spec 01 §5; nota cancelada não conta como gasto | alta |
+| 2026-10-17 | Órfão importado antes da v5 não foi guardado: não há o que aplicar sozinho. Reimportar o XML do evento resolve (o evento aplica em nota de lote anterior) | Claude | fato do código | alta |

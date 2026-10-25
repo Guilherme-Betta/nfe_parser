@@ -10,6 +10,10 @@ O que SOBE e derruba o lote e erro de gravacao — e ai o lote inteiro e desfeit
 ⭐ DUAS PASSADAS: primeiro as notas, depois os eventos de cancelamento. E o que
 permite aplicar um evento que veio ANTES da sua nota dentro do `.zip`: quando a
 segunda passada comeca, todas as notas do lote ja estao no banco.
+
+E o caso entre LOTES: o cancelamento chegou num lote anterior ao da nota. Naquele
+lote ele foi `cancelamento_orfao`, mas ficou guardado em `eventos` (v5); quando a
+nota chega, a primeira passada o encontra e aplica (spec 01 §6.2).
 """
 
 import hashlib
@@ -18,7 +22,11 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from nfe_parser.cancelamento import TP_EVENTO_CANCELAMENTO, aplicar_cancelamento
+from nfe_parser.cancelamento import (
+    TP_EVENTO_CANCELAMENTO,
+    aplicar_cancelamento,
+    cancelamento_guardado,
+)
 from nfe_parser.classificador import classificar_xml
 from nfe_parser.eventos import guardar_evento, ler_evento
 from nfe_parser.extrator import extrair_nota
@@ -120,7 +128,23 @@ def _processar_nota(conexao, importacao_id, arquivo):
         return "invalida", None, str(e)
 
     resultado = persistir_nota(conexao, extraido, importacao_id)
-    return resultado, extraido["nota"]["chave"], None
+    chave = extraido["nota"]["chave"]
+
+    # ⭐ O cancelamento pode ter chegado num lote ANTERIOR, e estar guardado. Do
+    # mesmo lote ele ainda nao esta: os eventos so sao guardados na 2ª passada,
+    # que o aplica do jeito de sempre. Por isso aqui nao ha dupla aplicacao.
+    if resultado == "nova":
+        guardado = cancelamento_guardado(conexao, chave)
+        if guardado is not None:
+            aplicar_cancelamento(conexao, guardado)
+            origem = guardado["importacao_id"]
+            return (
+                resultado,
+                chave,
+                f"cancelada: o cancelamento chegou antes, na importação {origem}",
+            )
+
+    return resultado, chave, None
 
 
 def _processar_evento(conexao, importacao_id, arquivo):
