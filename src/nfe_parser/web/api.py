@@ -11,6 +11,7 @@ from nfe_parser import consultas, eventos, operacoes, orcamento, relatorios
 from nfe_parser.llm import LlmIndisponivel
 from nfe_parser.migracoes import versao_do_banco
 from nfe_parser.serializacao import nota_para_json
+from nfe_parser.vocabulario import OrigemClassificacao, StatusNota
 from nfe_parser.web.comum import UploadRecusado, importar_upload, obter_conexao
 
 roteador = APIRouter(prefix="/api")
@@ -83,7 +84,7 @@ def listar_notas(
     conexao: Conexao,
     mes: Annotated[str | None, Query(pattern=MES)] = None,
     loja_cnpj: str | None = None,
-    status: Literal["ok", "cancelada"] | None = None,
+    status: StatusNota | None = None,
     pagina: Pagina = 1,
     por_pagina: PorPagina = 50,
 ):
@@ -113,7 +114,7 @@ def eventos_da_nota(chave: str, conexao: Conexao):
 def listar_produtos(
     conexao: Conexao,
     classificado: bool | None = None,
-    origem: Literal["manual", "memoria", "ncm", "llm"] | None = None,
+    origem: OrigemClassificacao | None = None,
     pagina: Pagina = 1,
     por_pagina: PorPagina = 50,
 ):

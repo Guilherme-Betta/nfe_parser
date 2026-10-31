@@ -31,6 +31,8 @@ nao entrar JUNTOS.
 import unicodedata
 from datetime import UTC, datetime
 
+from nfe_parser.vocabulario import IdentidadeProduto
+
 # Whitelist EXPLICITA, e ela nao pode virar `str.isalnum()`. Foi medido: o
 # `isalnum` do Python e Unicode-aware e considera letra ou numero caracteres
 # como `º`, `ø` e `µ`. Nenhum deles decompoe em NFD — a barra do `ø` faz parte
@@ -119,7 +121,7 @@ def resolver_produto_por_gtin(conexao, gtin, descricao_exemplo):
                               criado_em, atualizado_em)
         VALUES (?, ?, ?, ?, ?)
         """,
-        ("gtin", gtin, descricao_exemplo, criado_em, criado_em),
+        (IdentidadeProduto.GTIN, gtin, descricao_exemplo, criado_em, criado_em),
     )
 
     return cursor.lastrowid
@@ -178,7 +180,7 @@ def resolver_produto_por_texto(conexao, descricao, emit_cnpj):
                               descricao_exemplo, criado_em, atualizado_em)
         VALUES (?, ?, ?, ?, ?, ?)
         """,
-        ("texto", normalizada, emit_cnpj, descricao, criado_em, criado_em),
+        (IdentidadeProduto.TEXTO, normalizada, emit_cnpj, descricao, criado_em, criado_em),
     )
 
     return cursor.lastrowid

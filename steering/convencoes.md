@@ -46,6 +46,7 @@ decimal, nenhum teste cobriu, a implementacao truncou e passou.
 | **Nenhum arquivo derruba o lote** | invalido/incompleto/orfao/SAT viram linha no log, nao excecao |
 | **O lote e uma transacao** | `importar` commita no fim e desfaz tudo se algo levantar; ninguem abaixo dele commita |
 | DDL **idempotente** (`CREATE TABLE IF NOT EXISTS`) | reprocessar o mesmo zip deixa o banco identico |
+| Vocabulario fechado = **`StrEnum` em `vocabulario.py`**, nunca string solta no Python | `status`, tipo de XML, `resultado` do log, `origem`, `identidade_origem`. O valor e a string crua (banco, JSON, template nao mudam); SQL literal (`WHERE status = 'ok'`) pode ficar, e `test_vocabulario.py` confere enum × CHECK |
 
 ## Privacidade — regra dura, repo publico
 

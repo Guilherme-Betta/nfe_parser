@@ -22,6 +22,7 @@ que e o estado "pendente" que `varredura.py` procura depois.
 from datetime import UTC, datetime
 
 from nfe_parser.produtos import resolver_produto_por_gtin, resolver_produto_por_texto
+from nfe_parser.vocabulario import ResultadoArquivo
 
 _INSERIR_NOTA = """
     INSERT INTO notas (
@@ -82,7 +83,7 @@ def persistir_nota(conexao, extraido: dict, importacao_id: int | None = None) ->
 
     nota = extraido["nota"]
     if conexao.execute("SELECT 1 FROM notas WHERE chave = ?", (nota["chave"],)).fetchone():
-        return "duplicada"
+        return ResultadoArquivo.DUPLICADA
 
     agora = datetime.now(UTC).isoformat()
     conexao.execute(_INSERIR_NOTA, {**nota, "importacao_id": importacao_id, "criado_em": agora})
@@ -94,4 +95,4 @@ def persistir_nota(conexao, extraido: dict, importacao_id: int | None = None) ->
             {**item, "nota_chave": nota["chave"], "produto_id": produto_id, "criado_em": agora},
         )
 
-    return "nova"
+    return ResultadoArquivo.NOVA

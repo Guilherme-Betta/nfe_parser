@@ -41,6 +41,8 @@ item e `varredura.py`.
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from nfe_parser.vocabulario import OrigemClassificacao
+
 
 @dataclass(frozen=True)
 class Decisao:
@@ -58,7 +60,7 @@ class Decisao:
     """
 
     categoria_id: int
-    origem: str | None
+    origem: OrigemClassificacao | None
     confianca: float | None = None
 
 
@@ -150,7 +152,7 @@ def decidir_categoria(conexao, ncm, descricao, llm=None):
 
     categoria = buscar_categoria_por_ncm(conexao, ncm)
     if categoria is not None:
-        return Decisao(categoria, "ncm")
+        return Decisao(categoria, OrigemClassificacao.NCM)
 
     decisao_do_llm = _perguntar_ao_llm(conexao, llm, descricao)
     if decisao_do_llm is not None:
@@ -196,7 +198,7 @@ def _perguntar_ao_llm(conexao, llm, descricao):
     if linha is None:
         return None
 
-    return Decisao(linha[0], "llm", confianca)
+    return Decisao(linha[0], OrigemClassificacao.LLM, confianca)
 
 
 def gravar_decisao(conexao, produto_id, decisao):
@@ -245,7 +247,7 @@ def classificar_produto(conexao, produto_id, ncm, llm=None):
 
     categoria_atual, origem_atual, descricao = linha
 
-    if origem_atual in ("manual", "memoria"):
+    if origem_atual in (OrigemClassificacao.MANUAL, OrigemClassificacao.MEMORIA):
         return categoria_atual
 
     decisao = decidir_categoria(conexao, ncm, descricao, llm)
@@ -286,4 +288,4 @@ def definir_categoria_manual(conexao, produto_id, categoria_id):
     if linha is None:
         raise LookupError(f"produto {produto_id} nao existe")
 
-    gravar_decisao(conexao, produto_id, Decisao(categoria_id, "manual"))
+    gravar_decisao(conexao, produto_id, Decisao(categoria_id, OrigemClassificacao.MANUAL))

@@ -11,6 +11,7 @@ o relatorio e o orcamento nunca discordam sobre quanto se gastou.
 from decimal import Decimal
 
 from nfe_parser import gastos
+from nfe_parser.vocabulario import IdentidadeProduto
 
 ORDENS = ("valor", "quantidade")
 
@@ -114,8 +115,8 @@ def _item_do_top(produto_id, info, gasto, quantidade):
         "gasto": gasto[produto_id],
         "quantidade": str(quantidade[produto_id]),
         "identidade_origem": identidade,
-        "aproximado": identidade == "texto",
-        "emit_cnpj": cnpj if identidade == "texto" else None,
+        "aproximado": identidade == IdentidadeProduto.TEXTO,
+        "emit_cnpj": cnpj if identidade == IdentidadeProduto.TEXTO else None,
     }
 
 
@@ -142,7 +143,7 @@ def preco_no_tempo(conexao, produto_id, **filtros):
         "produto_id": produto_id,
         "descricao_exemplo": produto[0],
         "identidade_origem": produto[1],
-        "aproximado": produto[1] == "texto",
+        "aproximado": produto[1] == IdentidadeProduto.TEXTO,
         "pontos": [
             {"data": data, "valor_unitario": valor, "emit_nome": nome, "emit_cnpj": cnpj}
             for data, valor, nome, cnpj in pontos
