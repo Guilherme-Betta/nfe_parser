@@ -20,6 +20,7 @@ So despesas, so BRL, sem lancamento manual.
 
 | Preciso de... | Vai em |
 | ------------- | ------ |
+| retomar o trabalho de onde parou (estado, próximo passo, pendências) | `HANDOFF.md` — **ler no início de toda sessão**; reescrever ao encerrar |
 | stack, versoes, dependencias | `steering/stack.md` |
 | convencoes de nome, estilo e commit | `steering/convencoes.md` |
 | o que o `verify` checa, e o que ele deixa passar | `steering/verificacao.md` |
