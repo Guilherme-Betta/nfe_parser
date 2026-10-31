@@ -32,7 +32,9 @@ CREATE TABLE IF NOT EXISTS notas (
   chave TEXT PRIMARY KEY,                    -- 44 dígitos
   modelo INTEGER NOT NULL,                   -- 55 | 65
   serie INTEGER, numero INTEGER, dh_emi TEXT NOT NULL,
-  emit_nome TEXT, emit_cnpj TEXT, emit_municipio TEXT, emit_uf TEXT,
+  emit_nome TEXT,
+  emit_cnpj TEXT,                            -- CNPJ (14) OU CPF (11) do emitente; nome histórico
+  emit_municipio TEXT, emit_uf TEXT,
   valor_total INTEGER NOT NULL,              -- centavos (vNF)
   forma_pagamento TEXT,
   status TEXT NOT NULL DEFAULT 'ok' CHECK (status IN ('ok','cancelada')),
