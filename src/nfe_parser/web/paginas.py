@@ -12,6 +12,7 @@ tela de erro por causa de um campo deixado em branco.
 import json
 import re
 import sqlite3
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from typing import Annotated
@@ -68,6 +69,19 @@ def _opcoes_de_categoria(conexao):
             (filha["slug"], f"{raiz['nome']} › {filha['nome']}") for filha in raiz["filhas"]
         )
     return opcoes
+
+
+def _opcoes_de_loja(conexao):
+    """`(cnpj, rotulo)` para o `<select>` do filtro de loja. ⚠️ Filiais de uma rede tem o
+    MESMO nome e CNPJs diferentes: so o nome daria duas opcoes identicas. O nome repetido
+    ganha o fim do CNPJ — a regra da spec 05 §5, a mesma que `graficos.js` usa no grafico.
+    Loja sem nome mostra o CNPJ, que ja e unico."""
+    lojas = consultas.lojas(conexao)
+    vezes = Counter(nome for _, nome in lojas)
+    return [
+        (cnpj, f"{nome} · …{cnpj[-6:]}" if nome and vezes[nome] > 1 else nome or cnpj)
+        for cnpj, nome in lojas
+    ]
 
 
 # --- importacao -----------------------------------------------------------------
@@ -413,6 +427,6 @@ def ver_relatorios(
         "dados": dados,
         "filtros": filtros,
         "categorias": _opcoes_de_categoria(conexao),
-        "lojas": consultas.lojas(conexao),
+        "lojas": _opcoes_de_loja(conexao),
     }
     return _tela(request, "relatorios.html", contexto)
