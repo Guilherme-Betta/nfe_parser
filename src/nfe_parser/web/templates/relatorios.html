@@ -45,8 +45,8 @@
   <label>Loja
     <select name="loja_cnpj">
       <option value="">todas</option>
-      {% for cnpj, nome in lojas %}
-      <option value="{{ cnpj }}" {% if cnpj == filtros.loja_cnpj %}selected{% endif %}>{{ nome or cnpj }}</option>
+      {% for cnpj, rotulo in lojas %}
+      <option value="{{ cnpj }}" {% if cnpj == filtros.loja_cnpj %}selected{% endif %}>{{ rotulo }}</option>
       {% endfor %}
     </select>
   </label>

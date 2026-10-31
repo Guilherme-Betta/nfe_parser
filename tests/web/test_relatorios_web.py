@@ -5,7 +5,20 @@ import re
 
 import pytest
 
-from tests.apoio import ACHOCOLATADO, TOMATE, enviar, produto, texto
+from tests.apoio import (
+    ACHOCOLATADO,
+    CNPJ_FIXTURE,
+    TOMATE,
+    chave,
+    enviar,
+    produto,
+    texto,
+    variante,
+)
+
+FILIAL = "88888888000188"  # mesmo nome da loja das fixtures, outro CNPJ
+OUTRA_LOJA = "77777777000177"
+NOME_FIXTURE = "MERCEARIA EXEMPLO LTDA"
 
 
 @pytest.fixture
@@ -130,6 +143,32 @@ def test_filtros_vazios_do_formulario_sao_ignorados(com_notas):
 
     assert resposta.status_code == 200
     assert len(_dados_embutidos(resposta.text, "mensal")) == 3
+
+
+def _opcoes_do_filtro_de_loja(html):
+    seletor = re.search(r'<select name="loja_cnpj".*?</select>', html, re.DOTALL)
+    assert seletor, "a pagina nao tem o seletor de loja"
+    return re.findall(r'<option value="([^"]*)"[^>]*>([^<]*)</option>', seletor.group(0))
+
+
+def test_lojas_de_mesmo_nome_sao_distinguidas_no_filtro_de_loja(com_notas):
+    """Spec 05 §5: rotulo repetido ganha o fim do CNPJ — no seletor do filtro tambem.
+    Duas filiais com o mesmo `xNome` sairiam como duas opcoes identicas, e o usuario
+    nao saberia qual filtra o que. Loja de nome unico continua so com o nome."""
+    filial = variante("nfe_55_1item.xml", chave(1), cnpj=FILIAL)
+    outra = variante("nfe_55_1item.xml", chave(2), cnpj=OUTRA_LOJA)
+    outra = outra.replace(NOME_FIXTURE, "PADARIA EXEMPLO")
+    assert enviar(com_notas, "filial.xml", filial).status_code == 201
+    assert enviar(com_notas, "outra.xml", outra).status_code == 201
+
+    html = com_notas.get("/relatorios").text
+
+    assert _opcoes_do_filtro_de_loja(html) == [
+        ("", "todas"),
+        (FILIAL, f"{NOME_FIXTURE} · …000188"),
+        (CNPJ_FIXTURE, f"{NOME_FIXTURE} · …000199"),
+        (OUTRA_LOJA, "PADARIA EXEMPLO"),
+    ]
 
 
 def test_seletor_da_serie_mensal_nao_oferece_pizza(com_notas):
