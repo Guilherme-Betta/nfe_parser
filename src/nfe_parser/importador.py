@@ -31,6 +31,7 @@ from nfe_parser.eventos import guardar_evento, ler_evento
 from nfe_parser.extrator import extrair_nota
 from nfe_parser.persistencia import persistir_nota
 from nfe_parser.tipo_xml import tipo_do_xml
+from nfe_parser.vocabulario import ResultadoArquivo, TipoXml
 
 
 @dataclass(frozen=True)
@@ -40,7 +41,7 @@ class _Arquivo:
     nome: str
     conteudo: bytes  # os bytes ORIGINAIS: e deles que sai o hash do log
     texto: str
-    tipo: str  # o que `tipo_do_xml` devolveu: "nfe", "evento", "invalida"...
+    tipo: TipoXml  # o que `tipo_do_xml` devolveu
 
 
 def importar(conexao, caminho, origem: str | None = None) -> int:
@@ -64,8 +65,8 @@ def importar(conexao, caminho, origem: str | None = None) -> int:
         ).lastrowid
 
         arquivos = [_decodificar(nome, conteudo) for nome, conteudo in _ler_lote(caminho)]
-        notas = [arquivo for arquivo in arquivos if arquivo.tipo != "evento"]
-        eventos = [arquivo for arquivo in arquivos if arquivo.tipo == "evento"]
+        notas = [arquivo for arquivo in arquivos if arquivo.tipo != TipoXml.EVENTO]
+        eventos = [arquivo for arquivo in arquivos if arquivo.tipo == TipoXml.EVENTO]
 
         for arquivo in notas:
             resultado, chave, detalhe = _processar_nota(conexao, importacao_id, arquivo)
@@ -117,15 +118,15 @@ def _processar_nota(conexao, importacao_id, arquivo):
     derruba o lote, que e o desfecho honesto.
     """
 
-    if arquivo.tipo == "nao_suportado_sat":
-        return "nao_suportado_sat", None, None
-    if arquivo.tipo == "invalida":
-        return "invalida", None, "Conteúdo inválido"
+    if arquivo.tipo == TipoXml.NAO_SUPORTADO_SAT:
+        return ResultadoArquivo.NAO_SUPORTADO_SAT, None, None
+    if arquivo.tipo == TipoXml.INVALIDA:
+        return ResultadoArquivo.INVALIDA, None, "Conteúdo inválido"
 
     try:
         extraido = extrair_nota(arquivo.texto)
     except ValueError as e:
-        return "invalida", None, str(e)
+        return ResultadoArquivo.INVALIDA, None, str(e)
 
     resultado = persistir_nota(conexao, extraido, importacao_id)
     chave = extraido["nota"]["chave"]
@@ -133,7 +134,7 @@ def _processar_nota(conexao, importacao_id, arquivo):
     # ⭐ O cancelamento pode ter chegado num lote ANTERIOR, e estar guardado. Do
     # mesmo lote ele ainda nao esta: os eventos so sao guardados na 2ª passada,
     # que o aplica do jeito de sempre. Por isso aqui nao ha dupla aplicacao.
-    if resultado == "nova":
+    if resultado == ResultadoArquivo.NOVA:
         guardado = cancelamento_guardado(conexao, chave)
         if guardado is not None:
             aplicar_cancelamento(conexao, guardado)
@@ -165,11 +166,11 @@ def _processar_evento(conexao, importacao_id, arquivo):
     try:
         evento = ler_evento(arquivo.texto)
     except ValueError as e:
-        return "invalida", None, str(e)
+        return ResultadoArquivo.INVALIDA, None, str(e)
 
     guardado = guardar_evento(conexao, evento, arquivo.texto, importacao_id)
     if guardado and evento["tp_evento"] != TP_EVENTO_CANCELAMENTO:
-        return "evento_registrado", evento["ch_nfe"], evento["descricao"]
+        return ResultadoArquivo.EVENTO_REGISTRADO, evento["ch_nfe"], evento["descricao"]
     return aplicar_cancelamento(conexao, evento), evento["ch_nfe"], None
 
 
@@ -226,10 +227,10 @@ def _fechar_importacao(conexao, importacao_id):
             "id": importacao_id,
             "finalizado_em": datetime.now(UTC).isoformat(),
             "total_arquivos": sum(por_resultado.values()),
-            "notas_novas": por_resultado.get("nova", 0),
-            "duplicadas": por_resultado.get("duplicada", 0),
-            "invalidas": por_resultado.get("invalida", 0),
-            "nao_suportadas": por_resultado.get("nao_suportado_sat", 0),
-            "cancelamentos_aplicados": por_resultado.get("cancelamento_aplicado", 0),
+            "notas_novas": por_resultado.get(ResultadoArquivo.NOVA, 0),
+            "duplicadas": por_resultado.get(ResultadoArquivo.DUPLICADA, 0),
+            "invalidas": por_resultado.get(ResultadoArquivo.INVALIDA, 0),
+            "nao_suportadas": por_resultado.get(ResultadoArquivo.NAO_SUPORTADO_SAT, 0),
+            "cancelamentos_aplicados": por_resultado.get(ResultadoArquivo.CANCELAMENTO_APLICADO, 0),
         },
     )

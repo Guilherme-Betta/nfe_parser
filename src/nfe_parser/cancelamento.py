@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
 from nfe_parser.eventos import ler_evento
+from nfe_parser.vocabulario import ResultadoArquivo
 
 # O unico `tpEvento` que cancela uma nota. Os outros existem e sao validos --
 # `110110` e carta de correcao, por exemplo -- mas nao mudam o status da nota.
@@ -42,11 +43,11 @@ def aplicar_cancelamento(conexao, evento: dict) -> str:
     tp_evento = evento.get("tp_evento")
 
     if tp_evento != TP_EVENTO_CANCELAMENTO or ch_nfe is None:
-        return "cancelamento_orfao"
+        return ResultadoArquivo.CANCELAMENTO_ORFAO
 
     query_check = "SELECT 1 FROM notas WHERE chave = ?"
     if not conexao.execute(query_check, (ch_nfe,)).fetchone():
-        return "cancelamento_orfao"
+        return ResultadoArquivo.CANCELAMENTO_ORFAO
 
     # ⭐ O `AND status = 'ok'` e o que torna a funcao idempotente: reimportar o
     # mesmo lote nao move o `cancelado_em` da primeira vez. O desfecho continua

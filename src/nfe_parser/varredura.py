@@ -30,6 +30,7 @@ from nfe_parser.categorizacao import (
     decidir_categoria,
     gravar_decisao,
 )
+from nfe_parser.vocabulario import OrigemClassificacao
 
 
 def classificar_produtos_pendentes(conexao, llm=None) -> int:
@@ -109,7 +110,7 @@ def reancorar_produtos_do_llm(conexao) -> int:
     for (produto_id,) in do_llm:
         categoria_id = buscar_categoria_por_ncm(conexao, _ncm_mais_recente(conexao, produto_id))
         if categoria_id is not None:
-            gravar_decisao(conexao, produto_id, Decisao(categoria_id, "ncm"))
+            gravar_decisao(conexao, produto_id, Decisao(categoria_id, OrigemClassificacao.NCM))
             reancorados += 1
 
     return reancorados

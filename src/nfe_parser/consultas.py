@@ -12,6 +12,7 @@ string derivada ao lado.
 """
 
 from nfe_parser.serializacao import de_centavos
+from nfe_parser.vocabulario import IdentidadeProduto, OrigemClassificacao
 
 _CONTADORES = (
     "total_arquivos",
@@ -73,9 +74,10 @@ def resumo_classificacao(conexao, importacao_id):
     )
     return {
         "produtos": sum(por_origem.values()),
-        "memoria": por_origem.get("manual", 0) + por_origem.get("memoria", 0),
-        "ncm": por_origem.get("ncm", 0),
-        "llm": por_origem.get("llm", 0),
+        "memoria": por_origem.get(OrigemClassificacao.MANUAL, 0)
+        + por_origem.get(OrigemClassificacao.MEMORIA, 0),
+        "ncm": por_origem.get(OrigemClassificacao.NCM, 0),
+        "llm": por_origem.get(OrigemClassificacao.LLM, 0),
         "bucket": por_origem.get(None, 0),
     }
 
@@ -159,7 +161,7 @@ a fila, que e `manual` no bucket — e o humano o perderia de vista."""
 def _produto_de(linha):
     """⭐ `aproximado` e a honestidade da spec 02 §3: identidade por texto so vale
     dentro da loja, e a UI tem de dizer isso em vez de fingir precisao."""
-    return {**linha, "aproximado": linha["identidade_origem"] == "texto"}
+    return {**linha, "aproximado": linha["identidade_origem"] == IdentidadeProduto.TEXTO}
 
 
 def listar_produtos(conexao, classificado=None, origem=None, pagina=1, por_pagina=50):

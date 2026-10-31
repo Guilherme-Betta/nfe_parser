@@ -7,8 +7,10 @@ classificacao de PRODUTO em categoria (`categorizacao.py`). O modulo ja se chamo
 
 import xml.etree.ElementTree as ET
 
+from nfe_parser.vocabulario import TipoXml
 
-def tipo_do_xml(xml_texto: str) -> str:
+
+def tipo_do_xml(xml_texto: str) -> TipoXml:
     """Devolve `"nfe"`, `"evento"`, `"nao_suportado_sat"` ou `"invalida"`.
 
     Olha so a raiz do XML e, para nota, o `<mod>`: 55 (NF-e) e 65 (NFC-e) sao
@@ -22,19 +24,19 @@ def tipo_do_xml(xml_texto: str) -> str:
     try:
         root = ET.fromstring(xml_texto)
     except ET.ParseError:
-        return "invalida"
+        return TipoXml.INVALIDA
 
     namespace = "{http://www.portalfiscal.inf.br/nfe}"
     if root.tag == namespace + "nfeProc" or root.tag == "nfeProc":
         for elem in root.iter():
             if elem.tag.split("}")[-1] == "mod":
                 if elem.text in ("55", "65"):
-                    return "nfe"
-                return "invalida"
-        return "invalida"
+                    return TipoXml.NFE
+                return TipoXml.INVALIDA
+        return TipoXml.INVALIDA
     elif root.tag == namespace + "CFe" or root.tag == "CFe":
-        return "nao_suportado_sat"
+        return TipoXml.NAO_SUPORTADO_SAT
     elif root.tag == namespace + "procEventoNFe" or root.tag == "procEventoNFe":
-        return "evento"
+        return TipoXml.EVENTO
     else:
-        return "invalida"
+        return TipoXml.INVALIDA
