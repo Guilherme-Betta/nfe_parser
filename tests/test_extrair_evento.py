@@ -4,7 +4,7 @@ Escritos ANTES da implementacao (passo 2 do loop) e congelados por commit. O
 modelo local recebe este arquivo como LEITURA (`--read`), nunca como editavel.
 
 🔴 O STUB DAQUI E NOVO, E ISSO NAO E DETALHE. O stub de evento que a story 004
-usa (`EVENTO_MINIMO`, em `test_classificador.py` e outros dois modulos) NAO tem
+usa (`EVENTO_MINIMO`, em `test_tipo_xml.py` e outros dois modulos) NAO tem
 `chNFe`: ele parseia sem erro e devolve `chNFe=None`. Se os testes da 005
 usassem aquele stub, a segunda passada nao acharia nota nenhuma, TUDO viraria
 orfao, e nada estouraria — os testes "provariam" o comportamento errado.
@@ -102,8 +102,8 @@ def test_evento_ou_infevento_ausente_devolve_tudo_none(xml):
 
 # --- C1.6 -------------------------------------------------------------------
 def test_xml_que_nao_abre_levanta_value_error():
-    """Evento SEM NAMESPACE. Nao e um caso inventado: o `classificar_xml`
-    aceita a tag `procEventoNFe` crua (`classificador.py:20`) e a manda para ca,
+    """Evento SEM NAMESPACE. Nao e um caso inventado: o `tipo_do_xml`
+    aceita a tag `procEventoNFe` crua (`tipo_xml.py:20`) e a manda para ca,
     onde o parser levanta `ParserError`. Sem virar `ValueError`, esta excecao
     sobe e derruba o lote inteiro."""
     sem_namespace = (

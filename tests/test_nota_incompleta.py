@@ -16,7 +16,7 @@ uma a uma: `AttributeError` (bloco ausente: `pag`, `prod`), `IndexError` (lista
 vazia: `detPag`) e `TypeError` (valor ausente numa conversao: `vNF`). Uma
 correcao que capture so a primeira passa em dois casos e reprova nos outros.
 
-⚠️ Todas mantem o `<mod>55</mod>`, entao `classificar_xml` continua dizendo
+⚠️ Todas mantem o `<mod>55</mod>`, entao `tipo_do_xml` continua dizendo
 "nfe" e o arquivo chega de fato a `extrair_nota`. Remover o `<ide>` inteiro nao
 serviria: a nota seria barrada antes, pelo roteamento.
 

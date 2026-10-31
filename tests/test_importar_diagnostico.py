@@ -22,8 +22,8 @@ import pytest
 
 from nfe_parser import importador
 from nfe_parser.banco import abrir_banco
-from nfe_parser.classificador import classificar_xml
 from nfe_parser.importador import importar
+from nfe_parser.tipo_xml import tipo_do_xml
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -33,7 +33,7 @@ CHAVE_1ITEM = "35260499999999000199550010000000011000000017"
 
 XML_QUE_NAO_ABRE = "<isto nao e xml"
 
-# ⚠️ Sem namespace de proposito: o `classificar_xml` le a tag crua, acha o `mod`
+# ⚠️ Sem namespace de proposito: o `tipo_do_xml` le a tag crua, acha o `mod`
 # 55 e responde "nfe" — mas o parser do `nfelib` recusa. E o unico jeito de
 # chegar ao `except ValueError` de `_processar_arquivo`, e por isso o C3.8
 # existe: sem ele aquele ramo nao e exercitado por teste nenhum da suite.
@@ -137,9 +137,9 @@ def test_cada_arquivo_e_classificado_uma_vez_so(conexao, tmp_path, monkeypatch):
 
     def contando(texto):
         chamadas.append(texto)
-        return classificar_xml(texto)
+        return tipo_do_xml(texto)
 
-    monkeypatch.setattr(importador, "classificar_xml", contando)
+    monkeypatch.setattr(importador, "tipo_do_xml", contando)
 
     importar(
         conexao,
