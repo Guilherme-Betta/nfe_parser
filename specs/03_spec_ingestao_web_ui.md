@@ -69,7 +69,7 @@ POST   /api/llm/classificar          roda a varredura COM o LLM → {classificad
 GET    /api/health                   {status:"ok", schema_version, llm_ativo, contagens:{notas, itens, produtos, categorias}}
 ```
 
-- **Cabeçalho de nota:** `{chave, modelo, dh_emi, emit_nome, emit_cnpj, valor_total_centavos, valor_total, status, n_itens}`. Ordem: `dh_emi` desc, depois `chave`. `mes` filtra por `substr(dh_emi,1,7)`.
+- **Cabeçalho de nota:** `{chave, modelo, dh_emi, emit_nome, emit_cnpj, valor_total_centavos, valor_total, status, n_itens}`. `emit_cnpj` é o documento do emitente, CNPJ **ou** CPF (spec 01 §2); `loja_cnpj`, nos filtros, aceita os dois — os nomes são históricos. Ordem: `dh_emi` desc, depois `chave`. `mes` filtra por `substr(dh_emi,1,7)`.
 - **Produto:** `{id, descricao_exemplo, identidade_origem, aproximado, gtin, categoria_slug, categoria, origem, n_itens}`. `aproximado = identidade_origem == 'texto'`. `classificado=false` ⇔ `origem IS NULL` (inclui o bucket). Ordem: `n_itens` desc, depois `id`.
 - **Paginação:** `pagina ≥ 1`, `1 ≤ por_pagina ≤ 200`. Parâmetro fora do formato → 422.
 - **Dinheiro** segue a spec 01 §6.2: `*_centavos` (int, fonte de verdade) + string `"123.45"` derivada. `quantidade`/`valor_unitario` atravessam como string decimal intacta.
